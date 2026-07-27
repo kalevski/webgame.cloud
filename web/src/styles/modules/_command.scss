@@ -1,0 +1,44 @@
+@use '../abstracts' as *;
+
+.layout-main__navbar-right {
+    display: flex;
+    align-items: center;
+    gap: $space-sm;
+}
+
+.module-command {
+    &__hint {
+        display: inline-flex;
+        align-items: center;
+        gap: $space-xs;
+        padding: 0.3rem 0.5rem 0.3rem 0.7rem;
+        font: inherit;
+        font-size: 0.8rem;
+        color: var(--tc-text-muted);
+        background: var(--tc-surface-muted);
+        border: 1px solid var(--tc-border);
+        border-radius: $radius-md;
+        cursor: pointer;
+
+        &:hover {
+            color: var(--tc-text);
+            background: var(--tc-surface-hover);
+        }
+
+        &:focus-visible {
+            outline-offset: 2px;
+        }
+    }
+
+    &__hint-keys {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.15rem;
+    }
+
+    &__hint-label {
+        @include down($bp-md) {
+            display: none;
+        }
+    }
+}

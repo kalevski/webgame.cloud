@@ -1,0 +1,34 @@
+$space-2xs: 0.25rem;
+$space-xs: 0.4rem;
+$space-sm: 0.6rem;
+$space-md: 0.85rem;
+$space-lg: 1.15rem;
+$space-xl: 1.6rem;
+$space-2xl: 2.25rem;
+
+$radius-sm: 6px;
+$radius-md: 10px;
+$radius-lg: 14px;
+
+$bp-sm: 576px;
+$bp-md: 768px;
+$bp-lg: 992px;
+
+@mixin down($breakpoint) {
+    @media (max-width: #{$breakpoint - 0.02px}) {
+        @content;
+    }
+}
+
+@mixin coarse-pointer {
+    @media (pointer: coarse) {
+        @content;
+    }
+}
+
+$tap-target: 40px;
+$tap-target-touch: 44px;
+
+$brand: #7c3aed;
+
+$focus-ring-color: $brand;

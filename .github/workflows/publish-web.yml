@@ -1,0 +1,47 @@
+name: Publish web build
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'web/**'
+      - 'api/src/contracts/**'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'tsconfig.base.json'
+      - '.github/workflows/publish-web.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: publish-web
+  cancel-in-progress: true
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build web
+        run: npm run build -w @appkit/web
+        env:
+          VITE_API_URL: https://api.example.com
+
+      - name: Push build to `public` (single commit)
+        uses: JamesIves/github-pages-deploy-action@v4
+        with:
+          folder: web/build
+          branch: public
+          single-commit: true
+          commit-message: 'publish web build from ${{ github.sha }}'

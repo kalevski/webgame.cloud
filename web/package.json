@@ -1,0 +1,32 @@
+{
+    "name": "@appkit/web",
+    "private": true,
+    "version": "0.1.0",
+    "type": "module",
+    "scripts": {
+        "dev": "vite",
+        "build": "tsc --noEmit && vite build",
+        "preview": "vite preview",
+        "typecheck": "tsc --noEmit"
+    },
+    "dependencies": {
+        "@appkit/api": "*",
+        "@fontsource/playfair-display": "^5.2.8",
+        "@fontsource/source-sans-3": "^5.2.9",
+        "@toolcase/base": "^5.0.0",
+        "@toolcase/web-components": "^5.0.14",
+        "react": "^19.1.0",
+        "react-dom": "^19.1.0",
+        "react-router": "^8.3.0",
+        "zustand": "^5.0.5"
+    },
+    "devDependencies": {
+        "@types/node": "^26.1.1",
+        "@types/react": "^19.1.0",
+        "@types/react-dom": "^19.1.0",
+        "@vitejs/plugin-react": "^4.5.0",
+        "sass": "^1.89.0",
+        "typescript": "^7.0.2",
+        "vite": "^6.3.5"
+    }
+}

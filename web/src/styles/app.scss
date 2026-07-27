@@ -1,0 +1,139 @@
+@use 'abstracts' as *;
+@use 'grid';
+@use 'components';
+@use 'modules';
+
+* {
+    box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+    margin: 0;
+    padding: 0;
+    height: 100%;
+}
+
+body {
+    font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
+
+    overflow-wrap: break-word;
+}
+
+.module {
+
+    min-width: 0;
+}
+
+p:where([class$='__intro']) {
+    margin: 0 0 $space-xs;
+    color: #71717a;
+    font-size: 0.875rem;
+    line-height: 1.45;
+}
+
+:where([class$='__toolbar']) {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: $space-sm;
+}
+
+:is(h1, h2, h3, h4, h5, h6):where([class$='__heading']) {
+    margin: 0;
+    font-size: 1rem;
+}
+
+.layout-main {
+    height: 100vh;
+
+    &__content {
+        padding: $space-xl;
+
+        @include down($bp-md) {
+            padding: $space-md $space-sm;
+        }
+
+        @include down($bp-sm) {
+            padding: $space-sm $space-xs;
+        }
+    }
+
+    &__panel {
+        font-size: 0.75rem;
+        color: #888;
+    }
+}
+
+.layout-base {
+    min-height: 100vh;
+    background: #fff;
+}
+
+@media print {
+
+    @page {
+        size: A4;
+        margin: 15mm;
+    }
+
+    .u-no-print {
+        display: none !important;
+    }
+
+    html,
+    body {
+        background: #ffffff;
+    }
+
+    * {
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
+
+    .tc-dashboard-layout__wrapper,
+    .tc-dashboard-layout__content {
+        overflow: visible !important;
+        height: auto !important;
+    }
+}
+
+:where(a, button, input, select, textarea, [tabindex]):focus-visible,
+:where(tc-button, tc-icon-button, tc-form-input, tc-extended-select, tc-combo-box, tc-tag-input):focus-visible {
+    outline-offset: 2px;
+    border-radius: $radius-sm;
+}
+
+@include coarse-pointer {
+    button,
+    a[role='button'],
+    tc-icon-button,
+    tc-button {
+        min-height: $tap-target-touch;
+
+        min-width: $tap-target-touch;
+    }
+
+    .pagination.pagination-sm .page-link {
+        min-width: $tap-target-touch;
+        min-height: $tap-target-touch;
+    }
+
+    input[type='checkbox'],
+    input[type='radio'] {
+        width: 20px;
+        height: 20px;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+    }
+}

@@ -1,0 +1,333 @@
+import { inject, injectable } from 'tsyringe'
+import type {
+    AccessPolicy,
+    LimitableResource,
+    LimitUsage,
+    ResolvedLimits,
+    User,
+    UserAccessOverrides,
+} from '../contracts/index.js'
+import type { Role, RoleBindings, RoleDraft, RoleSlot } from '../contracts/index.js'
+import {
+    LIMITABLE_RESOURCES,
+    OWNER_ROLE_ID,
+    PERMISSIONS,
+    RESOURCE_LABELS,
+    ROLE_SLOTS,
+    SEED_ROLE_BINDINGS,
+    toRoleId,
+} from '../contracts/index.js'
+import { SettingsService } from './SettingsService.js'
+import { AccessPolicyRepository } from '../repositories/access/AccessPolicyRepository.js'
+import { Database } from '../Database.js'
+
+export const ACCESS_POLICY_CHANNEL = 'access_policy_changed'
+import {
+    EMPTY_OVERRIDES,
+    isInSlot,
+    permissionsOfRole,
+    resolveLimits,
+    resolvePermissions,
+    rolesInSlot,
+} from '../domain/access.js'
+import { ConflictError as Conflict, NotFoundError, ValidationError } from '../domain/errors.js'
+
+const POLICY_TTL_MS = 30_000
+
+const USER_CACHE_MAX = 5_000
+
+const EMPTY_POLICY: AccessPolicy = {
+    roles: {},
+    roleLimits: {},
+    bindings: { default: null },
+}
+
+const slotKey = (slot: RoleSlot) => `role_slot_${slot}`
+
+@injectable()
+export class AccessPolicyService {
+    private cached: AccessPolicy | null = null
+    private cachedAt = 0
+
+    private loading: Promise<AccessPolicy> | null = null
+
+    private cachedRoleRows: Array<{ id: string; name: string; builtin: boolean; position: number }> | null = null
+    private roleRowsAt = 0
+    private roleRowsLoading: Promise<Array<{ id: string; name: string; builtin: boolean; position: number }>> | null = null
+
+    private userCache = new Map<string, { value: UserAccessOverrides; at: number }>()
+
+    constructor(
+        @inject(AccessPolicyRepository) private repository: AccessPolicyRepository,
+        @inject(SettingsService) private settings: SettingsService,
+        @inject(Database) private database: Database
+    ) {}
+
+    async policy(now = Date.now()): Promise<AccessPolicy> {
+        if (this.cached && now - this.cachedAt < POLICY_TTL_MS) return this.cached
+        this.loading ??= Promise.all([this.repository.loadPolicy(), this.loadBindings()])
+            .then(([loaded, bindings]) => {
+                const policy: AccessPolicy = { ...loaded, bindings }
+                this.cached = policy
+                this.cachedAt = Date.now()
+                return policy
+            })
+            .catch(() => this.cached ?? EMPTY_POLICY)
+            .finally(() => {
+                this.loading = null
+            })
+        return this.loading
+    }
+
+    invalidate(): void {
+        this.invalidateLocal()
+        void this.database.notify(ACCESS_POLICY_CHANNEL, '*')
+    }
+
+    private invalidateLocal(): void {
+        this.cached = null
+        this.cachedAt = 0
+        this.cachedRoleRows = null
+        this.roleRowsAt = 0
+    }
+
+    async init(): Promise<void> {
+        await this.database.listen(ACCESS_POLICY_CHANNEL, (payload) => {
+            if (payload === '*') this.invalidateLocal()
+            else this.userCache.delete(payload)
+        })
+    }
+
+    private async roleRows(now = Date.now()): Promise<Array<{ id: string; name: string; builtin: boolean; position: number }>> {
+        if (this.cachedRoleRows && now - this.roleRowsAt < POLICY_TTL_MS) return this.cachedRoleRows
+        this.roleRowsLoading ??= this.repository.listRoles()
+            .then((rows) => {
+                this.cachedRoleRows = rows
+                this.roleRowsAt = Date.now()
+                return rows
+            })
+            .catch(() => this.cachedRoleRows ?? [])
+            .finally(() => {
+                this.roleRowsLoading = null
+            })
+        return this.roleRowsLoading
+    }
+
+    invalidateUser(userId: string): void {
+        this.userCache.delete(userId)
+        void this.database.notify(ACCESS_POLICY_CHANNEL, userId)
+    }
+
+    async getPolicy(): Promise<AccessPolicy> {
+        return this.policy()
+    }
+
+    async listRoles(): Promise<Role[]> {
+        const [rows, policy] = await Promise.all([this.roleRows(), this.policy()])
+        return rows.map((row) => ({
+            ...row,
+            permissions: permissionsOfRole({ ...row, permissions: [] }, policy),
+        }))
+    }
+
+    async saveRole(draft: RoleDraft, existingId?: string): Promise<Role> {
+        const name = draft.name.trim()
+        if (!name) throw new ValidationError('name_required', 'a role must have a name')
+        if (existingId === OWNER_ROLE_ID) {
+            throw new Conflict('role_builtin', 'the reserved role cannot be edited')
+        }
+
+        const id = existingId ?? toRoleId(draft.id?.trim() || name)
+        if (!id) throw new ValidationError('id_required', 'invalid role identifier')
+        if (!existingId && id === OWNER_ROLE_ID) {
+            throw new Conflict('role_reserved', 'the identifier "owner" is reserved')
+        }
+
+        const existing = (await this.repository.listRoles()).find((row) => row.id === id)
+        if (!existingId && existing) {
+            throw new Conflict('role_exists', 'a role with that identifier already exists')
+        }
+        if (existingId && !existing) throw new NotFoundError('role_not_found', `role ${id} not found`, [id])
+
+        const permitted = new Set<string>(PERMISSIONS)
+        await this.repository.saveRole(
+            {
+                id,
+                name,
+                position: existing?.position ?? 60,
+                permissions: draft.permissions.filter((key) => permitted.has(key)),
+            },
+            !existing
+        )
+        this.invalidate()
+        const saved = (await this.listRoles()).find((role) => role.id === id)
+        return saved!
+    }
+
+    async deleteRole(roleId: string): Promise<void> {
+        if (roleId === OWNER_ROLE_ID) {
+            throw new Conflict('role_builtin', 'the reserved role cannot be deleted')
+        }
+        const inUse = await this.repository.countUsersWithRole(roleId)
+        if (inUse > 0) {
+            throw new Conflict('role_in_use', `${inUse} account(s) still hold this role`, [inUse])
+        }
+
+        const bindings = await this.loadBindings()
+        const bound = ROLE_SLOTS.filter((slot) => bindings[slot] === roleId)
+        if (bound.length > 0) {
+            throw new Conflict('role_bound', 'this role is bound to a slot in settings')
+        }
+        const removed = await this.repository.deleteRole(roleId)
+        if (!removed) throw new NotFoundError('role_not_found', `role ${roleId} not found`, [roleId])
+        this.invalidate()
+    }
+
+    async reassignRole(fromRoleId: string, toRoleId: string): Promise<number> {
+        const roles = await this.repository.listRoles()
+        if (!roles.some((role) => role.id === toRoleId)) {
+            throw new NotFoundError('role_not_found', `role ${toRoleId} not found`, [toRoleId])
+        }
+        const moved = await this.repository.reassignRole(fromRoleId, toRoleId)
+        this.invalidate()
+        return moved
+    }
+
+    async countUsersWithRole(roleId: string): Promise<number> {
+        return this.repository.countUsersWithRole(roleId)
+    }
+
+    async inSlot(user: { role: string }, slot: RoleSlot): Promise<boolean> {
+        return isInSlot(user.role, slot, (await this.policy()).bindings)
+    }
+
+    async roleIdsInSlot(slot: RoleSlot): Promise<string[]> {
+        return rolesInSlot(slot, (await this.policy()).bindings)
+    }
+
+    private async loadBindings(): Promise<RoleBindings> {
+        const entries = await Promise.all(
+            ROLE_SLOTS.map(async (slot) => [slot, (await this.settings.getRaw(slotKey(slot))) ?? null] as const)
+        )
+        const bindings = Object.fromEntries(entries) as RoleBindings
+
+        if (!bindings.default) bindings.default = SEED_ROLE_BINDINGS.default
+        return bindings
+    }
+
+    async getBindings(): Promise<RoleBindings> {
+        return (await this.policy()).bindings
+    }
+
+    async saveBindings(next: Partial<RoleBindings>): Promise<RoleBindings> {
+        const roles = new Set((await this.repository.listRoles()).map((role) => role.id))
+        for (const slot of ROLE_SLOTS) {
+            const value = next[slot]
+            if (value === undefined) continue
+            if (value !== null && !roles.has(value)) {
+                throw new NotFoundError('role_not_found', `role ${value} not found`, [value])
+            }
+            await this.settings.setRaw(slotKey(slot), value ?? '')
+        }
+
+        const bindings = await this.loadBindings()
+        if (!bindings.default) {
+            throw new ValidationError('default_role_required', 'a default role must be set')
+        }
+        this.invalidate()
+        return (await this.policy()).bindings
+    }
+
+    async saveLimits(roleLimits: AccessPolicy['roleLimits']): Promise<AccessPolicy> {
+        await this.repository.saveLimits(this.sanitizeLimits(roleLimits))
+        this.invalidate()
+        return this.policy()
+    }
+
+    private sanitizeLimits(roleLimits: AccessPolicy['roleLimits']): AccessPolicy['roleLimits'] {
+        const resources = new Set<string>(LIMITABLE_RESOURCES)
+        const out: AccessPolicy['roleLimits'] = {}
+        for (const [role, map] of Object.entries(roleLimits ?? {})) {
+            const kept = Object.fromEntries(
+                Object.entries(map ?? {})
+                    .filter(([key]) => resources.has(key))
+                    .map(([key, value]) => [key, value === null ? null : Math.max(0, Math.floor(Number(value)))])
+            )
+            if (Object.keys(kept).length > 0) out[role] = kept
+        }
+        return out
+    }
+
+    async getUserOverrides(userId: string, now = Date.now()): Promise<UserAccessOverrides> {
+        const hit = this.userCache.get(userId)
+        if (hit && now - hit.at < POLICY_TTL_MS) return hit.value
+        const value = await this.repository.loadUserOverrides(userId).catch(() => EMPTY_OVERRIDES)
+
+        if (this.userCache.size > USER_CACHE_MAX) this.userCache.clear()
+        this.userCache.set(userId, { value, at: Date.now() })
+        return value
+    }
+
+    async saveUserOverrides(userId: string, overrides: UserAccessOverrides): Promise<UserAccessOverrides> {
+        const permitted = new Set<string>(PERMISSIONS)
+        const resources = new Set<string>(LIMITABLE_RESOURCES)
+        await this.repository.saveUserOverrides(userId, {
+            permissions: Object.fromEntries(
+                Object.entries(overrides.permissions ?? {}).filter(([key]) => permitted.has(key))
+            ),
+            limits: Object.fromEntries(
+                Object.entries(overrides.limits ?? {})
+                    .filter(([key]) => resources.has(key))
+                    .map(([key, value]) => [key, value === null ? null : Math.max(0, Math.floor(Number(value)))])
+            ),
+        })
+        this.invalidateUser(userId)
+        return this.getUserOverrides(userId)
+    }
+
+    async usageFor(user: User): Promise<LimitUsage[]> {
+        const [policy, overrides, counts] = await Promise.all([
+            this.policy(),
+            this.getUserOverrides(user.id),
+            this.repository.countAll(user.id),
+        ])
+        const limits = resolveLimits(user, policy, overrides)
+        return LIMITABLE_RESOURCES.map((resource) => {
+            const limit = limits[resource]
+            return {
+                resource,
+                used: counts[resource],
+                limit,
+                reached: limit !== null && counts[resource] >= limit,
+            }
+        })
+    }
+
+    async limitsFor(user: User): Promise<ResolvedLimits> {
+        const [policy, overrides] = await Promise.all([this.policy(), this.getUserOverrides(user.id)])
+        return resolveLimits(user, policy, overrides)
+    }
+
+    async permissionsFor(user: User): Promise<ReadonlySet<import('../contracts/index.js').Permission>> {
+        const [policy, overrides] = await Promise.all([this.policy(), this.getUserOverrides(user.id)])
+        return resolvePermissions(user, policy, overrides)
+    }
+
+    async countOf(user: User, resource: LimitableResource): Promise<number> {
+        return this.repository.count(resource, user.id)
+    }
+
+    async assertWithinLimit(user: User, resource: LimitableResource): Promise<void> {
+        const limits = await this.limitsFor(user)
+        const limit = limits[resource]
+        if (limit === null) return
+        const used = await this.repository.count(resource, user.id)
+        if (used >= limit) {
+            throw new Conflict(
+                'limit_reached',
+                `limit of ${limit} ${resource} reached`,
+                [resource, limit]
+            )
+        }
+    }
+}

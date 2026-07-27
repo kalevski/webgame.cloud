@@ -1,0 +1,45 @@
+@use '../abstracts' as *;
+
+.module-files {
+    display: flex;
+    flex-direction: column;
+    gap: $space-md;
+
+    .tc-data-list__primary {
+        display: flex;
+        align-items: center;
+        gap: $space-2xs;
+    }
+
+    .tc-data-list__secondary {
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+        word-break: break-all;
+    }
+
+    &__types {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
+        gap: $space-md;
+    }
+
+    &__type {
+        display: flex;
+        flex-direction: column;
+        gap: $space-2xs;
+    }
+
+    &__type-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: $space-2xs;
+    }
+
+    &__footer {
+        display: flex;
+        align-items: center;
+        gap: $space-xs;
+        padding-top: $space-xs;
+        border-top: 1px solid var(--tc-border);
+    }
+}

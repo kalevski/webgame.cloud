@@ -1,0 +1,94 @@
+import { inject, injectable } from 'tsyringe'
+import { Database, type QueryRunner } from '../../Database.js'
+import type { FileRow, FileSourceRow } from '../../schema/files.js'
+
+import COUNT_FILES_FOR_SOURCE from './sql/count-files-for-source.sql'
+import DELETE_FILE from './sql/delete-file.sql'
+import DELETE_SOURCE from './sql/delete-source.sql'
+import INSERT_FILE from './sql/insert-file.sql'
+import INSERT_SOURCE from './sql/insert-source.sql'
+import SELECT_FILE from './sql/select-file.sql'
+import SELECT_SOURCE from './sql/select-source.sql'
+import SELECT_SOURCES from './sql/select-sources.sql'
+import UPDATE_SOURCE from './sql/update-source.sql'
+
+@injectable()
+export class FileRepository {
+    constructor(@inject(Database) private database: Database) {}
+
+    private run(trx?: QueryRunner) {
+        return trx ?? this.database.pool
+    }
+
+    async insertSource(
+        write: { id: string; name: string; type: string; config: Record<string, unknown>; secret: string },
+        trx?: QueryRunner
+    ): Promise<FileSourceRow | undefined> {
+        await this.run(trx).query(INSERT_SOURCE, [
+            write.id, write.name, write.type, JSON.stringify(write.config), write.secret,
+        ])
+        return this.findSource(write.id, trx)
+    }
+
+    async updateSource(
+        id: string,
+        patch: { name: string | null; config: Record<string, unknown> | null; secret: string | null },
+        trx?: QueryRunner
+    ): Promise<FileSourceRow | undefined> {
+        const result = await this.run(trx).query(UPDATE_SOURCE, [
+            id, patch.name, patch.config === null ? null : JSON.stringify(patch.config), patch.secret,
+        ])
+        if ((result.rowCount ?? 0) === 0) return undefined
+        return this.findSource(id, trx)
+    }
+
+    async deleteSource(id: string, trx?: QueryRunner): Promise<boolean> {
+        const result = await this.run(trx).query(DELETE_SOURCE, [id])
+        return (result.rowCount ?? 0) > 0
+    }
+
+    async findSource(id: string, trx?: QueryRunner): Promise<FileSourceRow | undefined> {
+        const { rows } = await this.run(trx).query<FileSourceRow>(SELECT_SOURCE, [id])
+        return rows[0]
+    }
+
+    async listSources(trx?: QueryRunner): Promise<FileSourceRow[]> {
+        const { rows } = await this.run(trx).query<FileSourceRow>(SELECT_SOURCES)
+        return rows
+    }
+
+    async countFilesForSource(sourceId: string, trx?: QueryRunner): Promise<number> {
+        const { rows } = await this.run(trx).query<{ c: number }>(COUNT_FILES_FOR_SOURCE, [sourceId])
+        return rows[0]?.c ?? 0
+    }
+
+    async insertFile(
+        write: {
+            id: string
+            fileType: string
+            sourceId: string
+            location: string
+            ownerId: string | null
+            originalName: string
+            mime: string
+            size: number
+        },
+        trx?: QueryRunner
+    ): Promise<FileRow | undefined> {
+        await this.run(trx).query(INSERT_FILE, [
+            write.id, write.fileType, write.sourceId, write.location,
+            write.ownerId, write.originalName, write.mime, write.size,
+        ])
+        return this.findFile(write.id, trx)
+    }
+
+    async findFile(id: string, trx?: QueryRunner): Promise<FileRow | undefined> {
+        const { rows } = await this.run(trx).query<FileRow>(SELECT_FILE, [id])
+        return rows[0]
+    }
+
+    async deleteFile(id: string, trx?: QueryRunner): Promise<boolean> {
+        const result = await this.run(trx).query(DELETE_FILE, [id])
+        return (result.rowCount ?? 0) > 0
+    }
+}

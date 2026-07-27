@@ -1,0 +1,11 @@
+.git
+.claude
+.vite
+**/node_modules
+**/dist
+**/build
+web/**
+!web/package.json
+migrations/source
+*.log
+.DS_Store

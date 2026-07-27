@@ -1,0 +1,193 @@
+Category,Product (EN),Product (MK),Natural Season / Availability,Notes
+Fruit,Strawberry,Јагода,May - June,Grown widely around Skopje and Strumica
+Fruit,Cherry,Цреша,May - June,Prespa and Tikves regions
+Fruit,Sour Cherry,Вишна,June - July,Common in home gardens
+Fruit,Apricot,Кајсија,June - July,Grown in warmer valleys (Gevgelija Valandovo)
+Fruit,Peach,Праска,June - September,Major crop in Rosoman and Tikves region
+Fruit,Nectarine,Нектарина,July - September,Tikves region
+Fruit,Plum,Слива,July - September,Widespread; used fresh and for rakija
+Fruit,Watermelon,Лубеница,July - September,Strumica and Gevgelija regions
+Fruit,Melon,Диња,July - September,Strumica region
+Fruit,Raspberry,Малина,June - August,Mountain and hilly regions
+Fruit,Blackberry,Капина,July - September,Wild and cultivated
+Fruit,Blueberry,Боровинка,July - August,Wild in mountains (Pelister Shar)
+Fruit,Fig,Смоква,August - September,Warmer south (Gevgelija Dojran)
+Fruit,Grape,Грозје,August - October,Tikves is the main wine region
+Fruit,Apple,Јаболко,August - November,Prespa/Resen is the apple capital; stores through winter
+Fruit,Pear,Круша,August - October,Widespread
+Fruit,Quince,Дуња,September - November,Used for slatko and marmalade
+Fruit,Pomegranate,Калинка,September - November,Southern regions (Valandovo Dojran)
+Fruit,Walnut,Орев,September - October,Widespread; stores year-round
+Fruit,Hazelnut,Лешник,August - September,Hilly regions
+Fruit,Almond,Бадем,August - September,Warmer southern areas
+Fruit,Chestnut,Костен,October - November,Wild in western mountains
+Fruit,Kiwi,Киви,October - November,Small-scale in Gevgelija region
+Fruit,Cornelian Cherry,Дренка,August - September,Wild; used for juice and rakija
+Fruit,Rosehip,Шипка,September - November,Wild; used for tea and marmalade
+Fruit,Mulberry,Црница,June - July,Common village tree
+Vegetable,Spinach,Спанаќ,March - May and September - November,Cool-season crop
+Vegetable,Lettuce,Зелена салата,March - June and September - November,Cool-season crop
+Vegetable,Spring Onion,Млад кромид,March - May,Early spring markets
+Vegetable,Radish,Ротквица,March - May,Early spring
+Vegetable,Peas,Грашок,May - June,Short spring season
+Vegetable,Green Beans,Боранија,June - September,Summer staple
+Vegetable,Cucumber,Краставица,June - September,Strumica region; also for pickling
+Vegetable,Tomato,Домат,June - October,Strumica and Gevgelija; peak July-September
+Vegetable,Pepper,Пиперка,July - October,National staple; base of ajvar (Sep-Oct)
+Vegetable,Eggplant,Модар патлиџан,July - September,Summer crop
+Vegetable,Zucchini,Тиквичка,June - September,Summer crop
+Vegetable,Sweet Corn,Пченка (слатка),July - September,Roadside roasted corn season
+Vegetable,Okra,Бамја,July - August,Traditional in south
+Vegetable,Potato,Компир,June - October,"Grown in Pelagonija, Berovo; stores all winter"
+Vegetable,Onion,Кромид,July - September,Stores year-round
+Vegetable,Garlic,Лук,June - August,Stores year-round
+Vegetable,Carrot,Морков,June - November,Stores through winter
+Vegetable,Beetroot,Цвекло,July - November,Stores through winter
+Vegetable,Cabbage,Зелка,June - November,Autumn cabbage used for winter pickling (racenica/kisela zelka)
+Vegetable,Cauliflower,Карфиол,September - November,Autumn crop
+Vegetable,Broccoli,Брокула,September - November,Autumn crop
+Vegetable,Leek,Праз,October - March,Winter staple; used in zelnik and pita
+Vegetable,Pumpkin,Тиква,September - November,Used in traditional tikvarnik
+Vegetable,Kale/Collard,Раштан,October - February,Traditional winter green
+Vegetable,Celery,Целер,September - November,Root and leaf
+Vegetable,Parsley,Магдонос,April - November,Fresh most of the season
+Vegetable,Mushrooms (wild),Печурки (диви),April - June and September - November,"Porcini, chanterelles from mountain forests"
+Grain,Wheat,Пченица,Harvested June - July,Pelagonija and Ovche Pole; flour year-round
+Grain,Barley,Јачмен,Harvested June - July,Feed and brewing
+Grain,Rye,'Рж,Harvested July,Mountain regions; traditional bread
+Grain,Oats,Овес,Harvested July,Smaller-scale crop
+Grain,Corn (maize),Пченка,Harvested September - October,Widespread; polenta and animal feed
+Grain,Rice,Ориз,Harvested September - October,Kochani rice is famous nationally
+Grain,Sunflower,Сончоглед,Harvested September,For oil and seeds
+Grain,Beans (dry),Грав,Harvested September - October,Tetovo beans (tetovski grav) are iconic; stores year-round
+Grain,Lentils,Леќа,Harvested July - August,Smaller-scale traditional crop
+Grain,Chickpeas,Наут/Слануток,Harvested July - August,Traditional crop
+Grain,Buckwheat,Хељда,Harvested September,Small-scale; growing popularity
+Dairy,Fresh Cow Milk,Кравјо млеко,Year-round (peak spring - summer),Pelagonija is the main dairy region
+Dairy,Sheep Milk,Овчо млеко,April - September,Follows lambing and pasture season
+Dairy,Goat Milk,Козјо млеко,March - October,Village and small farm production
+Dairy,White Brined Cheese,Бело сирење,Year-round (best from spring/summer milk),Feta-style staple cheese
+Dairy,Kashkaval,Кашкавал,Year-round (best from summer sheep milk),Galichnik and Mavrovo traditional producers
+Dairy,Urda,Урда,Spring - autumn,Whey cheese similar to ricotta
+Dairy,Yogurt,Јогурт,Year-round,Drinking-style yogurt is standard
+Dairy,Sour Milk,Кисело млеко,Year-round,Thick set yogurt
+Dairy,Ayran/Matenica,Матеница,Year-round (popular in summer),Salty yogurt drink
+Dairy,Kajmak/Skorup,Кајмак,Spring - autumn,Cream skimmed from boiled milk
+Dairy,Butter,Путер/Масло,Year-round,Traditional village butter from kajmak
+Dairy,Bieno Sirenje,Биено сирење,Summer milk aged for autumn/winter,Protected traditional Mariovo/Bitola cheese
+Meat,Lamb,Јагнешко,March - May (peak around Easter/Gjurgjovden),Traditional spring roast lamb
+Meat,Sheep/Mutton,Овчо месо,September - November,Autumn slaughter after grazing season
+Meat,Pork,Свинско,Year-round (traditional slaughter November - January),Winter slaughter for smoked meats
+Meat,Beef,Говедско,Year-round,Pelagonija cattle
+Meat,Veal,Телешко,Year-round,Common in restaurants
+Meat,Chicken,Пилешко,Year-round,Widespread farm and industrial production
+Meat,Turkey,Мисирка,October - January (peak for New Year),Traditional holiday bird
+Meat,Rabbit,Зајак,Year-round (village production),Small-scale
+Meat,Freshwater Fish (trout),Пастрмка,Year-round (best autumn - spring),Ohrid trout is protected; farmed trout common
+Meat,Carp,Крап,Year-round (peak December for Christmas),Dojran and fish farms
+Meat,Sudzuk,Суџук,Made November - February,Dried spiced sausage from winter slaughter
+Meat,Smoked Pork/Bacon,Пушено месо/Сланина,Made November - February; eaten year-round,Traditional winter preservation
+Meat,Pastrmajka meat (dried),Пастрма,Made October - December,Salted dried sheep or pork meat
+Meat,Village Sausage,Домашен колбас,Made November - January,Winter slaughter tradition
+Meat,Eggs,Јајца,Year-round (peak spring),Village free-range eggs common
+Fruit,Red/Black Currant,Рибизла,June - July,Home gardens and hilly regions
+Fruit,Gooseberry,Огрозд,June - July,Home gardens
+Fruit,Wild Strawberry,Шумска јагода,June - July,Mountain forest edges
+Fruit,Cherry Plum,Џанка,June - July,Wild and semi-wild; popular for rakija
+Fruit,Elderberry,Бозел,Flowers May - June; berries August - September,Wild; syrup and juice
+Fruit,Aronia,Аронија,August - September,Newer plantations; juice and tea
+Fruit,Persimmon,Јапонско јаболко (урма),October - November,Gevgelija and Valandovo microclimate
+Fruit,Medlar,Мушмула,October - November,Old village gardens; eaten after softening
+Fruit,Jujube,Жижула,September - October,Dojran and southern gardens
+Fruit,Hawthorn,Глог,September - October,Wild; berries for tea
+Fruit,Blackthorn (sloe),Трнинка,October - November,Wild; after first frost
+Fruit,Peanut,Кикирики,Harvested September - October,Valandovo is famous for peanuts
+Vegetable,Swiss Chard,Блитва,May - October,Common garden green
+Vegetable,Nettle,Коприва,March - May,Wild spring green; used in zelnik and pies
+Vegetable,Sorrel,Киселец,April - June,Wild; sour spring green
+Vegetable,Wild Asparagus,Дива шпаргла,April - May,Foraged in spring
+Vegetable,Purslane,Тушт,June - August,Summer salads
+Vegetable,Arugula,Рукола,April - June and September - October,Cool-season crop
+Vegetable,Dill,Копар,May - September,Essential for pickling season
+Vegetable,Mint,Нане,May - September,Gardens and wild
+Vegetable,Hot Peppers,Лути пиперки,July - October,"Dried on strings (vezeni piperki), a national symbol"
+Vegetable,Green Tomatoes,Зелени домати,September - October,Picked green for winter tursija
+Vegetable,Kohlrabi,Келераба,May - June and September - October,Two seasons
+Vegetable,Turnip,Репа,September - November,Winter storage
+Vegetable,Parsnip,Пашканат,September - November,Soup vegetable; stores well
+Vegetable,Horseradish,Рен,October - March,Root dug in cold months
+Vegetable,Black Radish,Црна ротква,October - February,Traditional winter salad
+Vegetable,Red Cabbage,Црвена зелка,September - November,Winter salads and pickling
+Grain,Millet,Просо,Harvested August - September,Small-scale traditional grain
+Grain,Soybean,Соја,Harvested September - October,Growing crop in Pelagonija
+Grain,Poppy Seed,Афион,Harvested July,Kriva Palanka region has a long poppy tradition
+Grain,Sesame,Сусам,Harvested September,Small-scale in the warm south; tahini and halva
+Grain,Broad Beans,Бакла,June - July,Traditional legume
+Grain,Einkorn/Spelt,Лимец,Harvested July,Revived ancient wheat; health-food market
+Grain,Pumpkin Seeds,Тиквено семе,September - October,Snacking (semki) and oil
+Dairy,Cream (Pavlaka),Павлака,Year-round,Sour cream for cooking and toppings
+Dairy,Whey,Сурутка,Spring - autumn,Byproduct of cheesemaking; drunk fresh
+Dairy,Goat Cheese,Козјо сирење,March - October,Small farms; follows goat milking season
+Dairy,Aged Sheep Cheese,Овчо сирење (зрело),Summer milk aged for winter,Stored in brine or wooden barrels (kace)
+Meat,Kid Goat,Јарешко,April - June,Traditional for Gjurgjovden alongside lamb
+Meat,Goat Meat,Козјо месо,September - November,Autumn slaughter
+Meat,Duck,Пајка,Year-round (village),Small-scale household raising
+Meat,Goose,Гуска,October - January,Traditional winter poultry
+Meat,Quail,Потполошка,Year-round,Small farms; eggs also sold
+Meat,Wild Boar,Дива свиња,Hunting season October - January,Game meat; stews and sausages
+Meat,Venison (deer/roe deer),Дивеч (елен/срна),Hunting season September - January,Regulated game
+Meat,Wild Hare,Див зајак,Hunting season October - January,Traditional game dish
+Meat,Eel,Јагула,Autumn (peak migration),Struga eel is a famous delicacy
+Meat,Ohrid Belvica,Белвица,Year-round (regulated),Endemic Lake Ohrid fish
+Meat,Catfish,Сом,Year-round,Lakes and rivers (Dojran Tikvesh)
+Meat,Snails,Полжави,April - June and September - October,Gathered after rain; also exported
+Other,Honey,Мед,Harvested May - September,"Acacia, meadow, forest and chestnut honey"
+Other,Mountain Tea,Планински чај,Gathered July - August,Wild Sideritis from Shar and Pelister
+Other,Wild Oregano,Ригaн,July - August,Wild-gathered herb
+Other,Rakija fruit spirits base,Ракија,Distilled September - November,From plums grapes and wild fruit
+Other,Olive Oil,Маслиново масло,Year-round,Pantry staple; mostly imported from Greece and Italy
+Other,Salt,Сол,Year-round,Basic seasoning
+Other,Black Pepper,Црн бибер,Year-round,Imported spice
+Other,Mustard,Сенф,Year-round,Condiment
+Other,Tahini,Таан,Year-round,Sesame paste; local production from Macedonian sesame exists
+Other,Balsamic Vinegar,Балсамико оцет,Year-round,Imported condiment
+Other,Chili Sauce,Чили сос,Year-round,Hot condiment
+Other,Soy Sauce,Соја сос,Year-round,Imported condiment
+Other,Vegetable Broth,Зеленчуков бујон,Year-round,Cubes or homemade stock
+Other,Mixed Dried Vegetables,Мешан сув зеленчук,Year-round,Dried soup vegetables / seasoning mix
+Other,Water,Вода,Year-round,
+Other,Turmeric,Куркума,Year-round,Imported spice
+Other,Cinnamon,Цимет,Year-round,Imported spice
+Other,Sumac,Сумак,Year-round,Middle Eastern spice
+Other,Oregano,Оригано,Year-round,Dried culinary herb (cultivated)
+Other,Vanilla Extract,Екстракт од ванила,Year-round,Baking ingredient
+Other,Baking Powder,Прашок за пециво,Year-round,Leavening agent
+Other,Brown Sugar,Кафеав шеќер,Year-round,Sweetener
+Other,Chocolate,Чоколадо,Year-round,Dark chocolate values
+Other,Cocoa,Какао,Year-round,Unsweetened cocoa powder
+Other,Chia Seeds,Чија семе,Year-round,Imported seeds
+Other,Peanut Butter,Путер од кикирики,Year-round,Nut butter; pick 100 percent peanuts
+Fruit,Lemon,Лимон,Year-round,Imported; available in markets year-round
+Fruit,Orange,Портокал,Year-round,Imported; winter is peak season
+Fruit,Avocado,Авокадо,Year-round,Imported
+Fruit,Olives,Маслинки,Year-round,"Imported, mostly from Greece"
+Fruit,Dates,Урми,Year-round,Imported dried fruit
+Fruit,Banana,Банана,Year-round,Imported; available year-round
+Fruit,Cashew,Индиски орев,Year-round,Imported nut
+Fruit,Forest Fruit Mix,Микс од шумско овошје,Year-round,Frozen berry mix
+Vegetable,Cherry Tomatoes,Чери домати,June - October,Grown locally in greenhouses; imported off-season
+Vegetable,Ginger,Ѓумбир,Year-round,Imported root
+Vegetable,Basil,Босилек,May - September,Garden herb; dried available year-round
+Dairy,Milk,Млеко,Year-round,Store milk incl. low-fat and protein varieties
+Dairy,Feta Cheese,Фета сирење,Year-round,"Brined white cheese, Greek style"
+Dairy,Mozzarella,Моцарела,Year-round,Fresh Italian-style cheese
+Dairy,Cottage Cheese,Котеџ сирење,Year-round,Fresh curd cheese
+Meat,Tuna (canned),Туна (конзерва),Year-round,Canned fish staple
+Meat,Salmon,Лосос,Year-round,Imported fresh or frozen fish
+Meat,Egg White,Белка од јајце,Year-round,Separated egg whites
+Grain,Quinoa,Киноа,Year-round,Imported pseudo-grain
+Grain,Bulgur,Булгур,Year-round,Cracked parboiled wheat
+Grain,Bread,Леб,Year-round,Incl. whole-grain and graham loaves
+Grain,Tortilla,Тортиља,Year-round,Wheat flatbread wraps
+Grain,Pasta,Паста,Year-round,Dry pasta incl. small soup shapes
+Grain,Breadcrumbs,Лебни трошки,Year-round,Dried bread crumbs

@@ -1,0 +1,10 @@
+{
+    "ignore": {
+        "overrides": [
+            {
+                "files": ["src/helpers/money.ts"],
+                "rules": ["react-doctor/js-hoist-intl"]
+            }
+        ]
+    }
+}

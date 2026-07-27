@@ -1,0 +1,14 @@
+@use '../abstracts' as *;
+
+.module-devices {
+    display: flex;
+    flex-direction: column;
+    gap: $space-lg;
+    max-width: 46rem;
+}
+
+.module-devices__current,
+.module-devices__others {
+    display: block;
+    --bs-section-card-body-padding: 0;
+}

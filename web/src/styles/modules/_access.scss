@@ -1,0 +1,64 @@
+@use '../abstracts' as *;
+
+.module-access {
+    display: flex;
+    flex-direction: column;
+    gap: $space-md;
+
+    &__list {
+        background: #fff;
+        border: 1px solid #e9eaec;
+        border-radius: $radius-md;
+        overflow: hidden;
+
+        @include down($bp-md) {
+            flex-direction: column;
+        }
+    }
+
+    &__detail {
+        display: flex;
+        flex-direction: column;
+        gap: $space-md;
+        min-width: 0;
+
+        &--empty {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 220px;
+        }
+    }
+
+    &__footer {
+        display: flex;
+        align-items: center;
+        gap: $space-xs;
+        padding-top: $space-xs;
+        border-top: 1px solid #f1f2f4;
+    }
+
+    &__spacer { flex: 1; }
+
+    &__bindings {
+        display: flex;
+        flex-direction: column;
+        gap: $space-sm;
+        padding: $space-md;
+        background: #fff;
+        border: 1px solid #e9eaec;
+        border-radius: $radius-md;
+    }
+
+    &__slots {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
+        gap: $space-md;
+    }
+
+    &__slot {
+        display: flex;
+        flex-direction: column;
+        gap: $space-2xs;
+    }
+}

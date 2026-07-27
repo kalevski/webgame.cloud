@@ -1,0 +1,42 @@
+@use '../abstracts' as *;
+
+.module-projects__header {
+    margin-bottom: $space-xl;
+}
+
+.module-projects__pager {
+    display: flex;
+    justify-content: center;
+    margin-top: $space-xl;
+}
+
+.project-card {
+    cursor: pointer;
+}
+
+.project-card__stats {
+    display: block;
+    margin-top: $space-sm;
+}
+
+.project-card__header {
+    display: flex;
+    align-items: center;
+    gap: $space-sm;
+}
+
+.project-card__name {
+    flex: 1 1 auto;
+    min-width: 0;
+    font-weight: 600;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.project-card__footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: $space-sm;
+}

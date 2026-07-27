@@ -1,0 +1,27 @@
+.module-page-header {
+    display: flex;
+    align-items: baseline;
+    gap: 0.75rem;
+    min-width: 0;
+
+    &__title {
+        display: inline;
+        margin: 0;
+        font-size: 1rem;
+        font-weight: 700;
+        line-height: inherit;
+        white-space: nowrap;
+    }
+
+    &__description {
+        color: #777;
+        font-size: 0.8125rem;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+
+        @media (max-width: 767px) {
+            display: none;
+        }
+    }
+}

@@ -1,0 +1,180 @@
+.modal-upgrade {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.6rem;
+
+    position: relative;
+
+    &__title {
+        margin: 0;
+        font-size: 1.05rem;
+    }
+
+    &__blurb,
+    &__how {
+        margin: 0;
+        font-size: 0.88rem;
+    }
+
+    &__benefits {
+        margin: 0;
+        padding-left: 1.1rem;
+        font-size: 0.88rem;
+
+        li {
+            margin-bottom: 0.25rem;
+        }
+    }
+
+    &__price {
+        margin: 0;
+        font-weight: 600;
+    }
+
+    &__how {
+        color: #6b7280;
+    }
+}
+
+.modal-access {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+
+    &__who {
+        margin: 0 0 0.25rem;
+        font-weight: 600;
+    }
+
+    &__hint {
+        margin: 0;
+        font-size: 0.8rem;
+        color: #6b7280;
+    }
+
+    &__error {
+        margin: 0;
+        font-size: 0.85rem;
+        color: #b42318;
+    }
+
+    &__warning {
+        margin: 0;
+        padding: 0.5rem 0.65rem;
+        background: #fdf6e3;
+        border: 1px solid #efe4c0;
+        border-radius: 6px;
+        font-size: 0.82rem;
+        color: #8a6d2f;
+    }
+
+    &__danger {
+        margin-top: 0.25rem;
+        padding: 0.6rem 0.75rem;
+        background: #fef3f2;
+        border: 1px solid #fecdca;
+        border-radius: 6px;
+
+        p {
+            margin: 0 0 0.5rem;
+            font-size: 0.85rem;
+            color: #b42318;
+        }
+    }
+}
+
+.modal-template__sample-note {
+    margin: 0 0 0.5rem;
+    font-size: 0.8rem;
+    font-style: italic;
+    color: #6b7280;
+}
+
+.modal-access {
+    &__toggle {
+        align-self: flex-start;
+        padding: 0;
+        border: 0;
+        background: transparent;
+        color: #2563eb;
+        font-size: 0.82rem;
+        text-decoration: underline;
+        cursor: pointer;
+    }
+
+    &__overrides {
+        display: flex;
+        flex-direction: column;
+        gap: 0.4rem;
+        padding: 0.6rem;
+        background: #fafafa;
+        border: 1px solid #e5e7eb;
+        border-radius: 6px;
+
+        .module-access__head {
+            display: none;
+        }
+    }
+
+    &__subtitle {
+        margin: 0.4rem 0 0;
+        font-size: 0.85rem;
+    }
+
+    &__limit-row {
+        display: flex;
+        align-items: center;
+        gap: 0.4rem;
+
+        input {
+            width: 6rem;
+            margin-left: auto;
+        }
+    }
+
+    &__limit-name { font-size: 0.82rem; }
+
+    &__usage {
+        color: #6b7280;
+        font-style: normal;
+    }
+
+    &__clear {
+        border: 0;
+        background: transparent;
+        color: #b42318;
+        cursor: pointer;
+    }
+
+    &__permissions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.25rem;
+        max-height: 12rem;
+        overflow-y: auto;
+    }
+
+    &__perm {
+        padding: 0.15rem 0.4rem;
+        border: 1px solid #e5e7eb;
+        border-radius: 4px;
+        background: #fff;
+        font-size: 0.72rem;
+        cursor: pointer;
+
+        &--grant {
+            background: #e7f6ec;
+            border-color: #b7e1c4;
+            color: #1a7f37;
+        }
+
+        &--revoke {
+            background: #fdecea;
+            border-color: #f5c2bd;
+            color: #b42318;
+        }
+
+        &--inherit { color: #6b7280; }
+    }
+}

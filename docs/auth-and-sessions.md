@@ -1,0 +1,51 @@
+# Auth & sessions
+
+Opaque cookie-session auth (not JWT). The session id is a random token stored in the `sessions` table; the cookie is `starter_session` (HttpOnly).
+
+## Key files
+
+- `api/src/auth.ts` — `registerAuth` (onRequest hook), `requireAuth`, `requirePermission`, cookie helpers, `SESSION_COOKIE`.
+- `api/src/routers/authRouter.ts` — OAuth redirect flow (`/api/auth/:provider` + callback, sign-in and link modes), dev login, `/api/config`, `/api/auth/me`, logout.
+- `api/src/services/AuthService.ts` — the provider registry (Google, Discord), code exchange + profile fetch (`authenticate`), `resolveOAuthUser`/`resolveDevUser`, `linkIdentity`, session open/close, the `/me` envelope.
+- `api/src/repositories/users/UserRepository.ts` — user CRUD (`createWithAutoRole` holds the first-user advisory lock).
+- `api/src/repositories/users/IdentityRepository.ts` — the `user_identities` table: `findUserByIdentity`, `link` (transactional upsert returning a `linked_elsewhere` sentinel), `unlink`.
+- `api/src/repositories/users/SessionRepository.ts` — session CRUD (`create`, `findSessionUser`, `listForUser`, `touch`, `deletePublicForUser`, `deleteExpired`).
+- `api/src/domain/userAgent.ts` — `describeUserAgent`: a dependency-free regex table turning a raw `User-Agent` into `{ browser, os }`.
+- Web: `web/src/services/AuthService.ts`, `web/src/state/auth.slice.ts`, `web/src/modules/{LoginPanel,AuthGuard,ConsentGate,Init}.tsx`.
+
+## Request flow
+
+`registerAuth` runs on every request: reads the cookie, loads `request.user` (null when absent/invalid — it never rejects by itself), and resolves the caller's permission set once so `request.can(key)` stays a synchronous set lookup. It also stamps the user's `last_seen_at` (throttled ~hourly) for the WAU/D30 metrics, and the session row's own `last_seen_at` (throttled to once a minute) that powers the device list. Guards `requireAuth` / `requirePermission(...keys)` are `preHandler`s routes opt into.
+
+## Sign-in
+
+- **OAuth SSO** (any of `GOOGLE_SSO` / `DISCORD_SSO` configured): `/api/auth/:provider` → provider consent → `/api/auth/:provider/callback` verifies the identity (Google: id_token via tokeninfo; Discord: `users/@me` with the access token, requiring a verified email), resolves/creates the user, opens a session, redirects to `WEB_URL/dashboard` (`DashboardPage` consumes any stored post-login redirect from there). Built on the `@toolcase/node` OAuth2 helpers: S256 **PKCE** (`generatePKCE`), a 256-bit CSRF `state` (`generateState`) checked constant-time in the callback (`verifyCallback`), and `exchangeCode` with a 5s timeout. State + PKCE verifier (+ a `link` flag) round-trip through one HttpOnly cookie (`starter_oauth_state`, base64url JSON, 10 min). Providers are lazily built `defineOAuth2Provider` configs in `AuthService` — static endpoints, no boot-time discovery fetch. `GET /api/config` reports the configured providers (`AuthConfig.providers`); the login panel renders one button per provider.
+- **Dev login** (`DEV_LOGIN=true`, never in prod — auto-disabled when any OAuth provider is configured): `POST /api/auth/dev` with an email — email-only, for local development.
+- **Magic link** (behind the `magic_link` product flag, which itself requires `email` — `FEATURE_FLAG_REQUIRES` in `contracts/features.ts`): `POST /api/auth/magic-link` mails a one-time link through the configured `EmailPort`; `GET /api/auth/magic-link/:token` consumes it and opens a session. Tokens live in `login_tokens`, are **stored as a SHA-256 hash** (the plaintext exists only in the mail), expire after 15 minutes, are single-use (`consumed_at`), and both routes are rate limited — 5 requests per 15 min per IP+email, 20 consumptions per 15 min (platform-hardening.md). Sign-in resolves through the same `AuthService` path as SSO, so the first account created is still the `owner`. The dependency is real, not cosmetic: with `email` off there is no way to deliver the link, so the flag resolves to `false` and the login panel hides the field.
+
+## Sign-out
+
+`POST /api/auth/logout` deletes the session row and clears the cookie. The web side (`auth.slice.ts` `logout`) drops the `has-session` hint and does a full page load to `/` — the **landing page**, not `/login`. Account deletion ends the same way. Routing rules are in frontend-architecture.md.
+
+## Active devices
+
+Each session row records the `User-Agent` and IP it was opened with (`sessionContext(request)` in `auth.ts`, threaded into `AuthService.createSession` and `UserService.impersonate`), plus a `public_id` — a random UUID that is the ONLY session handle ever sent to a client. The `id` column is the cookie value itself, so it never leaves the server.
+
+- `GET /api/account/sessions` → `UserSession[]`: `{ id (public_id), current, browser, os, ip, createdAt, lastSeenAt, expiresAt }`, unexpired only, most recently active first, with the current device sorted to the top. `browser`/`os` come from `describeUserAgent`; the raw UA string is not exposed.
+- `DELETE /api/account/sessions/:id` deletes one session by `public_id`, scoped to the caller's own user. Revoking the session backing the current request is refused with `current_session` (409) — signing yourself out is what `POST /api/auth/logout` is for. An unknown handle yields `session_not_found` (404).
+
+`AccountService.listSessions`/`revokeSession` hold the mapping and the rules; the current-device comparison is `row.id === readSessionId(request)`. On the web this is the **Devices** tab of `/profile` (`modules/DeviceSessions.tsx`, `/profile/devices`) — the current device renders as a card at the top with a "Current" badge and no sign-out control, every other device gets a row with a Sign out button. Revocation takes effect on the revoked device's next request (its cookie no longer resolves to a session, so `request.user` is null → 401).
+
+## Linked identities
+
+External logins live in `user_identities` (`provider` + `subject` PK, one row per provider per user), not on the `users` row. `resolveOAuthUser` looks up by identity first, then by email (linking the identity to the matched account), and only then creates a new user. A signed-in user can connect more providers from the Profile page: `/api/auth/:provider?link=1` runs the same OAuth flow but, on callback, binds the identity to the **current session's** user and redirects to `/profile?linked=<provider>` (or `?link_error=<code>`; a subject already bound to a different user yields `identity_linked_elsewhere`). Account endpoints: `GET /api/account/identities` lists connections, `DELETE /api/account/identities/:provider` disconnects one — refused with `last_identity` when it is the only sign-in method left (dev-login accounts have zero identity rows and simply have nothing to unlink). Identities are included in the account export.
+
+**First user is owner**: `UserRepository.createWithAutoRole` takes a transaction advisory lock, and if the `users` table is empty the new account gets role `owner`; everyone after gets the role bound to the `default` slot. This is hard-coded on purpose — it guarantees every deployment has one undeletable administrator.
+
+## Session envelope
+
+`GET /api/auth/me` returns `AuthSession`: the `User`, the advisory `permissions` array, resolved `limits`/`resourceLimits`/`usage`, the `slots` map, and `paidRoleNames`. The web app re-fetches it on window focus and after any unexpected 403 (`Init.tsx` + `helpers/api.ts`), which self-heals a stale client without polling or forcing a re-login — so a role grant never logs anyone out.
+
+## Consent gate
+
+A brand-new account has `consentedAt === null`. `AuthGuard` renders `ConsentGate` instead of the page until `POST /api/account/consent` stamps it. It is the one client-side signal distinguishing a sign-up from a returning login (used for the `sign_up` vs `login` analytics event).

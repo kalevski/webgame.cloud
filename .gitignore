@@ -1,0 +1,31 @@
+# dependencies
+node_modules/
+
+# build artifacts
+build/
+dist/
+*.tsbuildinfo
+
+# environment
+.env
+.env.*
+!.env.example
+
+# jwt signing key material — never commit private keys
+keys/
+*.pem
+
+# test output
+coverage/
+
+# local tool state
+.claude/settings.local.json
+
+# logs & OS noise
+*.log
+.DS_Store
+Thumbs.db
+
+# editors
+.vscode/
+.idea/

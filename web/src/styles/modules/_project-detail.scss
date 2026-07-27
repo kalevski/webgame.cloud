@@ -1,0 +1,17 @@
+@use '../abstracts' as *;
+
+.module-project-detail__header {
+    margin-bottom: $space-xl;
+}
+
+.module-project-detail__action-header {
+    margin: $space-lg 0 $space-md;
+}
+
+.module-project-detail__settings {
+    display: flex;
+    flex-direction: column;
+    gap: $space-lg;
+    max-width: 640px;
+    margin-top: $space-lg;
+}

@@ -1,0 +1,111 @@
+export const API_ERROR_CODES = [
+
+    'unauthorized',
+    'forbidden',
+    'not_found',
+    'conflict',
+    'invalid_input',
+    'unavailable',
+    'request_failed',
+    'internal_error',
+    'cross_origin_rejected',
+
+    'invalid_body',
+
+    'user_not_found',
+    'name_required',
+    'email_exists',
+    'account_deactivated',
+    'owner_cannot_self_delete',
+    'self_impersonation',
+    'self_role_change',
+    'self_access_change',
+    'last_owner',
+    'sso_not_configured',
+    'dev_login_disabled',
+    'identity_not_found',
+    'identity_linked_elsewhere',
+    'last_identity',
+    'session_not_found',
+    'current_session',
+
+    'target_not_found',
+    'report_exists',
+    'report_not_found',
+    'report_not_pending',
+    'invalid_push_endpoint',
+
+    'id_required',
+
+    'role_not_found',
+    'role_exists',
+    'role_reserved',
+    'role_builtin',
+
+    'role_in_use',
+    'role_bound',
+    'default_role_required',
+
+    'limit_reached',
+
+    'feature_disabled',
+    'plan_not_found',
+    'billing_unavailable',
+    'already_subscribed',
+    'not_subscribed',
+    'plan_exists',
+    'plan_in_use',
+    'plan_name_required',
+    'plan_role_required',
+    'template_not_found',
+    'template_exists',
+    'template_required',
+    'trigger_not_found',
+    'message_not_found',
+    'recipients_required',
+    'email_not_configured',
+    'enquiry_not_found',
+    'enquiry_exists',
+    'rate_limited',
+    'email_invalid',
+    'magic_link_invalid',
+    'api_key_not_found',
+    'api_key_name_required',
+    'coupon_code_required',
+    'coupon_value_required',
+    'coupon_not_found',
+    'coupon_already_redeemed',
+    'job_not_found',
+    'job_kind_unknown',
+    'webhook_not_found',
+    'webhook_url_invalid',
+    'file_source_not_found',
+    'file_source_name_required',
+    'file_source_config_invalid',
+    'file_source_in_use',
+    'file_not_found',
+    'file_type_invalid',
+    'file_type_unassigned',
+    'answers_required',
+    'invoice_not_found',
+
+    'signing_key_not_found',
+    'signing_key_unavailable',
+
+    'project_not_found',
+
+    'task_not_found',
+    'title_required',
+] as const
+
+export type ApiErrorCode = (typeof API_ERROR_CODES)[number]
+
+export type ApiErrorCause = { code: string; params: string[] }
+
+export const encodeErrorCause = (code: ApiErrorCode, ...params: Array<string | number>): string =>
+    [code, ...params].join(',')
+
+export const parseErrorCause = (cause: string): ApiErrorCause => {
+    const [code = 'request_failed', ...params] = cause.split(',')
+    return { code, params }
+}

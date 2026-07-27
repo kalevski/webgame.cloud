@@ -1,0 +1,86 @@
+@use '../abstracts' as *;
+
+.module-landing {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+
+    &__nav {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: $space-md;
+        max-width: 72rem;
+        width: 100%;
+        margin: 0 auto;
+        padding: $space-md $space-lg;
+    }
+
+    &__terminal {
+        max-width: 56rem;
+        width: 100%;
+        margin: -$space-2xl auto 0;
+        padding: 0 $space-lg;
+        position: relative;
+        z-index: 1;
+
+        tc-terminal-window {
+            display: block;
+            box-shadow: 0 24px 60px rgb(10 12 24 / 35%);
+            border-radius: $radius-md;
+        }
+    }
+
+    &__band {
+        width: 100%;
+        padding: $space-2xl $space-lg;
+
+        &--tint {
+            background: #f6f7f9;
+        }
+    }
+
+    &__inner {
+        max-width: 72rem;
+        margin: 0 auto;
+
+        &--narrow {
+            max-width: 46rem;
+        }
+    }
+
+    &__features {
+        padding-top: calc(#{$space-2xl} + #{$space-xl});
+    }
+
+    &__section-title {
+        margin: 0 0 $space-xs;
+        font-size: 1.5rem;
+        font-weight: 700;
+        text-align: center;
+        letter-spacing: -0.01em;
+    }
+
+    &__section-intro {
+        max-width: 38rem;
+        margin: 0 auto $space-xl;
+        color: #6b7280;
+        font-size: 0.95rem;
+        text-align: center;
+    }
+
+    tc-pipeline {
+        display: block;
+        max-width: 56rem;
+        margin: 0 auto;
+    }
+
+    &__chain {
+        max-width: 46rem;
+        margin: $space-xl auto 0;
+    }
+
+    tc-page-footer {
+        margin-top: auto;
+    }
+}

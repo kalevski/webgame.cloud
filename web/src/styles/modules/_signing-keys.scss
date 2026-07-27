@@ -1,0 +1,49 @@
+@use '../abstracts' as *;
+
+.module-signing-keys {
+    display: flex;
+    flex-direction: column;
+    gap: $space-md;
+
+    &__key {
+        display: flex;
+        flex-direction: column;
+        gap: $space-xs;
+        padding: $space-md;
+        border: 1px solid var(--bs-border-color);
+        border-radius: var(--bs-border-radius);
+        min-width: 0;
+    }
+
+    &__head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: $space-sm;
+        flex-wrap: wrap;
+    }
+
+    &__actions {
+        display: flex;
+        align-items: center;
+        gap: $space-xs;
+        flex-wrap: wrap;
+    }
+}
+
+.modal-signing-key {
+    min-width: 0;
+
+    &__pem {
+        margin: 0;
+        padding: $space-sm;
+        border-radius: var(--bs-border-radius);
+        background: var(--bs-tertiary-bg);
+        font-family: var(--bs-font-monospace);
+        font-size: 0.75rem;
+        line-height: 1.5;
+        white-space: pre;
+        overflow-x: auto;
+        max-width: 100%;
+    }
+}

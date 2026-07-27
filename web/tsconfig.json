@@ -1,0 +1,31 @@
+{
+    "extends": "../tsconfig.base.json",
+    "compilerOptions": {
+        "lib": ["ES2022", "DOM", "DOM.Iterable"],
+        "jsx": "react-jsx",
+        "isolatedModules": true,
+        "noEmit": true,
+        "useDefineForClassFields": true,
+        "types": ["vite/client", "node"],
+
+        "paths": {
+            "components/*": ["./src/components/*"],
+            "configs/*":    ["./src/configs/*"],
+            "contexts/*":   ["./src/contexts/*"],
+            "helpers/*":    ["./src/helpers/*"],
+            "hooks/*":      ["./src/hooks/*"],
+            "layouts/*":    ["./src/layouts/*"],
+            "modals":       ["./src/modals/index.tsx"],
+            "modals/*":     ["./src/modals/*"],
+            "modules/*":    ["./src/modules/*"],
+            "pages/*":      ["./src/pages/*"],
+            "services/*":   ["./src/services/*"],
+            "state":        ["./src/state/index.ts"],
+            "state/*":      ["./src/state/*"],
+            "styles/*":     ["./src/styles/*"],
+            "types":        ["./src/types/index.ts"],
+            "types/*":      ["./src/types/*"]
+        }
+    },
+    "include": ["src", "vite.config.ts"]
+}

@@ -1,0 +1,107 @@
+@use '../abstracts' as *;
+
+.page-invoice {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: $space-lg;
+    padding: $space-xl $space-md;
+    min-height: 100vh;
+    background: #f5f6f8;
+
+    &__sheet {
+        width: min(48rem, 100%);
+        background: #fff;
+        border: 1px solid #e4e6eb;
+        padding: $space-xl;
+        display: flex;
+        flex-direction: column;
+        gap: $space-lg;
+    }
+
+    &__head {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: $space-md;
+        border-bottom: 1px solid #e4e6eb;
+        padding-bottom: $space-md;
+    }
+
+    &__title {
+        margin: 0;
+        font-size: 1.6rem;
+    }
+
+    &__number {
+        margin: 4px 0 0;
+        font-family: monospace;
+        color: #6b7280;
+    }
+
+    &__workspace {
+        font-weight: 600;
+    }
+
+    &__party {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+    }
+
+    &__rows {
+        display: flex;
+        flex-direction: column;
+        gap: $space-xs;
+    }
+
+    &__row {
+        display: flex;
+        justify-content: space-between;
+        gap: $space-md;
+        border-bottom: 1px dashed #edeff3;
+        padding-bottom: 4px;
+    }
+
+    &__label {
+        color: #6b7280;
+        font-size: 0.8rem;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+    }
+
+    &__total {
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
+        border-top: 2px solid #111;
+        padding-top: $space-md;
+    }
+
+    &__amount {
+        font-size: 1.5rem;
+        font-weight: 700;
+    }
+
+    &__foot {
+        color: #6b7280;
+        font-size: 0.85rem;
+    }
+}
+
+@media print {
+    .page-invoice {
+        background: #fff;
+        padding: 0;
+        min-height: auto;
+    }
+
+    .page-invoice__sheet {
+        border: 0;
+        width: 100%;
+    }
+
+    .page-invoice__actions {
+        display: none;
+    }
+}

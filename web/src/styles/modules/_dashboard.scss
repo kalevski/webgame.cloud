@@ -1,0 +1,124 @@
+@use '../abstracts' as *;
+
+.module-dashboard {
+    display: flex;
+    flex-direction: column;
+    gap: $space-lg;
+
+    &__head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: $space-md;
+        flex-wrap: wrap;
+    }
+
+    &__greeting {
+        margin: 0;
+        font-size: 1.35rem;
+        font-weight: 700;
+    }
+
+    &__date {
+        margin: 2px 0 0;
+        color: #6b7280;
+        font-size: 0.85rem;
+    }
+
+    &__columns {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+        gap: $space-lg;
+        align-items: start;
+
+        @include down($bp-md) {
+            grid-template-columns: minmax(0, 1fr);
+        }
+    }
+
+    &__panel {
+        display: flex;
+        flex-direction: column;
+        gap: $space-sm;
+        padding: $space-md;
+    }
+
+    &__panel-head {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: $space-sm;
+    }
+
+    &__panel-body {
+        display: flex;
+        flex-direction: column;
+        min-width: 0;
+    }
+
+    &__panel-title {
+        margin: 0;
+        font-size: 0.95rem;
+        font-weight: 600;
+    }
+
+    &__panel-link {
+        font-size: 0.8rem;
+        text-decoration: none;
+    }
+
+    &__rows {
+        display: flex;
+        flex-direction: column;
+    }
+
+    &__row {
+        display: flex;
+        align-items: center;
+        gap: $space-sm;
+        padding: $space-xs 0;
+        border: 0;
+        border-bottom: 1px solid #f1f2f4;
+        background: transparent;
+        color: inherit;
+        text-align: left;
+        text-decoration: none;
+        cursor: pointer;
+
+        &:last-child { border-bottom: 0; }
+        &:hover .module-dashboard__row-title { text-decoration: underline; }
+
+        &--unread .module-dashboard__row-title { font-weight: 600; }
+    }
+
+    &__row-icon {
+        display: inline-flex;
+        color: #6b7280;
+    }
+
+    &__row-text {
+        display: flex;
+        flex-direction: column;
+        gap: 1px;
+        min-width: 0;
+        flex: 1;
+    }
+
+    &__row-title {
+        font-size: 0.88rem;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    &__row-meta {
+        color: #6b7280;
+        font-size: 0.75rem;
+    }
+
+    &__row-side {
+        color: #9ca3af;
+        font-size: 0.75rem;
+        white-space: nowrap;
+    }
+}

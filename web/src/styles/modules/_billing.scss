@@ -1,0 +1,277 @@
+@use '../abstracts' as *;
+
+.module-billing {
+    display: flex;
+    flex-direction: column;
+    gap: $space-lg;
+}
+
+.module-billing__summary {
+    display: flex;
+    flex-direction: column;
+    gap: $space-md;
+}
+
+.module-billing__summary-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: $space-md;
+    flex-wrap: wrap;
+}
+
+.module-billing__summary-identity {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+}
+
+.module-billing__eyebrow {
+    font-family: monospace;
+    font-size: 0.7rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #9ca3af;
+}
+
+.module-billing__plan-name {
+    margin: 0;
+    font-size: 1.5rem;
+    font-weight: 700;
+    line-height: 1.15;
+}
+
+.module-billing__plan-price {
+    margin: 0;
+    color: #6b7280;
+    font-size: 0.9rem;
+}
+
+.module-billing__facts {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
+    gap: $space-sm;
+}
+
+.module-billing__summary-actions {
+    display: flex;
+    justify-content: flex-start;
+}
+
+.module-plans__actions {
+    display: flex;
+    gap: $space-sm;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.module-invoices {
+    display: block;
+}
+
+.module-billing__plan-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
+    gap: $space-md;
+    align-items: stretch;
+}
+
+.module-invoices__dates {
+    display: flex;
+    gap: $space-md;
+    flex-wrap: wrap;
+}
+
+.module-enquiries {
+    display: block;
+}
+
+.modal-plan__grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr));
+    gap: $space-md;
+}
+
+.modal-plan__actions,
+.modal-contact-sales__actions {
+    display: flex;
+    gap: $space-sm;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.modal-plan__spacer {
+    flex: 1;
+}
+
+.modal-plan__fields {
+    display: flex;
+    flex-direction: column;
+    gap: $space-sm;
+}
+
+.modal-plan__field-list {
+    display: flex;
+    flex-direction: column;
+    gap: $space-sm;
+}
+
+.modal-plan__field {
+    display: grid;
+    grid-template-columns: 1.5rem minmax(0, 1fr) minmax(0, 12rem) auto auto;
+    align-items: end;
+    gap: $space-sm;
+    padding: $space-sm;
+    border: 1px solid #e4e6eb;
+    background: #fbfbfc;
+
+    @include down($bp-md) {
+        grid-template-columns: minmax(0, 1fr);
+        align-items: stretch;
+    }
+}
+
+.modal-plan__field-index {
+    font-family: monospace;
+    color: #9ca3af;
+    padding-bottom: 0.6rem;
+}
+
+.modal-plan__field-type {
+    min-width: 0;
+}
+
+.modal-trail__entry {
+    border-left: 2px solid #e4e6eb;
+    padding-left: $space-sm;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.modal-trail__head {
+    display: flex;
+    justify-content: space-between;
+    gap: $space-sm;
+    align-items: baseline;
+}
+
+.modal-trail__time,
+.modal-trail__meta {
+    color: #6b7280;
+    font-size: 0.78rem;
+}
+
+.modal-trail__note {
+    font-size: 0.9rem;
+}
+
+.modal-enquiry-action__money {
+    display: grid;
+    grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+    gap: $space-sm;
+}
+
+.modal-enquiry-action__actions {
+    display: flex;
+    gap: $space-sm;
+    justify-content: flex-end;
+}
+
+.module-landing__plans {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
+    gap: $space-md;
+}
+
+.module-billing-page__header {
+    margin-bottom: $space-lg;
+}
+
+.module-moderation__audit {
+    display: flex;
+    flex-direction: column;
+    gap: $space-md;
+}
+
+.module-moderation__audit-dates {
+    display: flex;
+    gap: $space-md;
+    flex-wrap: wrap;
+}
+
+.module-billing-page__content {
+    margin-top: $space-lg;
+}
+
+.module-my-invoices {
+    display: block;
+}
+
+.module-email__content {
+    margin-top: $space-lg;
+}
+
+.module-email-settings__grid,
+.modal-email-trigger__grid,
+.modal-email-compose__grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
+    gap: $space-md;
+}
+
+.module-email-settings__actions,
+.modal-email-compose__actions,
+.modal-email-trigger__actions,
+.modal-email-template__actions {
+    display: flex;
+    gap: $space-sm;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.modal-email-template__spacer {
+    flex: 1;
+}
+
+.modal-email-template__preview-body {
+    margin: 0;
+    padding: $space-sm;
+    background: #f7f8fa;
+    border: 1px solid #e4e6eb;
+    white-space: pre-wrap;
+    font-size: 0.85rem;
+    max-height: 12rem;
+    overflow: auto;
+}
+
+.module-email__action-header {
+    display: block;
+    margin-bottom: $space-md;
+}
+
+.modal-email-compose__variables {
+    display: block;
+}
+
+.module-api-keys__action-header,
+.module-webhooks__action-header {
+    margin-bottom: $space-md;
+}
+
+.module-webhooks__deliveries {
+    margin-top: $space-lg;
+}
+
+.modal-api-key__actions,
+.modal-webhook__actions {
+    display: flex;
+    gap: $space-sm;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+}
+
+.modal-api-key__token {
+    word-break: break-all;
+}

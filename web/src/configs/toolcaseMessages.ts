@@ -1,0 +1,36 @@
+import { configureMessages } from '@toolcase/web-components'
+
+const applyToolcaseMessages = () => configureMessages({
+    fieldRequired: 'This field is required',
+    fieldInvalid: 'This value is not valid',
+    invalidValue: 'Invalid value',
+    selectionRequired: 'Select a value',
+    selectionInvalid: 'That selection is not valid',
+    selectionMinOne: 'Select at least one option',
+    invalidChoice: 'Invalid choice',
+    invalidDate: 'Invalid date',
+    invalidTime: 'Invalid time',
+    invalidColor: 'Invalid colour',
+    invalidIcon: 'Invalid icon',
+    invalidCode: 'Invalid code',
+    selectPlaceholder: 'Select…',
+    searchPlaceholder: 'Search…',
+    loading: 'Loading…',
+    noData: 'No data',
+    close: 'Close',
+    clear: 'Clear',
+    filtersLabel: 'Filters',
+    searchOptionsLabel: 'Search options',
+    toggleSidebarLabel: 'Toggle menu',
+    paginationLabel: 'Pagination',
+    paginationPrevious: 'Previous',
+    paginationNext: 'Next',
+    paginationRange: ({ start, end, total }) => `${start}–${end} of ${total}`,
+    stepsComplete: ({ completed, total }) => `${completed} of ${total} complete`,
+    starsRating: ({ value, max }) => `${value} of ${max} stars`,
+    fileDropPrompt: 'Drop a file here',
+    fileDropLabel: 'Upload file',
+    fileSelectLabel: 'Choose a file',
+})
+
+export default applyToolcaseMessages

@@ -1,0 +1,51 @@
+@use '../abstracts' as *;
+
+.module-consent {
+    display: flex;
+    justify-content: center;
+    padding: $space-2xl $space-md;
+}
+
+.consent-gate {
+    max-width: 400px;
+    margin: 0 auto;
+    text-align: center;
+}
+
+.consent-gate__badge {
+    margin: 0 auto $space-lg;
+}
+
+.consent-gate__eyebrow {
+    display: block;
+    margin: 0 0 $space-2xs;
+    text-transform: uppercase;
+}
+
+.consent-gate__title {
+    margin: 0 0 $space-md;
+    font-family: 'Playfair Display', Georgia, serif;
+}
+
+.consent-gate__body {
+    margin: 0 0 $space-xl;
+}
+
+.consent-gate__links {
+    margin: 0 0 $space-lg;
+}
+
+.consent-gate__divider {
+    margin: 0 0 $space-xl;
+}
+
+.consent-gate__agree {
+    display: block;
+    margin-bottom: $space-md;
+    text-align: left;
+}
+
+.consent-gate__accept {
+    display: block;
+    width: 100%;
+}
