@@ -6,17 +6,17 @@ import { useTc } from '@toolcase/web-components/react'
 import { escapeHtml } from 'helpers/html'
 import { MODAL, useModalOpen } from 'modals'
 import {
-    FILE_SOURCE_TYPE_LABELS,
-    FILE_TYPES,
-    FILE_TYPE_LABELS,
-    FileSource,
-    FileType,
-    FileTypeBindings,
+    ASSET_SOURCE_TYPE_LABELS,
+    ASSET_TYPES,
+    ASSET_TYPE_LABELS,
+    AssetSource,
+    AssetType,
+    AssetTypeBindings,
 } from 'types'
 
 const UNBOUND = '__unbound__'
 
-const sourceLabel = (sources: FileSource[], id: string): string =>
+const sourceLabel = (sources: AssetSource[], id: string): string =>
     sources.find((source) => source.id === id)?.name ?? ''
 
 const SourceBinding: React.FC<{
@@ -44,24 +44,24 @@ const FilesAdmin: React.FC = () => {
     const { t } = useStrings()
     const f = t.files
 
-    const fileSources = useStore((state) => state.fileSources)
-    const fileSourcesLoaded = useStore((state) => state.fileSourcesLoaded)
+    const assetSources = useStore((state) => state.assetSources)
+    const assetSourcesLoaded = useStore((state) => state.assetSourcesLoaded)
     const fileBindings = useStore((state) => state.fileBindings)
-    const fetchFileSources = useStore((state) => state.fetchFileSources)
+    const fetchAssetSources = useStore((state) => state.fetchAssetSources)
     const fetchFileBindings = useStore((state) => state.fetchFileBindings)
-    const deleteFileSource = useStore((state) => state.deleteFileSource)
+    const deleteAssetSource = useStore((state) => state.deleteAssetSource)
     const saveFileBindings = useStore((state) => state.saveFileBindings)
 
     const canWrite = useCan('file.source.write')
 
-    const openSource = useModalOpen<FileSource | null, FileSource | null>(MODAL.FILE_SOURCE)
+    const openSource = useModalOpen<AssetSource | null, AssetSource | null>(MODAL.ASSET_SOURCE)
 
-    const [bindingDraft, setBindingDraft] = useState<Partial<FileTypeBindings>>({})
+    const [bindingDraft, setBindingDraft] = useState<Partial<AssetTypeBindings>>({})
 
     useEffect(() => {
-        void fetchFileSources()
+        void fetchAssetSources()
         void fetchFileBindings()
-    }, [fetchFileSources, fetchFileBindings])
+    }, [fetchAssetSources, fetchFileBindings])
 
     useEffect(() => {
         if (fileBindings) setBindingDraft({ ...fileBindings })
@@ -70,26 +70,26 @@ const FilesAdmin: React.FC = () => {
     const sourceItems = useMemo(() => {
         const counts = new Map<string, number>()
         if (fileBindings) {
-            for (const fileType of FILE_TYPES) {
-                const sourceId = fileBindings[fileType]
+            for (const assetType of ASSET_TYPES) {
+                const sourceId = fileBindings[assetType]
                 if (sourceId) counts.set(sourceId, (counts.get(sourceId) ?? 0) + 1)
             }
         }
-        return fileSources.map((source) => ({ ...source, used: counts.get(source.id) ?? 0 }))
-    }, [fileSources, fileBindings])
+        return assetSources.map((source) => ({ ...source, used: counts.get(source.id) ?? 0 }))
+    }, [assetSources, fileBindings])
 
-    const summarize = (source: FileSource): string => {
+    const summarize = (source: AssetSource): string => {
         if (source.type === 'disk') return source.config.basePath || f.defaultBasePath
         return [source.config.bucket, source.config.region, source.config.endpoint].filter(Boolean).join(' · ')
     }
 
-    const sourceRow = (source: FileSource & { used: number }): string => {
+    const sourceRow = (source: AssetSource & { used: number }): string => {
         const used = source.used
         return (
             `<li class="tc-data-list__row" data-id="${escapeHtml(source.id)}">` +
             `<div class="tc-data-list__text">` +
             `<span class="tc-data-list__primary">${escapeHtml(source.name)}` +
-            `<tc-badge variant="${source.type === 's3' ? 'info' : 'secondary'}">${escapeHtml(FILE_SOURCE_TYPE_LABELS[source.type])}</tc-badge>` +
+            `<tc-badge variant="${source.type === 's3' ? 'info' : 'secondary'}">${escapeHtml(ASSET_SOURCE_TYPE_LABELS[source.type])}</tc-badge>` +
             `</span>` +
             `<span class="tc-data-list__secondary">${escapeHtml(summarize(source))}</span>` +
             `</div>` +
@@ -108,26 +108,26 @@ const FilesAdmin: React.FC = () => {
         items: sourceItems,
         renderRow: sourceRow,
         onAction: (detail: { action: string; id: string }) => {
-            const source = fileSources.find((entry) => entry.id === detail.id)
+            const source = assetSources.find((entry) => entry.id === detail.id)
             if (!source) return
             if (detail.action === 'edit') openSource(source)
             if (detail.action === 'delete' && window.confirm(f.deletePrompt(source.name))) {
-                void deleteFileSource(source.id)
+                void deleteAssetSource(source.id)
             }
         },
     })
 
     const sourceOptions = [
         { key: UNBOUND, label: f.unbound },
-        ...fileSources.map((source) => ({ key: source.id, label: source.name })),
+        ...assetSources.map((source) => ({ key: source.id, label: source.name })),
     ]
 
-    const hasSources = fileSources.length > 0
+    const hasSources = assetSources.length > 0
 
-    const unassignedCount = FILE_TYPES.filter((fileType) => !bindingDraft[fileType]).length
+    const unassignedCount = ASSET_TYPES.filter((assetType) => !bindingDraft[assetType]).length
 
     const bindingsChanged = fileBindings
-        ? FILE_TYPES.some((fileType) => (bindingDraft[fileType] ?? null) !== (fileBindings[fileType] ?? null))
+        ? ASSET_TYPES.some((assetType) => (bindingDraft[assetType] ?? null) !== (fileBindings[assetType] ?? null))
         : false
 
     return (
@@ -141,7 +141,7 @@ const FilesAdmin: React.FC = () => {
                 <tc-stack direction="column" gap="0.85rem">
                     <tc-text variant="muted">{f.intro}</tc-text>
 
-                    {fileSourcesLoaded && !hasSources && (
+                    {assetSourcesLoaded && !hasSources && (
                         <tc-empty-state
                             icon="Database"
                             heading={f.emptyHeading}
@@ -157,34 +157,34 @@ const FilesAdmin: React.FC = () => {
                 <tc-stack direction="column" gap="0.85rem">
                     <tc-text variant="muted">{f.bindingsIntro}</tc-text>
 
-                    {!hasSources && fileSourcesLoaded && <tc-alert variant="info">{f.bindingsNoSources}</tc-alert>}
+                    {!hasSources && assetSourcesLoaded && <tc-alert variant="info">{f.bindingsNoSources}</tc-alert>}
 
                     {hasSources && unassignedCount > 0 && (
                         <tc-alert variant="warning">{f.unassignedWarning(unassignedCount)}</tc-alert>
                     )}
 
                     <div className="module-files__types">
-                        {FILE_TYPES.map((fileType: FileType) => {
-                            const value = bindingDraft[fileType] ?? ''
+                        {ASSET_TYPES.map((assetType: AssetType) => {
+                            const value = bindingDraft[assetType] ?? ''
                             const changed = fileBindings
-                                ? (bindingDraft[fileType] ?? null) !== (fileBindings[fileType] ?? null)
+                                ? (bindingDraft[assetType] ?? null) !== (fileBindings[assetType] ?? null)
                                 : false
                             return (
-                                <div key={fileType} className="module-files__type">
+                                <div key={assetType} className="module-files__type">
                                     <div className="module-files__type-head">
-                                        <tc-label>{FILE_TYPE_LABELS[fileType]}</tc-label>
+                                        <tc-label>{ASSET_TYPE_LABELS[assetType]}</tc-label>
                                         {changed && <tc-badge variant="warning">{f.unsaved}</tc-badge>}
                                     </div>
                                     <SourceBinding
                                         options={sourceOptions}
                                         value={value}
                                         disabled={!canWrite || !hasSources}
-                                        onChange={(next) => setBindingDraft({ ...bindingDraft, [fileType]: next })}
+                                        onChange={(next) => setBindingDraft({ ...bindingDraft, [assetType]: next })}
                                     />
                                     <tc-status-dot
                                         status={value ? 'online' : 'away'}
                                         size="small"
-                                        label={value ? sourceLabel(fileSources, value) : f.unassigned}
+                                        label={value ? sourceLabel(assetSources, value) : f.unassigned}
                                     ></tc-status-dot>
                                 </div>
                             )

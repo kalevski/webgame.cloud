@@ -33,25 +33,21 @@ const BillingPage: React.FC = () => {
 
     return (
         <AuthGuard secured>
-            <section className="container">
-                <div className="row">
-                    <div className="col-12">
-                        <div className="module module-billing-page">
-                            <tc-rich-page-header
-                                className="module-billing-page__header"
-                                title-text={t.billing.title}
-                                description={t.billing.intro}
-                                icon-name="CreditCard"
-                                icon-color="violet"
-                            ></tc-rich-page-header>
+            <section className="console-page">
+                <div className="module module-billing-page">
+                    <tc-rich-page-header
+                        className="module-billing-page__header"
+                        title-text={t.billing.title}
+                        description={t.billing.intro}
+                        icon-name="CreditCard"
+                        icon-color="violet"
+                    ></tc-rich-page-header>
 
-                            <RouteTabs tabs={tabs} activeId={tab} />
+                    <RouteTabs tabs={tabs} activeId={tab} />
 
-                            <div className="module-billing-page__content">
-                                {tab === 'subscription' && <BillingPanel />}
-                                {tab === 'invoices' && <MyInvoices />}
-                            </div>
-                        </div>
+                    <div className="module-billing-page__content">
+                        {tab === 'subscription' && <BillingPanel />}
+                        {tab === 'invoices' && <MyInvoices />}
                     </div>
                 </div>
             </section>

@@ -45,19 +45,19 @@ const AdminOverview: React.FC = () => {
         yFormatter: wholeNumbersOnly,
     })
 
-    const tasksTotal = overview?.tasksByStatus.reduce((sum, entry) => sum + entry.count, 0) ?? 0
-    const tasksDonut = useTc<HTMLElement>({
-        data: (overview?.tasksByStatus ?? []).map((entry, index) => ({
+    const buildsTotal = overview?.buildsByStatus.reduce((sum, entry) => sum + entry.count, 0) ?? 0
+    const buildsDonut = useTc<HTMLElement>({
+        data: (overview?.buildsByStatus ?? []).map((entry, index) => ({
             label: statusLabel[entry.status] ?? entry.status,
             value: entry.count,
             color: CATEGORICAL[index % CATEGORICAL.length],
         })),
-        centerLabel: String(tasksTotal),
+        centerLabel: String(buildsTotal),
     })
 
-    const visibilityPie = useTc<HTMLElement>({
-        data: (overview?.projectsByVisibility ?? []).map((entry, index) => ({
-            label: statusLabel[entry.visibility] ?? entry.visibility,
+    const appTypePie = useTc<HTMLElement>({
+        data: (overview?.projectsByAppType ?? []).map((entry, index) => ({
+            label: statusLabel[entry.appType] ?? entry.appType,
             value: entry.count,
             color: CATEGORICAL[index % CATEGORICAL.length],
         })),
@@ -77,7 +77,7 @@ const AdminOverview: React.FC = () => {
     const tiles: Array<{ label: string; value: string | number }> = [
         { label: o.wau, value: overview.wau },
         { label: o.retention, value: overview.d30Retention !== null ? `${overview.d30Retention}%` : o.na },
-        { label: o.tasksTotal, value: overview.tasksTotal },
+        { label: o.buildsTotal, value: overview.buildsTotal },
         { label: o.reportQueue, value: overview.reportQueue.pending },
     ]
 
@@ -113,15 +113,15 @@ const AdminOverview: React.FC = () => {
 
             <tc-grid columns={1} columns-md={3} gap="1.5rem">
                 <tc-chart-container title={o.tasksChart}>
-                    {tasksTotal > 0 ? (
-                        <tc-pie-chart ref={tasksDonut} donut height="220"></tc-pie-chart>
+                    {buildsTotal > 0 ? (
+                        <tc-pie-chart ref={buildsDonut} donut height="220"></tc-pie-chart>
                     ) : (
                         <tc-empty-state icon="list-checks">{o.noData}</tc-empty-state>
                     )}
                 </tc-chart-container>
                 <tc-chart-container title={o.projectsChart}>
-                    {overview.projectsByVisibility.length > 0 ? (
-                        <tc-pie-chart ref={visibilityPie} height="220"></tc-pie-chart>
+                    {overview.projectsByAppType.length > 0 ? (
+                        <tc-pie-chart ref={appTypePie} height="220"></tc-pie-chart>
                     ) : (
                         <tc-empty-state icon="folder">{o.noData}</tc-empty-state>
                     )}

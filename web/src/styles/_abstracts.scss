@@ -1,10 +1,19 @@
-$space-2xs: 0.25rem;
-$space-xs: 0.4rem;
-$space-sm: 0.6rem;
-$space-md: 0.85rem;
-$space-lg: 1.15rem;
-$space-xl: 1.6rem;
-$space-2xl: 2.25rem;
+$space-1: 0.25rem;
+$space-2: 0.5rem;
+$space-3: 0.75rem;
+$space-4: 1rem;
+$space-5: 1.5rem;
+$space-6: 2rem;
+$space-7: 3rem;
+$space-8: 4rem;
+
+$space-2xs: $space-1;
+$space-xs: $space-1;
+$space-sm: $space-2;
+$space-md: $space-3;
+$space-lg: $space-4;
+$space-xl: $space-5;
+$space-2xl: $space-6;
 
 $radius-sm: 6px;
 $radius-md: 10px;
@@ -32,3 +41,8 @@ $tap-target-touch: 44px;
 $brand: #7c3aed;
 
 $focus-ring-color: $brand;
+
+$line: var(--tc-border, #e4e4e7);
+$text-muted: var(--tc-text-muted, #71717a);
+$surface: var(--tc-surface, #fff);
+$accent: var(--tc-primary, #{$brand});

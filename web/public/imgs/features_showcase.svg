@@ -1,0 +1,116 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 360" width="960" height="360" role="img" fill="none">
+    <defs>
+        <marker id="wg-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M0 0 L10 5 L0 10 z" fill="#0f172a" />
+        </marker>
+        <marker id="wg-arrow-accent" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M0 0 L10 5 L0 10 z" fill="#d21f3c" />
+        </marker>
+    </defs>
+
+    <text x="24" y="26" fill="#64748b" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="13" letter-spacing="2.2">YOUR ASSETS</text>
+
+    <g stroke="#0f172a" stroke-width="2">
+        <g>
+            <rect x="16" y="44" width="168" height="64" />
+            <rect x="38" y="62" width="34" height="28" />
+            <path d="M38 82 L48 72 L56 79 L62 73 L72 84" stroke-width="1.75" />
+            <circle cx="64" cy="69" r="3" stroke-width="1.5" />
+            <text x="88" y="82" fill="#0f172a" stroke="none" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="13" letter-spacing="1.6">TEXTURES</text>
+        </g>
+
+        <g>
+            <rect x="16" y="148" width="168" height="64" />
+            <path d="M38 180 L44 180 L48 166 L54 194 L60 172 L66 188 L72 180 L78 180" stroke-width="1.75" stroke-linecap="round" />
+            <text x="88" y="186" fill="#0f172a" stroke="none" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="13" letter-spacing="1.6">AUDIO</text>
+        </g>
+
+        <g>
+            <rect x="16" y="252" width="168" height="64" />
+            <path d="M52 266 C44 266 44 280 38 284 C44 288 44 302 52 302" stroke-width="1.75" stroke-linecap="round" />
+            <path d="M66 266 C74 266 74 280 80 284 C74 288 74 302 66 302" stroke-width="1.75" stroke-linecap="round" />
+            <text x="96" y="290" fill="#0f172a" stroke="none" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="13" letter-spacing="1.6">DATA</text>
+        </g>
+    </g>
+
+    <g stroke="#94a3b8" stroke-width="2">
+        <path d="M184 76 H232 V180" />
+        <path d="M184 284 H232 V180" />
+        <path d="M184 180 H232" />
+    </g>
+    <g fill="#94a3b8">
+        <circle cx="232" cy="76" r="4" />
+        <circle cx="232" cy="284" r="4" />
+    </g>
+    <path d="M232 180 H300" stroke="#0f172a" stroke-width="2" marker-end="url(#wg-arrow)" />
+
+    <text x="480" y="42" fill="#64748b" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="13" letter-spacing="2.4">WEBGAME.CLOUD</text>
+
+    <g stroke="#0f172a" stroke-width="2">
+        <rect x="316" y="62" width="328" height="56" />
+        <rect x="316" y="130" width="328" height="56" />
+        <rect x="316" y="198" width="328" height="56" />
+    </g>
+    <g stroke="#94a3b8" stroke-width="1.5">
+        <path d="M340 78 H424 M340 90 H404 M340 102 H436" />
+        <path d="M340 146 H424 M340 158 H404 M340 170 H436" />
+        <path d="M340 214 H424 M340 226 H404 M340 238 H436" />
+        <path d="M596 76 V104 M606 76 V104 M616 76 V104" />
+        <path d="M596 144 V172 M606 144 V172 M616 144 V172" />
+        <path d="M596 212 V240 M606 212 V240 M616 212 V240" />
+    </g>
+    <g>
+        <circle cx="566" cy="90" r="5" fill="#07736f" />
+        <circle cx="566" cy="158" r="5" fill="#07736f" />
+        <circle cx="566" cy="226" r="5" fill="#07736f" />
+    </g>
+
+    <path d="M480 254 V286" stroke="#94a3b8" stroke-width="2" marker-end="url(#wg-arrow)" />
+
+    <rect x="316" y="290" width="328" height="48" stroke="#d21f3c" stroke-width="2" />
+    <text x="336" y="320" fill="#0f172a" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="13" letter-spacing="1.2">OPTIMIZED BUNDLE</text>
+    <g fill="#d21f3c">
+        <rect x="500" y="307" width="12" height="14" />
+        <rect x="518" y="307" width="12" height="14" />
+        <rect x="536" y="307" width="12" height="14" />
+        <rect x="554" y="307" width="12" height="14" />
+        <rect x="572" y="307" width="12" height="14" />
+    </g>
+    <g fill="#f2ddd3">
+        <rect x="590" y="307" width="12" height="14" />
+        <rect x="608" y="307" width="12" height="14" />
+        <rect x="626" y="307" width="12" height="14" />
+    </g>
+
+    <g stroke="#d21f3c" stroke-width="2">
+        <path d="M644 314 H700" />
+        <path d="M700 314 V104 H756" marker-end="url(#wg-arrow-accent)" />
+        <path d="M700 314 V214 H756" marker-end="url(#wg-arrow-accent)" />
+        <path d="M700 314 H756" marker-end="url(#wg-arrow-accent)" />
+    </g>
+    <circle cx="700" cy="314" r="5" fill="#d21f3c" />
+
+    <g stroke="#0f172a" stroke-width="2">
+        <rect x="780" y="62" width="132" height="84" />
+        <path d="M846 146 V162 M818 162 H874" stroke-linecap="round" />
+        <rect x="800" y="82" width="92" height="44" stroke="#94a3b8" stroke-width="1.5" />
+        <path d="M816 116 L832 98 L846 110 L860 94 L876 116" stroke="#94a3b8" stroke-width="1.5" />
+    </g>
+
+    <g stroke="#0f172a" stroke-width="2">
+        <path d="M806 192 H886 A28 28 0 0 1 908 236 L900 236 A16 16 0 0 0 886 228 H806 A16 16 0 0 0 792 236 L784 236 A28 28 0 0 1 806 192 Z" />
+        <path d="M792 236 A20 20 0 0 0 812 250 A14 14 0 0 0 824 240 H868 A14 14 0 0 0 880 250 A20 20 0 0 0 900 236" />
+        <path d="M812 210 H830 M821 201 V219" stroke-width="1.75" stroke-linecap="round" />
+        <circle cx="866" cy="204" r="4.5" stroke-width="1.75" />
+        <circle cx="880" cy="216" r="4.5" stroke-width="1.75" />
+        <circle cx="852" cy="216" r="4.5" stroke-width="1.75" />
+    </g>
+
+    <g stroke="#0f172a" stroke-width="2">
+        <rect x="818" y="268" width="56" height="72" rx="8" />
+        <path d="M836 279 H856" stroke-width="1.75" stroke-linecap="round" />
+        <rect x="828" y="289" width="36" height="38" stroke="#94a3b8" stroke-width="1.5" />
+    </g>
+
+    <text x="846" y="356" fill="#64748b" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="13" letter-spacing="2.2">PLAYERS</text>
+</svg>

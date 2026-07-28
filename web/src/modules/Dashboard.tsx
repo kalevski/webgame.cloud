@@ -7,6 +7,7 @@ import { useTc } from '@toolcase/web-components/react'
 import Icon from 'components/icons'
 import { Project } from 'types'
 import { formatDate } from 'helpers/dates'
+import { MODAL, useModalOpen } from 'modals'
 
 const DUE_SOON_DAYS = 7
 
@@ -29,6 +30,10 @@ const Dashboard: React.FC = () => {
         fetchNotifications()
     }, [fetchProjects, fetchNotifications])
 
+    const openProjectWizard = useModalOpen<Project>(MODAL.CREATE_PROJECT, (created) => {
+        if (created) navigate(`/projects/${created.id}/assets`)
+    })
+
     const name = user?.name || user?.email || ''
     const hour = new Date().getHours()
     const greeting = hour < 12 ? d.greetingMorning : hour < 18 ? d.greetingAfternoon : d.greetingEvening
@@ -38,16 +43,16 @@ const Dashboard: React.FC = () => {
         month: 'long',
     })
 
-    const taskTotal = projects.reduce((sum, project) => sum + project.taskCount, 0)
+    const assetTotal = projects.reduce((sum, project) => sum + project.assetCount, 0)
 
     const steps = useMemo(
         () => [
             { key: 'signin', label: d.stepSignIn, completed: true },
             { key: 'profile', label: d.stepProfile, completed: !!user?.name },
             { key: 'project', label: d.stepProject, completed: projects.length > 0 },
-            { key: 'task', label: d.stepTask, completed: taskTotal > 0 },
+            { key: 'task', label: d.stepTask, completed: assetTotal > 0 },
         ],
-        [d, user?.name, projects.length, taskTotal]
+        [d, user?.name, projects.length, assetTotal]
     )
     const onboarded = projectsLoaded && steps.every((step) => step.completed)
     const welcome = useTc<HTMLElement>({
@@ -55,24 +60,23 @@ const Dashboard: React.FC = () => {
         steps,
         onstepclick: (_event: CustomEvent, key: string) => {
             if (key === 'profile') navigate('/profile')
-            else if (key === 'project' || key === 'task') navigate('/projects')
+            else if (key === 'project') openProjectWizard()
+            else if (key === 'task') navigate('/projects')
         },
     })
-    const dueSoon = useMemo(() => {
-        const horizon = Date.now() + DUE_SOON_DAYS * 24 * 60 * 60 * 1000
-        return projects.filter(
-            (project) => project.dueDate && new Date(project.dueDate).getTime() <= horizon
-        ).length
-    }, [projects])
+    const memberTotal = useMemo(
+        () => projects.reduce((sum, project) => sum + project.memberCount, 0),
+        [projects]
+    )
 
     const metrics = useMemo(
         () => [
             { key: 'projects', label: d.statProjects, value: String(projects.length), icon: 'FolderKanban' },
-            { key: 'tasks', label: d.statTasks, value: String(taskTotal), icon: 'ListChecks' },
-            { key: 'due', label: d.statDueSoon, value: String(dueSoon), icon: 'CalendarClock', hint: d.statDueSoonHint },
+            { key: 'assets', label: d.statTasks, value: String(assetTotal), icon: 'Image' },
+            { key: 'members', label: d.statDueSoon, value: String(memberTotal), icon: 'Users', hint: d.statDueSoonHint },
             { key: 'unread', label: d.statUnread, value: String(unread), icon: 'Bell' },
         ],
-        [d, projects.length, taskTotal, dueSoon, unread]
+        [d, projects.length, assetTotal, memberTotal, unread]
     )
     const metricGrid = useTc<HTMLElement>({ items: metrics })
 
@@ -108,8 +112,7 @@ const Dashboard: React.FC = () => {
             <span className="module-dashboard__row-text">
                 <span className="module-dashboard__row-title">{project.name}</span>
                 <span className="module-dashboard__row-meta">
-                    {d.taskCount(project.taskCount)}
-                    {project.dueDate && ` · ${d.due(formatDate(project.dueDate))}`}
+                    {d.assetCount(project.assetCount)}
                 </span>
             </span>
             <span className="module-dashboard__row-side">{timeLabel(project.updatedAt)}</span>

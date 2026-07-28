@@ -10,7 +10,7 @@ import type { AppStore } from './index'
 
 const SESSION_HINT = 'has-session'
 
-const NO_LIMITS: Limits = { projects: null, tasks: null }
+const NO_LIMITS: Limits = { projects: null }
 
 const NO_RESOURCE_LIMITS = Object.fromEntries(
     LIMITABLE_RESOURCES.map((resource) => [resource, null])

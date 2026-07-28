@@ -37,6 +37,7 @@ import { rateLimit } from '../http/rateLimit.js'
 import { recordAudit } from '../audit.js'
 import container from '../container.js'
 import { BillingService } from '../services/BillingService.js'
+import { AccessPolicyService } from '../services/AccessPolicyService.js'
 import { sendError } from './sendError.js'
 import { WORKSPACE_NAME } from '../env.js'
 
@@ -473,6 +474,36 @@ const myUsageEndpoint = async (
 ): Promise<UsageSummary> =>
     billing().usage(request.user!.id, request.query.from, request.query.to)
 
+const planOverrideSchema = {
+    type: 'object',
+    required: ['planId'],
+    additionalProperties: false,
+    properties: { planId: { type: ['string', 'null'], maxLength: 80 } },
+} as const
+
+const accountUsageEndpoint = async (request: FastifyRequest) => {
+    const policy = container.resolve(AccessPolicyService)
+    const [usage, storage] = await Promise.all([
+        policy.usageFor(request.user!),
+        policy.storageStatus(request.user!.id),
+    ])
+    void policy.syncOverageFlag(request.user!.id, storage)
+    return { usage, storage }
+}
+
+const planOverrideEndpoint = async (
+    request: FastifyRequest<{ Params: { id: string }; Body: { planId: string | null } }>,
+    reply: FastifyReply
+) => {
+    try {
+        const saved = await billing().setPlanOverride(request.params.id, request.body.planId)
+        void recordAudit(request.user!, 'billing.plan_override', request.params.id, request.body.planId ?? '', request.id)
+        return saved
+    } catch (error) {
+        return sendError(reply, error)
+    }
+}
+
 const userUsageEndpoint = async (
     request: FastifyRequest<{ Params: { userId: string }; Querystring: { from?: string; to?: string } }>
 ): Promise<UsageSummary> =>
@@ -489,6 +520,17 @@ export const billingRouter: FastifyPluginAsync = async (app) => {
     app.get('/api/billing/my/enquiry', myEnquiryEndpoint)
 
     app.get<{ Querystring: { from?: string; to?: string } }>('/api/billing/my/usage', myUsageEndpoint)
+
+    app.get('/api/account/usage', accountUsageEndpoint)
+
+    app.put<{ Params: { id: string }; Body: { planId: string | null } }>(
+        '/api/admin/users/:id/plan-override',
+        {
+            schema: { body: planOverrideSchema },
+            preHandler: [requirePermission('billing.subscription.write')],
+        },
+        planOverrideEndpoint
+    )
 
     app.get<{ Querystring: { code: string; amountCents?: number } }>(
         '/api/billing/coupons/preview',

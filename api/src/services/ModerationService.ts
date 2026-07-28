@@ -5,6 +5,7 @@ import { ReportRepository } from '../repositories/moderation/ReportRepository.js
 import { AuditRepository } from '../repositories/moderation/AuditRepository.js'
 import { decodeCursor, takePage } from '../repositories/pagination.js'
 import { ProjectRepository } from '../repositories/projects/ProjectRepository.js'
+import { MemberRepository } from '../repositories/projects/MemberRepository.js'
 import { ConflictError, NotFoundError } from '../domain/errors.js'
 import { UserRepository } from '../repositories/users/UserRepository.js'
 
@@ -39,6 +40,7 @@ export class ModerationService {
         @inject(ReportRepository) private reports: ReportRepository,
         @inject(AuditRepository) private audit: AuditRepository,
         @inject(ProjectRepository) private projects: ProjectRepository,
+        @inject(MemberRepository) private members: MemberRepository,
         @inject(UserRepository) private users: UserRepository
     ) {}
 
@@ -51,8 +53,8 @@ export class ModerationService {
             const project = await this.projects.findById(targetId)
             if (!project) return null
 
-            const visible = project.owner_id === user.id || project.visibility === 'shared'
-            return visible ? project.name : null
+            const member = await this.members.findMembership(targetId, user.id)
+            return project.owner_id === user.id || member ? project.name : null
         }
         const profile = await this.users.findById(targetId)
         return profile ? profile.name || profile.email : null

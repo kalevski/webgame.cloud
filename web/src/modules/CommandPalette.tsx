@@ -10,9 +10,7 @@ import { useLimitLock } from 'hooks/useLock'
 import { PROJECT_LIMIT_ENTITLEMENT } from 'configs/entitlements'
 import { MODAL, useModalOpen } from 'modals'
 import { useTc } from '@toolcase/web-components/react'
-import { CreateProjectResult } from 'modals/CreateProjectModal'
-import { CreateTaskResult } from 'modals/CreateTaskModal'
-import { TaskStatus } from 'types'
+import { Project } from 'types'
 
 type PaletteItem = {
     id: string
@@ -41,8 +39,7 @@ const CommandPalette: React.FC = () => {
 
     const projects = useStore((state) => state.projects)
     const fetchProjects = useStore((state) => state.fetchProjects)
-    const createProject = useStore((state) => state.createProject)
-    const addTask = useStore((state) => state.addTask)
+    const setActiveProject = useStore((state) => state.setActiveProject)
 
     const [open, setOpen] = useState(false)
 
@@ -50,8 +47,7 @@ const CommandPalette: React.FC = () => {
         () => document.querySelector<HTMLElement>('tc-theme') ?? document.body
     )
 
-    const canWriteProject = useCan('project.write')
-    const canWriteTask = useCan('task.write')
+    const canCreateProject = useCan('project.create')
     const canReadAdmin = useCan('admin.overview.read')
     const canModerate = useCan('moderation.queue.read')
     const canReadInvoices = useCan('invoice.read')
@@ -67,13 +63,7 @@ const CommandPalette: React.FC = () => {
     const currentProjectId = projectIdFromPath(pathname)
     const currentProject = projects.find((project) => project.id === currentProjectId) ?? null
 
-    const openCreateProject = useModalOpen<CreateProjectResult>(MODAL.CREATE_PROJECT, async (result) => {
-        if (result) await createProject(result)
-    })
-
-    const openCreateTask = useModalOpen<CreateTaskResult, TaskStatus>(MODAL.CREATE_TASK, async (result) => {
-        if (result && currentProjectId) await addTask(currentProjectId, result.title, result.status)
-    })
+    const openCreateProject = useModalOpen<Project>(MODAL.CREATE_PROJECT)
 
     useEffect(() => {
         const onKey = (event: KeyboardEvent) => {
@@ -120,7 +110,7 @@ const CommandPalette: React.FC = () => {
             entries.push({ id: 'nav:/moderation', label: c.openModeration, group: c.groupGo, icon: 'flag' })
         }
 
-        if (canWriteProject) {
+        if (canCreateProject) {
             entries.push({
                 id: 'action:new-project',
                 label: c.newProject,
@@ -130,13 +120,18 @@ const CommandPalette: React.FC = () => {
             })
         }
 
-        if (canWriteTask && currentProject) {
+        if (currentProject) {
             entries.push({
-                id: 'action:new-task',
-                label: c.newTask(currentProject.name),
+                id: 'nav:/projects/' + currentProject.id + '/members',
+                label: c.openMembers(currentProject.name),
                 group: c.groupActions,
-                icon: 'circle-plus',
-                keywords: ['create', 'add', 'task'],
+                icon: 'users',
+            })
+            entries.push({
+                id: 'nav:/projects/' + currentProject.id + '/settings',
+                label: c.openProjectSettings(currentProject.name),
+                group: c.groupActions,
+                icon: 'settings',
             })
         }
 
@@ -146,7 +141,7 @@ const CommandPalette: React.FC = () => {
                 label: project.name,
                 group: c.groupProjects,
                 icon: 'folder-open',
-                shortcut: c.taskCount(project.taskCount),
+                shortcut: c.assetCount(project.assetCount),
                 keywords: [project.description].filter(Boolean) as string[],
             })
         }
@@ -162,8 +157,7 @@ const CommandPalette: React.FC = () => {
         canReadEmail,
         billingEnabled,
         emailEnabled,
-        canWriteProject,
-        canWriteTask,
+        canCreateProject,
         c,
     ])
 
@@ -175,15 +169,15 @@ const CommandPalette: React.FC = () => {
             return
         }
         if (item.id.startsWith('project:')) {
-            navigate(`/projects/${item.id.slice(8)}`)
+            const id = item.id.slice(8)
+            setActiveProject(id)
+            navigate(`/projects/${id}`)
             return
         }
         if (item.id === 'action:new-project') {
             if (lock.locked || reached) lock.open()
             else openCreateProject()
-            return
         }
-        if (item.id === 'action:new-task') openCreateTask('planned')
     }
 
     const palette = useTc<PaletteElement>({

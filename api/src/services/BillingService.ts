@@ -504,12 +504,51 @@ export class BillingService {
         return due.length
     }
 
+    async resolvePlan(userId: string): Promise<Plan | null> {
+        const row = await this.billing.findSubscription(userId)
+        const planId = row?.staff_override_plan_id
+            ?? (row && isActive(row.status) ? row.plan_id : null)
+        if (planId) {
+            const plan = await this.billing.findPlan(planId)
+            if (plan) return toPlan(plan)
+        }
+        const bindings = await this.access.getBindings()
+        const plans = await this.billing.listActivePlans()
+        const fallback = plans.find((plan) => plan.role_id === bindings.default)
+        return fallback ? toPlan(fallback) : null
+    }
+
+    async setPlanOverride(userId: string, planId: string | null): Promise<Subscription> {
+        if (planId) {
+            const plan = await this.billing.findPlan(planId)
+            if (!plan) throw new NotFoundError('plan_not_found', `unknown plan ${planId}`, [planId])
+        }
+        await this.billing.setPlanOverride(userId, planId)
+        const row = await this.billing.findSubscription(userId)
+        if (row) await this.syncRole(userId, row)
+        this.access.invalidateUser(userId)
+        return row ? toSubscription(row) : NO_SUBSCRIPTION
+    }
+
+    async flagOverage(userId: string, bytes: number): Promise<void> {
+        await this.billing.flagStorageOverage(userId, bytes)
+    }
+
     private async syncRole(userId: string, row: SubscriptionRow): Promise<void> {
         const user = await this.users.findById(userId)
         if (!user || user.role === OWNER_ROLE_ID) return
 
         const plans = await this.billing.listActivePlans()
         const planRoles = new Set(plans.map((plan) => plan.role_id).filter((id): id is string => Boolean(id)))
+
+        if (row.staff_override_plan_id) {
+            const overrideRole = plans.find((plan) => plan.id === row.staff_override_plan_id)?.role_id ?? null
+            if (overrideRole && user.role !== overrideRole) {
+                await this.users.update(userId, { role: overrideRole })
+                this.access.invalidateUser(userId)
+            }
+            return
+        }
 
         const planRole = row.plan_id
             ? plans.find((plan) => plan.id === row.plan_id)?.role_id ?? null

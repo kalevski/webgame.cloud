@@ -1,24 +1,35 @@
-export type ProjectVisibility = 'private' | 'shared'
+import type { ProjectPermission } from './projectAccess.js'
+
+export const APP_TYPES = ['game', 'app', 'prototype'] as const
+
+export type AppType = typeof APP_TYPES[number]
+
+export type NamedRow = {
+    id: string
+    name: string
+}
 
 export type Project = {
     id: string
-
     ownerId: string
+    realmId: string | null
+
     name: string
     description: string
-    visibility: ProjectVisibility
+    appType: AppType
 
     icon: string
-
     color: string
 
-    priority: number
+    defaultCategoryId: string | null
+    archivedAt: string | null
 
-    dueDate: string | null
+    memberCount: number
+    assetCount: number
 
-    notifyOnActivity: boolean
+    permissions: ProjectPermission[]
+    isOwner: boolean
 
-    taskCount: number
     createdAt: string
     updatedAt: string
 }
@@ -26,29 +37,53 @@ export type Project = {
 export type ProjectDraft = {
     name: string
     description?: string
-    visibility?: ProjectVisibility
+    appType?: AppType
     icon?: string
     color?: string
-    priority?: number
-    dueDate?: string | null
-    notifyOnActivity?: boolean
+
+    categories?: string[]
+    tags?: string[]
+    buildTags?: string[]
 }
 
-export type TaskStatus = 'planned' | 'in-progress' | 'shipped'
-
-export type Task = {
+export type ProjectMember = {
     id: string
-    projectId: string
-
-    ownerId: string
-    title: string
-    status: TaskStatus
-
-    position: number
+    userId: string
+    name: string
+    email: string
+    avatarUrl: string
+    permissions: ProjectPermission[]
+    isOwner: boolean
     createdAt: string
 }
 
-export type TaskDraft = {
-    title: string
-    status?: TaskStatus
+export type ProjectInvite = {
+    id: string
+    projectId: string
+    projectName: string
+    email: string
+    userId: string | null
+    permissions: ProjectPermission[]
+    invitedBy: string
+    expiresAt: string
+    createdAt: string
+}
+
+export type InviteDraft = {
+    email?: string
+    username?: string
+    permissions: ProjectPermission[]
+}
+
+export type ProjectVocabularies = {
+    categories: NamedRow[]
+    tags: NamedRow[]
+    buildTags: NamedRow[]
+}
+
+export type VocabulariesDraft = {
+    categories: string[]
+    tags: string[]
+    buildTags: string[]
+    defaultCategoryId?: string | null
 }

@@ -17,7 +17,7 @@ There is no `dotenv` dependency. Two loaders read the same file:
 
 **Precedence: a variable already present in the shell wins.** Node's `--env-file` does not overwrite existing `process.env` entries, and `env.sh` only exports keys that are unset. So `DATABASE_NAME=scratch npm run migrate` overrides the file, and the `DEV_LOGIN=true` prefix in `dev:api` stays authoritative.
 
-The web workspace reads no environment file — Vite proxies `/api` to `127.0.0.1:5000` (`web/vite.config.ts`), so the SPA is always same-origin locally.
+The web workspace reads no environment file — Vite proxies `/api` to `127.0.0.1:6000` (`web/vite.config.ts`), so the SPA is always same-origin locally.
 
 ## Variables
 
@@ -52,8 +52,8 @@ Then set `DATABASE_PORT=5434`, `DATABASE_USER=starter`, `DATABASE_PASS=starter` 
 ```bash
 nvm use
 npm run migrate                       # goose reports the applied version
-npm run dev                           # api :5000 + web :5001
-curl localhost:5000/api/health        # {"status":"OK","code":200,"data":{"status":"ok"}}
+npm run dev                           # api :6000 + web :6001
+curl localhost:6000/api/health        # {"status":"OK","code":200,"data":{"status":"ok"}}
 ```
 
 `api/src/index.ts` calls `database.init()` (a `SELECT 1`) before the server listens, so a booted API is proof the credentials resolved. A wrong `DATABASE_*` value fails at boot with a `pg` connection error rather than on the first request.

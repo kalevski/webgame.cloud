@@ -1,52 +1,28 @@
 import type { FastifyPluginAsync, FastifyReply, FastifyRequest } from 'fastify'
-import type { Project, ProjectDraft, Task, TaskStatus, User } from '../contracts/index.js'
-import { OWNER_ROLE_ID, encodeErrorCause } from '../contracts/index.js'
+import type {
+    InviteDraft,
+    ProjectDraft,
+    ProjectPermission,
+    VocabulariesDraft,
+} from '../contracts/index.js'
+import { APP_TYPES, PROJECT_PERMISSIONS, encodeErrorCause } from '../contracts/index.js'
 import { requireAuth, requirePermission } from '../auth.js'
+import {
+    loadProject,
+    requireProjectMember,
+    requireProjectOwner,
+    requireProjectPermission,
+} from '../projectAuth.js'
 import container from '../container.js'
 import { ProjectService } from '../services/ProjectService.js'
-import { UserService } from '../services/UserService.js'
+import { AccessPolicyService } from '../services/AccessPolicyService.js'
+import { RealmService } from '../services/RealmService.js'
 import { sendError } from './sendError.js'
 import { recordAudit } from '../audit.js'
-import { notify } from '../notify.js'
 
 const projects = () => container.resolve(ProjectService)
-const users = () => container.resolve(UserService)
-
-const STATUS_LABELS: Record<TaskStatus, string> = {
-    planned: 'Planned',
-    'in-progress': 'In Progress',
-    shipped: 'Shipped',
-}
-
-const announceShared = async (actor: User, project: Project): Promise<void> => {
-    const audience = await users().list()
-    await Promise.all(
-        audience
-            .filter((entry) => entry.active && entry.id !== actor.id)
-            .map((entry) =>
-                notify(
-                    entry.id,
-                    'project_shared',
-                    `${actor.name || actor.email} shared "${project.name}"`,
-                    `/projects/${project.id}`
-                )
-            )
-    )
-}
-
-const announceActivity = async (actor: User, project: Project, summary: string): Promise<void> => {
-    if (!project.notifyOnActivity || project.ownerId === actor.id) return
-    await notify(project.ownerId, 'task_activity', summary, `/projects/${project.id}`, { collapse: true })
-}
-
-const canEditProject = (user: User, project: Project): boolean =>
-    user.role === OWNER_ROLE_ID || project.ownerId === user.id
-
-const canEditTask = (user: User, task: Task): boolean =>
-    user.role === OWNER_ROLE_ID || task.ownerId === user.id
-
-const canViewProject = (user: User, project: Project): boolean =>
-    canEditProject(user, project) || project.visibility === 'shared'
+const access = () => container.resolve(AccessPolicyService)
+const realms = () => container.resolve(RealmService)
 
 const projectSchema = {
     type: 'object',
@@ -55,113 +31,124 @@ const projectSchema = {
     properties: {
         name: { type: 'string', minLength: 1, maxLength: 200 },
         description: { type: 'string', maxLength: 4000 },
-        visibility: { type: 'string', enum: ['private', 'shared'] },
+        appType: { type: 'string', enum: [...APP_TYPES] },
         icon: { type: 'string', minLength: 1, maxLength: 100 },
         color: { type: 'string', maxLength: 20 },
-        priority: { type: 'integer', minimum: 1, maximum: 5 },
-        dueDate: { type: ['string', 'null'], format: 'date' },
-        notifyOnActivity: { type: 'boolean' },
+        categories: { type: 'array', maxItems: 50, items: { type: 'string', minLength: 1, maxLength: 80 } },
+        tags: { type: 'array', maxItems: 200, items: { type: 'string', minLength: 1, maxLength: 80 } },
+        buildTags: { type: 'array', maxItems: 50, items: { type: 'string', minLength: 1, maxLength: 80 } },
+        defaultCategoryId: { type: ['string', 'null'], maxLength: 80 },
     },
 } as const
 
-const taskSchema = {
+const vocabularySchema = {
     type: 'object',
-    required: ['title'],
+    required: ['categories', 'tags', 'buildTags'],
     additionalProperties: false,
     properties: {
-        title: { type: 'string', minLength: 1, maxLength: 300 },
-        status: { type: 'string', enum: ['planned', 'in-progress', 'shipped'] },
+        categories: { type: 'array', maxItems: 50, items: { type: 'string', minLength: 1, maxLength: 80 } },
+        tags: { type: 'array', maxItems: 200, items: { type: 'string', minLength: 1, maxLength: 80 } },
+        buildTags: { type: 'array', maxItems: 50, items: { type: 'string', minLength: 1, maxLength: 80 } },
+        defaultCategoryId: { type: ['string', 'null'], maxLength: 80 },
     },
 } as const
 
-const taskPatchSchema = {
+const permissionsSchema = {
     type: 'object',
+    required: ['permissions'],
     additionalProperties: false,
     properties: {
-        title: { type: 'string', minLength: 1, maxLength: 300 },
-        status: { type: 'string', enum: ['planned', 'in-progress', 'shipped'] },
+        permissions: {
+            type: 'array',
+            items: { type: 'string', enum: [...PROJECT_PERMISSIONS] },
+            maxItems: PROJECT_PERMISSIONS.length,
+        },
     },
 } as const
 
-const listProjectsEndpoint = async (request: FastifyRequest): Promise<Project[]> =>
-    projects().listVisible(request.user!.id)
+const inviteSchema = {
+    type: 'object',
+    required: ['permissions'],
+    additionalProperties: false,
+    properties: {
+        email: { type: 'string', maxLength: 320 },
+        username: { type: 'string', maxLength: 320 },
+        permissions: {
+            type: 'array',
+            items: { type: 'string', enum: [...PROJECT_PERMISSIONS] },
+            maxItems: PROJECT_PERMISSIONS.length,
+        },
+    },
+} as const
 
-const createProjectEndpoint = async (request: FastifyRequest<{ Body: ProjectDraft }>, reply: FastifyReply) => {
+const archiveSchema = {
+    type: 'object',
+    required: ['archived'],
+    additionalProperties: false,
+    properties: { archived: { type: 'boolean' } },
+} as const
+
+const transferSchema = {
+    type: 'object',
+    required: ['userId'],
+    additionalProperties: false,
+    properties: { userId: { type: 'string', minLength: 1, maxLength: 80 } },
+} as const
+
+const listProjectsEndpoint = async (
+    request: FastifyRequest<{ Querystring: { archived?: string } }>
+) => projects().list(request.user!, request.query.archived === 'true')
+
+const createProjectEndpoint = async (
+    request: FastifyRequest<{ Body: ProjectDraft }>,
+    reply: FastifyReply
+) => {
     try {
-        if (request.body.visibility === 'shared' && !request.can('project.share')) {
-            reply.code(403)
-            return { error: encodeErrorCause('forbidden') }
-        }
-        const project = await projects().create(request.user!, request.body)
-        void recordAudit(request.user!, 'create_project', project.id, project.name)
-        if (project.visibility === 'shared') void announceShared(request.user!, project)
+        const created = await projects().create(request.user!, request.body)
+        void recordAudit(request.user!, 'project.created', created.id, created.name, request.id)
         reply.code(201)
-        return project
+        return created
     } catch (error) {
         return sendError(reply, error)
     }
 }
 
-const getProjectEndpoint = async (request: FastifyRequest<{ Params: { id: string } }>, reply: FastifyReply) => {
-    const project = await projects().get(request.params.id)
-    if (!project || !canViewProject(request.user!, project)) {
-        reply.code(404)
-        return { error: encodeErrorCause('project_not_found', request.params.id) }
-    }
-    return project
-}
+const getProjectEndpoint = async (request: FastifyRequest) =>
+    projects().get(request.project!, request.user!)
 
 const patchProjectEndpoint = async (
-    request: FastifyRequest<{ Params: { id: string }; Body: Partial<ProjectDraft> }>,
+    request: FastifyRequest<{ Body: Partial<ProjectDraft> & { defaultCategoryId?: string | null } }>,
     reply: FastifyReply
 ) => {
     try {
-        const project = await projects().get(request.params.id)
-        if (!project || !canViewProject(request.user!, project)) {
-            reply.code(404)
-            return { error: encodeErrorCause('project_not_found', request.params.id) }
-        }
-        if (!canEditProject(request.user!, project)) {
-            reply.code(403)
-            return { error: encodeErrorCause('forbidden') }
-        }
-        const nextVisibility = request.body.visibility ?? project.visibility
-        if (nextVisibility === 'shared' && project.visibility !== 'shared' && !request.can('project.share')) {
-            reply.code(403)
-            return { error: encodeErrorCause('forbidden') }
-        }
-        const updated = await projects().update(request.params.id, {
-            name: request.body.name ?? project.name,
-            description: request.body.description ?? project.description,
-            visibility: nextVisibility,
-            icon: request.body.icon ?? project.icon,
-            color: request.body.color ?? project.color,
-            priority: request.body.priority ?? project.priority,
-            dueDate: request.body.dueDate !== undefined ? request.body.dueDate : project.dueDate,
-            notifyOnActivity: request.body.notifyOnActivity ?? project.notifyOnActivity,
-        })
-        if (nextVisibility === 'shared' && project.visibility !== 'shared') {
-            void announceShared(request.user!, updated)
-        }
+        const updated = await projects().update(request.project!, request.user!, request.body)
+        void recordAudit(request.user!, 'project.updated', updated.id, updated.name, request.id)
         return updated
     } catch (error) {
         return sendError(reply, error)
     }
 }
 
-const deleteProjectEndpoint = async (request: FastifyRequest<{ Params: { id: string } }>, reply: FastifyReply) => {
+const archiveProjectEndpoint = async (
+    request: FastifyRequest<{ Body: { archived: boolean } }>,
+    reply: FastifyReply
+) => {
     try {
-        const project = await projects().get(request.params.id)
-        if (!project || !canViewProject(request.user!, project)) {
-            reply.code(404)
-            return { error: encodeErrorCause('project_not_found', request.params.id) }
-        }
-        if (!canEditProject(request.user!, project)) {
-            reply.code(403)
-            return { error: encodeErrorCause('forbidden') }
-        }
-        await projects().remove(request.params.id)
-        void recordAudit(request.user!, 'delete_project', request.params.id, project.name)
+        const updated = await projects().setArchived(request.project!, request.user!, request.body.archived)
+        void recordAudit(request.user!, 'project.archived', updated.id, String(request.body.archived), request.id)
+        return updated
+    } catch (error) {
+        return sendError(reply, error)
+    }
+}
+
+const transferProjectEndpoint = async (
+    request: FastifyRequest<{ Body: { userId: string } }>,
+    reply: FastifyReply
+) => {
+    try {
+        await projects().transferOwnership(request.project!, request.body.userId)
+        void recordAudit(request.user!, 'project.transferred', request.project!.id, request.body.userId, request.id)
         reply.code(204)
         return null
     } catch (error) {
@@ -169,85 +156,76 @@ const deleteProjectEndpoint = async (request: FastifyRequest<{ Params: { id: str
     }
 }
 
-const listTasksEndpoint = async (
-    request: FastifyRequest<{ Params: { id: string } }>,
-    reply: FastifyReply
-): Promise<Task[] | { error: string }> => {
-    const project = await projects().get(request.params.id)
-    if (!project || !canViewProject(request.user!, project)) {
-        reply.code(404)
-        return { error: encodeErrorCause('project_not_found', request.params.id) }
+const deleteProjectEndpoint = async (request: FastifyRequest, reply: FastifyReply) => {
+    const project = request.project!
+    if (project.owner_id !== request.user!.id) {
+        reply.code(403)
+        return { error: encodeErrorCause('not_project_owner') }
     }
-    return projects().listTasks(request.params.id)
+    const deleted = await projects().remove(project)
+    if (!deleted) {
+        reply.code(404)
+        return { error: encodeErrorCause('project_not_found') }
+    }
+    void recordAudit(request.user!, 'project.deleted', project.id, project.name, request.id)
+    return { deleted: true }
 }
 
-const createTaskEndpoint = async (
-    request: FastifyRequest<{ Params: { id: string }; Body: { title: string; status?: TaskStatus } }>,
+const projectUsageEndpoint = async (request: FastifyRequest) =>
+    access().projectUsageFor({ id: request.project!.id, ownerId: request.project!.owner_id })
+
+const projectLockEndpoint = async (request: FastifyRequest) =>
+    realms().lockOf(request.project!.id)
+
+const listVocabulariesEndpoint = async (request: FastifyRequest) =>
+    projects().vocabularies(request.project!.id)
+
+const putVocabulariesEndpoint = async (
+    request: FastifyRequest<{ Body: VocabulariesDraft }>,
     reply: FastifyReply
 ) => {
     try {
-        const project = await projects().get(request.params.id)
-        if (!project || !canViewProject(request.user!, project)) {
-            reply.code(404)
-            return { error: encodeErrorCause('project_not_found', request.params.id) }
-        }
-        if (!canEditProject(request.user!, project)) {
-            reply.code(403)
-            return { error: encodeErrorCause('forbidden') }
-        }
-        const task = await projects().addTask(request.user!, project, request.body.title, request.body.status)
-        void recordAudit(request.user!, 'create_task', task.id, `${project.name}: ${task.title}`)
-        void announceActivity(
+        return await projects().replaceVocabularies(request.project!, request.body)
+    } catch (error) {
+        return sendError(reply, error)
+    }
+}
+
+const listMembersEndpoint = async (request: FastifyRequest) =>
+    projects().listMembers(request.project!.id, request.project!.owner_id)
+
+const patchMemberEndpoint = async (
+    request: FastifyRequest<{ Params: { id: string; memberId: string }; Body: { permissions: ProjectPermission[] } }>,
+    reply: FastifyReply
+) => {
+    try {
+        const member = await projects().setMemberPermissions(
+            request.project!,
             request.user!,
-            project,
-            `${request.user!.name || request.user!.email} added "${task.title}" to ${project.name}`
+            request.projectPermissions,
+            request.params.memberId,
+            request.body.permissions
         )
-        reply.code(201)
-        return task
+        void recordAudit(
+            request.user!,
+            'member.permissions_changed',
+            member.userId,
+            request.project!.id,
+            request.id
+        )
+        return member
     } catch (error) {
         return sendError(reply, error)
     }
 }
 
-const patchTaskEndpoint = async (
-    request: FastifyRequest<{ Params: { id: string }; Body: { title?: string; status?: TaskStatus } }>,
+const deleteMemberEndpoint = async (
+    request: FastifyRequest<{ Params: { id: string; memberId: string } }>,
     reply: FastifyReply
 ) => {
     try {
-        const task = await projects().findTask(request.params.id)
-        if (!task || !canEditTask(request.user!, task)) {
-            reply.code(404)
-            return { error: encodeErrorCause('task_not_found', request.params.id) }
-        }
-        const updated = await projects().updateTask(request.params.id, {
-            title: request.body.title ?? task.title,
-            status: request.body.status ?? task.status,
-        })
-        if (updated.status !== task.status) {
-            const project = await projects().get(task.projectId)
-            if (project) {
-                void announceActivity(
-                    request.user!,
-                    project,
-                    `${request.user!.name || request.user!.email} moved "${updated.title}" to ${STATUS_LABELS[updated.status]}`
-                )
-            }
-        }
-        return updated
-    } catch (error) {
-        return sendError(reply, error)
-    }
-}
-
-const deleteTaskEndpoint = async (request: FastifyRequest<{ Params: { id: string } }>, reply: FastifyReply) => {
-    try {
-        const task = await projects().findTask(request.params.id)
-        if (!task || !canEditTask(request.user!, task)) {
-            reply.code(404)
-            return { error: encodeErrorCause('task_not_found', request.params.id) }
-        }
-        await projects().removeTask(request.params.id)
-        void recordAudit(request.user!, 'delete_task', request.params.id, task.title)
+        await projects().removeMember(request.project!, request.params.memberId)
+        void recordAudit(request.user!, 'member.removed', request.params.memberId, request.project!.id, request.id)
         reply.code(204)
         return null
     } catch (error) {
@@ -255,65 +233,180 @@ const deleteTaskEndpoint = async (request: FastifyRequest<{ Params: { id: string
     }
 }
 
-const exportProjectEndpoint = async (request: FastifyRequest<{ Params: { id: string } }>, reply: FastifyReply) => {
-    const result = await projects().exportProject(request.params.id)
-    if (!result || !canViewProject(request.user!, result.project)) {
-        reply.code(404)
-        return { error: encodeErrorCause('project_not_found', request.params.id) }
+const leaveProjectEndpoint = async (request: FastifyRequest, reply: FastifyReply) => {
+    try {
+        await projects().leave(request.project!, request.user!)
+        void recordAudit(request.user!, 'member.left', request.user!.id, request.project!.id, request.id)
+        reply.code(204)
+        return null
+    } catch (error) {
+        return sendError(reply, error)
     }
-    void recordAudit(request.user!, 'export_project', result.project.id, result.project.name)
-    return result
+}
+
+const listInvitesEndpoint = async (request: FastifyRequest) =>
+    projects().listInvites(request.project!.id)
+
+const createInviteEndpoint = async (
+    request: FastifyRequest<{ Body: InviteDraft }>,
+    reply: FastifyReply
+) => {
+    try {
+        const created = await projects().invite(
+            request.user!,
+            request.project!,
+            request.projectPermissions,
+            request.body
+        )
+        if (created.isErr()) {
+            reply.code(409)
+            return { error: encodeErrorCause('invite_exists') }
+        }
+        const invite = created.unwrap()
+        void recordAudit(request.user!, 'member.invited', invite.id, invite.email, request.id)
+        reply.code(201)
+        return invite
+    } catch (error) {
+        return sendError(reply, error)
+    }
+}
+
+const revokeInviteEndpoint = async (
+    request: FastifyRequest<{ Params: { id: string; inviteId: string } }>,
+    reply: FastifyReply
+) => {
+    try {
+        await projects().revokeInvite(request.project!, request.params.inviteId)
+        void recordAudit(request.user!, 'invite.revoked', request.params.inviteId, request.project!.id, request.id)
+        reply.code(204)
+        return null
+    } catch (error) {
+        return sendError(reply, error)
+    }
 }
 
 export const projectRouter: FastifyPluginAsync = async (app) => {
     app.addHook('preHandler', requireAuth)
 
-    app.get('/api/projects', listProjectsEndpoint)
+    app.get<{ Querystring: { archived?: string } }>('/api/projects', listProjectsEndpoint)
 
     app.post<{ Body: ProjectDraft }>(
         '/api/projects',
-        { schema: { body: projectSchema }, preHandler: [requirePermission('project.write')] },
+        { schema: { body: projectSchema }, preHandler: [requirePermission('project.create')] },
         createProjectEndpoint
     )
 
-    app.get<{ Params: { id: string } }>('/api/projects/:id', getProjectEndpoint)
+    app.get<{ Params: { id: string } }>(
+        '/api/projects/:id',
+        { preHandler: [loadProject] },
+        getProjectEndpoint
+    )
 
     app.patch<{ Params: { id: string }; Body: Partial<ProjectDraft> }>(
         '/api/projects/:id',
-        { schema: { body: { ...projectSchema, required: [] } }, preHandler: [requirePermission('project.write')] },
+        {
+            schema: { body: { ...projectSchema, required: [] } },
+            preHandler: [requireProjectPermission('project.settings')],
+        },
         patchProjectEndpoint
+    )
+
+    app.post<{ Params: { id: string }; Body: { archived: boolean } }>(
+        '/api/projects/:id/archive',
+        { schema: { body: archiveSchema }, preHandler: [loadProject] },
+        async (request, reply) => {
+            if (request.project!.owner_id !== request.user!.id) {
+                reply.code(403)
+                return { error: encodeErrorCause('not_project_owner') }
+            }
+            return archiveProjectEndpoint(request, reply)
+        }
+    )
+
+    app.post<{ Params: { id: string }; Body: { userId: string } }>(
+        '/api/projects/:id/transfer',
+        { schema: { body: transferSchema }, preHandler: [requireProjectOwner] },
+        transferProjectEndpoint
     )
 
     app.delete<{ Params: { id: string } }>(
         '/api/projects/:id',
-        { preHandler: [requirePermission('project.write')] },
+        { preHandler: [requireProjectOwner] },
         deleteProjectEndpoint
     )
 
-    app.get<{ Params: { id: string } }>('/api/projects/:id/tasks', listTasksEndpoint)
-
-    app.post<{ Params: { id: string }; Body: { title: string; status?: TaskStatus } }>(
-        '/api/projects/:id/tasks',
-        { schema: { body: taskSchema }, preHandler: [requirePermission('task.write')] },
-        createTaskEndpoint
-    )
-
-    app.patch<{ Params: { id: string }; Body: { title?: string; status?: TaskStatus } }>(
-        '/api/tasks/:id',
-        { schema: { body: taskPatchSchema }, preHandler: [requirePermission('task.write')] },
-        patchTaskEndpoint
-    )
-
-    app.delete<{ Params: { id: string } }>(
-        '/api/tasks/:id',
-        { preHandler: [requirePermission('task.write')] },
-        deleteTaskEndpoint
+    app.get<{ Params: { id: string } }>(
+        '/api/projects/:id/usage',
+        { preHandler: [loadProject] },
+        projectUsageEndpoint
     )
 
     app.get<{ Params: { id: string } }>(
-        '/api/projects/:id/export',
-        { preHandler: [requirePermission('project.export')] },
-        exportProjectEndpoint
+        '/api/projects/:id/lock',
+        { preHandler: [loadProject] },
+        projectLockEndpoint
     )
 
+    app.get<{ Params: { id: string } }>(
+        '/api/projects/:id/vocabularies',
+        { preHandler: [loadProject] },
+        listVocabulariesEndpoint
+    )
+
+    app.put<{ Params: { id: string }; Body: VocabulariesDraft }>(
+        '/api/projects/:id/vocabularies',
+        {
+            schema: { body: vocabularySchema },
+            preHandler: [requireProjectPermission('project.settings')],
+        },
+        putVocabulariesEndpoint
+    )
+
+    app.get<{ Params: { id: string } }>(
+        '/api/projects/:id/members',
+        { preHandler: [loadProject] },
+        listMembersEndpoint
+    )
+
+    app.patch<{ Params: { id: string; memberId: string }; Body: { permissions: ProjectPermission[] } }>(
+        '/api/projects/:id/members/:memberId',
+        {
+            schema: { body: permissionsSchema },
+            preHandler: [requireProjectPermission('member.manage')],
+        },
+        patchMemberEndpoint
+    )
+
+    app.delete<{ Params: { id: string } }>(
+        '/api/projects/:id/members/me',
+        { preHandler: [requireProjectMember] },
+        leaveProjectEndpoint
+    )
+
+    app.delete<{ Params: { id: string; memberId: string } }>(
+        '/api/projects/:id/members/:memberId',
+        { preHandler: [requireProjectPermission('member.manage')] },
+        deleteMemberEndpoint
+    )
+
+    app.get<{ Params: { id: string } }>(
+        '/api/projects/:id/invites',
+        { preHandler: [loadProject] },
+        listInvitesEndpoint
+    )
+
+    app.post<{ Params: { id: string }; Body: InviteDraft }>(
+        '/api/projects/:id/invites',
+        {
+            schema: { body: inviteSchema },
+            preHandler: [requireProjectPermission('member.manage')],
+        },
+        createInviteEndpoint
+    )
+
+    app.delete<{ Params: { id: string; inviteId: string } }>(
+        '/api/projects/:id/invites/:inviteId',
+        { preHandler: [requireProjectPermission('member.manage')] },
+        revokeInviteEndpoint
+    )
 }

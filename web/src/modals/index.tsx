@@ -8,10 +8,21 @@ import ManageAccessModal from './ManageAccessModal'
 import ReportModal from './ReportModal'
 import UpgradeModal from './UpgradeModal'
 import CreateProjectModal from './CreateProjectModal'
-import CreateTaskModal from './CreateTaskModal'
-import ConfirmDeleteTaskModal from './ConfirmDeleteTaskModal'
 import ResolveReportModal from './ResolveReportModal'
 import ConfirmDeleteProjectModal from './ConfirmDeleteProjectModal'
+import ArchiveProjectModal from './ArchiveProjectModal'
+import TransferProjectModal from './TransferProjectModal'
+import LeaveProjectModal from './LeaveProjectModal'
+import InviteMemberModal from './InviteMemberModal'
+import EditMemberPermissionsModal from './EditMemberPermissionsModal'
+import RemoveMemberModal from './RemoveMemberModal'
+import RealmEditorModal from './RealmEditorModal'
+import RealmTokenModal from './RealmTokenModal'
+import MoveProjectModal from './MoveProjectModal'
+import EditAssetTagsModal from './EditAssetTagsModal'
+import BundleWizardModal from './BundleWizardModal'
+import CreateConfigModal from './CreateConfigModal'
+import SchemaEditorModal from './SchemaEditorModal'
 import ContactSalesModal from './ContactSalesModal'
 import PlanModal from './PlanModal'
 import EnquiryTrailModal from './EnquiryTrailModal'
@@ -21,7 +32,7 @@ import EmailComposeModal from './EmailComposeModal'
 import EmailTriggerModal from './EmailTriggerModal'
 import ApiKeyModal from './ApiKeyModal'
 import WebhookModal from './WebhookModal'
-import FileSourceModal from './FileSourceModal'
+import AssetSourceModal from './AssetSourceModal'
 import SigningPublicKeyModal from './SigningPublicKeyModal'
 import ConfirmRotateSigningKeyModal from './ConfirmRotateSigningKeyModal'
 import { MODAL } from './keys'
@@ -55,20 +66,58 @@ export const ModalRender: React.FC = () => {
             <ModalWindow modalKey={MODAL.REPORT_CONTENT} title={t.modal.reportTitle}>
                 <ReportModal />
             </ModalWindow>
-            <ModalWindow modalKey={MODAL.CREATE_PROJECT} title={t.modal.createProjectTitle}>
+            <ModalWindow modalKey={MODAL.CREATE_PROJECT} title={t.modal.createProjectTitle} staticBackdrop>
                 <CreateProjectModal />
             </ModalWindow>
-            <ModalWindow modalKey={MODAL.CREATE_TASK} title={t.modal.createTaskTitle} size="sm">
-                <CreateTaskModal />
-            </ModalWindow>
-            <ModalWindow modalKey={MODAL.CONFIRM_DELETE_TASK} title={t.modal.deleteTaskTitle} size="sm">
-                <ConfirmDeleteTaskModal />
+            <ModalWindow modalKey={MODAL.EDIT_ASSET_TAGS} title={t.modal.editAssetTagsTitle} size="sm">
+                <EditAssetTagsModal />
             </ModalWindow>
             <ModalWindow modalKey={MODAL.RESOLVE_REPORT} title={t.modal.resolveReportTitle} size="sm">
                 <ResolveReportModal />
             </ModalWindow>
             <ModalWindow modalKey={MODAL.CONFIRM_DELETE_PROJECT} title={t.modal.deleteProjectTitle} size="sm">
                 <ConfirmDeleteProjectModal />
+            </ModalWindow>
+            <ModalWindow modalKey={MODAL.ARCHIVE_PROJECT} title={t.projects.archive} size="sm">
+                <ArchiveProjectModal />
+            </ModalWindow>
+            <ModalWindow modalKey={MODAL.TRANSFER_PROJECT} title={t.projects.transfer}>
+                <TransferProjectModal />
+            </ModalWindow>
+            <ModalWindow modalKey={MODAL.LEAVE_PROJECT} title={t.projects.leave} size="sm">
+                <LeaveProjectModal />
+            </ModalWindow>
+            <ModalWindow modalKey={MODAL.INVITE_MEMBER} title={t.members.inviteTitle}>
+                <InviteMemberModal />
+            </ModalWindow>
+            <ModalWindow modalKey={MODAL.EDIT_MEMBER_PERMISSIONS} title={t.members.editPermissions}>
+                <EditMemberPermissionsModal />
+            </ModalWindow>
+            <ModalWindow modalKey={MODAL.REMOVE_MEMBER} title={t.members.remove} size="sm">
+                <RemoveMemberModal />
+            </ModalWindow>
+            <ModalWindow modalKey={MODAL.REALM_EDITOR} title={t.realms.edit}>
+                <RealmEditorModal />
+            </ModalWindow>
+            <ModalWindow modalKey={MODAL.REALM_TOKEN} title={t.realms.tokenTitle}>
+                <RealmTokenModal />
+            </ModalWindow>
+            <ModalWindow modalKey={MODAL.MOVE_PROJECT} title={t.realms.moveTitle}>
+                <MoveProjectModal />
+            </ModalWindow>
+            <ModalWindow
+                modalKey={MODAL.BUNDLE_WIZARD}
+                title={(input) => ((input as { bundle?: unknown } | undefined)?.bundle ? t.bundles.edit : t.bundles.create)}
+                size="lg"
+                staticBackdrop
+            >
+                <BundleWizardModal />
+            </ModalWindow>
+            <ModalWindow modalKey={MODAL.CREATE_CONFIG} title={t.configs.createConfig}>
+                <CreateConfigModal />
+            </ModalWindow>
+            <ModalWindow modalKey={MODAL.SCHEMA_EDITOR} title={t.configs.createSchema} size="lg">
+                <SchemaEditorModal />
             </ModalWindow>
             <ModalWindow modalKey={MODAL.CONTACT_SALES} title={t.modal.contactSalesTitle}>
                 <ContactSalesModal />
@@ -97,8 +146,8 @@ export const ModalRender: React.FC = () => {
             <ModalWindow modalKey={MODAL.WEBHOOK} title={t.modal.webhookTitle} size="lg">
                 <WebhookModal />
             </ModalWindow>
-            <ModalWindow modalKey={MODAL.FILE_SOURCE} title={t.modal.fileSourceTitle}>
-                <FileSourceModal />
+            <ModalWindow modalKey={MODAL.ASSET_SOURCE} title={t.modal.assetSourceTitle}>
+                <AssetSourceModal />
             </ModalWindow>
             <ModalWindow modalKey={MODAL.SIGNING_PUBLIC_KEY} title={t.modal.signingPublicKeyTitle} size="lg">
                 <SigningPublicKeyModal />

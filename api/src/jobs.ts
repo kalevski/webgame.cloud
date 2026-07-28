@@ -5,12 +5,22 @@ import { BillingService } from './services/BillingService.js'
 import { JobService } from './services/JobService.js'
 import { SessionRepository } from './repositories/users/SessionRepository.js'
 import { WebhookService } from './services/WebhookService.js'
+import { UploadService } from './services/UploadService.js'
+import { BuildService } from './services/BuildService.js'
+import {
+    JOB_REALM_MIGRATE,
+    JOB_REALM_PURGE,
+    JOB_REALM_REAP_MIGRATIONS,
+    RealmService,
+} from './services/RealmService.js'
 
 const log = getLogger('scheduler')
 
 export const JOB_SESSION_PURGE = 'session_purge'
 export const JOB_SUBSCRIPTION_EXPIRY = 'subscription_expiry'
 export const JOB_WEBHOOK_DELIVERY = 'webhook_delivery'
+export const JOB_ASSET_REAP_ORPHANS = 'assets.reap_orphans'
+export const JOB_BUILD_REAP_STALE = 'builds.reap_stale'
 
 export const registerJobHandlers = (): void => {
     registerJobHandler(
@@ -35,6 +45,47 @@ export const registerJobHandlers = (): void => {
             await container.resolve(WebhookService).deliver(String(payload.deliveryId ?? ''))
         },
         { description: 'Deliver one webhook payload. Queued by the audit trail, never scheduled.' }
+    )
+
+    registerJobHandler(
+        JOB_REALM_MIGRATE,
+        async (payload) => {
+            await container.resolve(RealmService).runMigration(String(payload.migrationId ?? ''))
+        },
+        { description: 'Drive one project migration between realms. Queued by a staff move.' }
+    )
+
+    registerJobHandler(
+        JOB_REALM_PURGE,
+        async (payload) => {
+            const paths = Array.isArray(payload.paths) ? payload.paths.map(String) : []
+            await container.resolve(RealmService).purgeOnRealm(String(payload.realmId ?? ''), paths)
+        },
+        { description: 'Delete files on a realm after the rows they belong to were deleted.' }
+    )
+
+    registerJobHandler(
+        JOB_ASSET_REAP_ORPHANS,
+        async () => {
+            await container.resolve(UploadService).reapOrphans()
+        },
+        { cron: '*/5 * * * *', description: 'Soft-delete uploads that never landed on their realm.' }
+    )
+
+    registerJobHandler(
+        JOB_BUILD_REAP_STALE,
+        async () => {
+            await container.resolve(BuildService).reapStale()
+        },
+        { cron: '*/5 * * * *', description: 'Fail builds a realm claimed and never reported on.' }
+    )
+
+    registerJobHandler(
+        JOB_REALM_REAP_MIGRATIONS,
+        async () => {
+            await container.resolve(RealmService).reapStaleMigrations()
+        },
+        { cron: '*/5 * * * *', description: 'Fail migrations stuck in a non-terminal state, releasing the project lock.' }
     )
 }
 

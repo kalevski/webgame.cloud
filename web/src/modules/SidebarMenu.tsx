@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from 'react-router'
 import { useTc } from '@toolcase/web-components/react'
 import useStrings from 'hooks/useStrings'
 import useCan from 'hooks/useCan'
+import { useStore } from 'state'
 import useFeature from 'hooks/useFeature'
 
 const SidebarMenu: React.FC = () => {
@@ -14,26 +15,81 @@ const SidebarMenu: React.FC = () => {
     const canReadEnquiries = useCan('enquiry.read')
     const emailEnabled = useFeature('email')
     const canReadEmail = useCan('email.outbox.read')
+    const canReadRealms = useCan('realm.read')
+    const activeProjectId = useStore((state) => state.activeProjectId)
 
     const sections = useMemo(() => {
-        const main = {
-            key: 'main',
-            title: t.nav.sectionMain,
+        const dashboardItem = {
+            key: 'dashboard',
+            label: t.nav.dashboard,
+            icon: 'house',
+            active: location.pathname.startsWith('/dashboard'),
+        }
+
+        const project = {
+            key: 'project',
+            title: t.nav.sectionProject,
             items: [
-                {
-                    key: 'dashboard',
-                    label: t.nav.dashboard,
-                    icon: 'house',
-                    active: location.pathname.startsWith('/dashboard'),
-                },
-                {
-                    key: 'projects',
-                    label: t.nav.projects,
-                    icon: 'folder',
-                    active: location.pathname.startsWith('/projects'),
-                },
+                dashboardItem,
+                ...(activeProjectId
+                    ? [
+                        {
+                            key: `projects/${activeProjectId}/settings`,
+                            label: t.projects.tabSettings,
+                            icon: 'settings',
+                            active: location.pathname.startsWith(`/projects/${activeProjectId}/settings`),
+                        },
+                        {
+                            key: `projects/${activeProjectId}/members`,
+                            label: t.members.title,
+                            icon: 'users',
+                            active: location.pathname.startsWith(`/projects/${activeProjectId}/members`),
+                        },
+                    ]
+                    : []),
             ],
         }
+
+        const workspaceItems = [
+            ...(activeProjectId
+                ? [
+                    {
+                        key: `projects/${activeProjectId}/assets`,
+                        label: t.assets.title,
+                        icon: 'image',
+                        active: location.pathname.startsWith(`/projects/${activeProjectId}/assets`),
+                    },
+                    {
+                        key: `projects/${activeProjectId}/bundles`,
+                        label: t.bundles.title,
+                        icon: 'package',
+                        active: location.pathname.startsWith(`/projects/${activeProjectId}/bundles`),
+                    },
+                    {
+                        key: `projects/${activeProjectId}/builds`,
+                        label: t.builds.title,
+                        icon: 'hammer',
+                        active: location.pathname.startsWith(`/projects/${activeProjectId}/builds`),
+                    },
+                    {
+                        key: `projects/${activeProjectId}/configs`,
+                        label: t.configs.title,
+                        icon: 'sliders',
+                        active: location.pathname.startsWith(`/projects/${activeProjectId}/configs`),
+                    },
+                ]
+                : []),
+            ...(canReadRealms
+                ? [{
+                    key: 'admin/realms',
+                    label: t.nav.realms,
+                    icon: 'server',
+                    active: location.pathname.startsWith('/admin/realms'),
+                }]
+                : []),
+        ]
+
+        const workspace = { key: 'workspace', title: t.nav.sectionMain, items: workspaceItems }
 
         const invoiceItem = {
             key: 'platform/invoices',
@@ -65,12 +121,15 @@ const SidebarMenu: React.FC = () => {
         const platform = { key: 'platform', title: t.nav.sectionPlatform, items }
 
         return [
-            main,
+            project,
+            ...(workspaceItems.length > 0 ? [workspace] : []),
             ...(items.length > 0 ? [platform] : []),
         ]
     }, [
         t,
         location.pathname,
+        activeProjectId,
+        canReadRealms,
         billingEnabled,
         canReadInvoices,
         canReadEnquiries,

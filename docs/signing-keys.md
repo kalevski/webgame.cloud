@@ -9,7 +9,7 @@ to whoever validates the token.
 
 ## The key catalog is code, not data
 
-Keys are a hand-maintained enum in `api/src/contracts/signing.ts`, exactly like `FILE_TYPES`:
+Keys are a hand-maintained enum in `api/src/contracts/signing.ts`, exactly like `ASSET_TYPES`:
 
 ```ts
 export const SIGNING_KEYS = ['partner_api'] as const
@@ -130,3 +130,18 @@ control.
 - **No revocation.** A retired key stops signing but keeps verifying. To harden a compromised key,
   rotate and remove the retired `.pub` from the validator immediately, accepting that outstanding
   tokens break.
+
+
+## Realm keys
+
+Two more keys ship with the console:
+
+- `realm_upload` — signs a 15-minute upload ticket. Claims: `sub` (asset id), `projectId`, `maxBytes`,
+  `mime`, `jti`, `iss`, `iat`, `exp`, with `kid` in the header. **`maxBytes` is enforced by the realm** —
+  the size the client declares when it asks for the ticket is otherwise unverifiable, so the realm refuses
+  a body that exceeds it and finalises `failed`.
+- `realm_transfer` — signs migration and purge instructions.
+
+Never one key for both directions: an upload receiver must not be able to validate a data-relocation
+instruction. The public-key route is unauthenticated (a realm holds no session) and serves retired kids so
+a rotation does not invalidate tickets already in flight.

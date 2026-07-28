@@ -10,7 +10,7 @@ pages → modules → components / state (slices) → services → helpers/api (
 
 - **pages** (`pages/*.tsx`) wrap one module in a layout HOC (`wrapInMainLayout` / `wrapInBaseLayout`) + `AuthGuard` (+ optional `permission`) and set the page title/description via `usePageContext`.
 - **modules** (`modules/*.tsx`) are feature screens; they read the store and open modals.
-- **components** (`components/*.tsx`) are reusable, store-agnostic (`AdvancedTable`, `PageToolbar`, `RouteTabs`, `LimitMeter`, `LockChip`, `LockedAction`, `UpgradeNudge`, `Loading`, `Icon`).
+- **components** (`components/*.tsx`) are reusable, store-agnostic (`AdvancedTable`, `PageToolbar`, `RouteTabs`, `LimitMeter`, `LockChip`, `LockedAction`, `UpgradeNudge`, `Loading`, `Icon`, `EarlyAccessPanel`).
 - **services** (`services/*Service.ts`) are singletons wrapping `apiFetch` per domain. Modules never call `apiFetch` directly.
 - **state** (`state/*.slice.ts`) are zustand slices; `state/index.ts` assembles them. Read one field per selector — never `useStore(s => s)`.
 
@@ -38,23 +38,26 @@ Every JSON response is `{ status: 'OK', data }` or `{ status: 'rejected', cause 
 
 ## Modals
 
-`modals/keys.ts` holds the `MODAL` key map (its own file so the component-bearing registry stays a clean Fast Refresh boundary); `modals/registry.tsx` holds the context/hooks (`useModalOpen`, `useModalClose`, `useModalInput`, `ModalWindow`); `modals/index.tsx` (`ModalRender`) mounts each modal once. Add a key + a `<ModalWindow>`. Modal bodies stay mounted while hidden and reset on open.
+`modals/keys.ts` holds the `MODAL` key map (its own file so the component-bearing registry stays a clean Fast Refresh boundary); `modals/registry.tsx` holds the context/hooks (`useModalOpen`, `useModalClose`, `useModalInput`, `ModalWindow`); `modals/index.tsx` (`ModalRender`) mounts each modal once. Add a key + a `<ModalWindow>`. Modal bodies stay mounted while hidden and reset on open. `title` accepts a
+function of the modal's input when the heading depends on it (the bundle wizard reads *New bundle* vs *Edit
+bundle* from whether an existing bundle was passed), and `staticBackdrop` stops a stray click outside the
+dialog from discarding a half-filled wizard — set it on multi-step modals.
 
 **`ModalWindow` restores focus to the opener.** It captures `document.activeElement` when the modal opens and re-focuses it on close (falling back to a `blur()` if the opener has since unmounted). Without this, `tc-modal` sets `aria-hidden` on a subtree that still holds focus — Chrome logs *"Blocked aria-hidden on an element because its descendant retained focus"* and, more practically, focus falls back to `<body>`, so the next Tab restarts from the top of the page instead of returning to the button that opened the dialog. Keep this if you swap the modal component.
 
-**Escape closes one layer at a time.** `tc-modal` and `tc-extended-select` both listen for Escape on `document` in the bubble phase, and only the modal consults the overlay stack — so with a select menu open inside a modal, both handlers fire and Escape discards the whole form the user was half-way through filling in. `ModalWindow` adds a capture-phase Escape listener that, when the open modal contains an expanded `.tc-extended-select__menu--open`, stops propagation and dispatches a `mousedown` on `document` — the select's own outside-click handler closes just the menu. A second Escape then closes the modal, and a modal with no open menu is untouched. Drop this once the library gives dropdowns a place on the overlay stack.
+**Escape closes one layer at a time.** `tc-modal` and `tc-extended-select` both listen for Escape on `document` in the bubble phase, and only the modal consults the overlay stack — so with a select menu open inside a modal, both handlers fire and Escape discards the whole form the user was half-way through filling in. `ModalWindow` adds a capture-phase Escape listener that, when the open modal contains an expanded `.tc-extended-select__menu--open`, stops propagation and dispatches a `mousedown` on `document` — the select's own outside-click handler closes just the menu. A second Escape then closes the modal, and a modal with no open menu is untouched. The same guard covers `.tc-tag-input-menu--open` — the tag input's suggestion list has the identical problem, and Escape used to throw away a whole bundle wizard. Drop this once the library gives dropdowns a place on the overlay stack.
 
 ## Dates
 
-Never call `toLocaleDateString()` / `toLocaleString()` inline. `helpers/dates.ts` exposes `formatDate` (e.g. *Jul 27, 2026*) and `formatDateTime`, both null-safe with an em-dash fallback. One place to change the convention, and no drift between screens — which is how the app ended up mixing `7/26/2026` with `1 min ago`. Relative "x min ago" labels for very recent items stay local to the module that needs them (`Dashboard`, `NotificationsBell`).
+Never call `toLocaleDateString()` / `toLocaleString()` inline. `helpers/dates.ts` exposes `formatDate` (e.g. *Jul 27, 2026*) and `formatDateTime`, both null-safe with an em-dash fallback. One place to change the convention, and no drift between screens — which is how the app ended up mixing `7/26/2026` with `1 min ago`. Relative "x min ago" labels go through `hooks/useWhen.ts`, which reads `strings.notifications.justNow` / `minutesAgo` / `hoursAgo` / `daysAgo` and falls back to `formatDate` past a week — so the copy stays translatable and no module invents its own wording. `Dashboard` and `NotificationsBell` still carry their own inline variants; migrate them when you touch them. `helpers/format.ts` holds `formatBytes` for sizes.
 
 ## Layouts
 
 `MainLayout` = the `tc-dashboard-layout` shell (brand, `SidebarMenu`, `UserPanel`, `PageHeader`, `NotificationsBell`, `AlertPanel`). `BaseLayout` = chrome-free (login, legal). Both are HOCs.
 
-**Three navigation surfaces, one rule.** `SidebarMenu` (Workspace / Platform sections), the `UserPanel` avatar menu (Profile, Billing, Admin, Moderation), and the ⌘K palette's *Go to* group each list routes, and each gates them on the same `useCan` / `useFeature` checks. When you add a route, add it to all three or deliberately decide not to: a route that exists in one surface and not the others is how the palette ended up missing half the app.
+**Three navigation surfaces, one rule.** `SidebarMenu` (Project / Workspace / Platform sections), the `UserPanel` avatar menu (Profile, Billing, Admin, Moderation), and the ⌘K palette's *Go to* group each list routes, and each gates them on the same `useCan` / `useFeature` checks. When you add a route, add it to all three or deliberately decide not to: a route that exists in one surface and not the others is how the palette ended up missing half the app.
 
-**Admin and Moderation are deliberately not in the sidebar.** They are staff destinations rather than everyday workspace ones, so they are reached from the `UserPanel` avatar menu and the ⌘K palette only. The sidebar carries just Workspace and Platform. If you re-add an Administration section, add it to all three surfaces and update this paragraph.
+**Admin and Moderation are deliberately not in the sidebar.** They are staff destinations rather than everyday workspace ones, so they are reached from the `UserPanel` avatar menu and the ⌘K palette only. The sidebar carries Project, Workspace and Platform. If you re-add an Administration section, add it to all three surfaces and update this paragraph.
 
 ## Never conditionally swap a direct child of a `tc-*` element
 
@@ -146,7 +149,7 @@ All built-in `tc-*` strings (validation, pagination, select placeholders) come f
 
 ## Theme
 
-The tc-* library ships Bootstrap-derived themes; the app uses `sunshine` retinted to a violet-on-neutral palette. Because sunshine sets `--bs-primary: var(--sun-lead)`, overriding the `--sun-*` tokens in `styles/app.scss` recolours buttons, links, badges and focus in one move. The single accent colour is `$brand` in `styles/_abstracts.scss` (also set on `AppBrand.tsx`). Light + system-dark are supported via `prefers-color-scheme`. Design tokens (`$space-*`, radii, breakpoints) live in `_abstracts.scss`; per-module styles in `styles/modules/`, per-component in `styles/components/`, each with an `_index.scss` manifest.
+The tc-* library ships Bootstrap-derived themes; the app is wrapped in `<tc-theme name="blueprint" variant="sunset">` in `Router.tsx`, which is the colour source of truth for the console and the landing alike. Recolouring means changing that wrapper or remapping `--bp-*` tokens on a subtree — see `docs/landing-and-waitlist.md` for how the landing does it. `$brand` in `styles/_abstracts.scss` (also set on `AppBrand.tsx`) is the app-owned focus-ring accent. The console is light-only — neither the tc theme nor `styles/` carries a `prefers-color-scheme` branch, so adding dark mode means adding one (and dropping the `#fff` on `.layout-base`). Design tokens live in `_abstracts.scss`: the 4px spacing scale (`$space-1`…`$space-8`), radii, breakpoints, and the theme-derived console tokens `$line` / `$text-muted` / `$surface` / `$accent`. Per-module styles in `styles/modules/`, per-component in `styles/components/`, each with an `_index.scss` manifest. Layout utilities (`container`, `row`/`col-*`/`g-*`, `d-flex`, `gap-*`, `py-*`, `bg-light`) come from the package stylesheet; `styles/_utilities.scss` supplements only what it lacks (`py-md-7`, `fw-*`, `small`, `lead`, `display-*`, `text-uppercase`, `list-unstyled`, `border`, `rounded-3`, `bg-white`, `min-vh-100`, `font-monospace`). There is no app-owned grid sheet — one existed and its `[class^='col-'] { width: 100% }` rule defeated the package's responsive columns. See *Page rhythm* for the console spacing vocabulary.
 
 ## Failure handling: crashes, offline, network retries
 
@@ -171,7 +174,7 @@ hint in the dashboard navbar (`MainLayout`'s `navbar-right` slot, beside the not
 owns both the hint button and the overlay, so there is no cross-component state to plumb — the palette is
 just local `open` state.
 
-The shipped command set is deliberately scoped to the projects/tasks worked example, and is what you copy
+The shipped command set covers the console — jump to a project, its assets, bundles, builds and configs — and is what you copy
 for a real one:
 
 - **Go to** — static routes. `/admin` only appears when the caller holds `admin.overview.read`, so the
@@ -218,3 +221,103 @@ dims part of the screen, walk its ancestors for `transform`, `filter`, `backdrop
 
 The modifier symbol is picked once at module scope (`⌘` on Mac, `Ctrl` elsewhere) and shown in the hint via
 `tc-kbd`, so the affordance matches the platform the user is actually on.
+
+
+## `lib/tc.ts` — the custom-element wrapper layer
+
+Console UI is built from typed React wrappers in `lib/tc.ts` (`TcActionHeader`, `TcGroup`, `TcFile`,
+`TcAssetBundle`, `TcBuild`, `TcVerticalItemList`, `TcJSONEditor`, `TcJSONSchemaDef`, …) rather than
+raw `tc-*` elements. The wrapper assigns every element-specific value as a **property** (not an
+attribute), bridges `CustomEvent`s to `onX` callback props, and projects composed children into the
+right slot. Render `<TcFile … />`, not `<tc-file>` with a ref.
+
+Five rules the wrapper exists to enforce, and which still bite anything rendered outside it:
+
+1. **JS list properties are named per component** — `tc-stepper.steps`, `tc-card-options.options`,
+   `tc-badge-row.badges` (items carry `label`, not `key`), `tc-tag-input.recommendations`,
+   `tc-icon-picker.icons` (kebab-case lucide names), `tc-state-machine.states` (items carry
+   `status`), `tc-extended-select.items`. A wrong name renders an empty component with no error.
+2. **Never conditionally mount a slotted child.** Custom elements relocate slotted nodes, so React
+   loses track and throws `NotFoundError: insertBefore`. Render every slotted element (modal footer
+   buttons especially) and toggle `hidden` instead.
+3. **Several elements capture their children once and move them into an internal pane** —
+   `tc-vertical-item-list` in `connectedCallback`, `tc-modal` and `tc-group` on every render of their
+   observed attributes. A child that mounts later lands outside that pane and is destroyed by the next
+   rebuild. `lib/tc.ts` therefore always renders one stable `display: contents` wrapper for unslotted
+   children, even when there are none — see
+   [known-problems/tc-elements-rebuild-their-children.md](known-problems/tc-elements-rebuild-their-children.md).
+4. **Bind custom events, not callback properties.** `tc-action-row-list` dispatches
+   `tc-action-click` on its row button and never calls `onActionClick`; it has no row-click event at
+   all. `hooks/useTcEvent.ts` attaches the listener to the element ref. The same applies to
+   `tc-tag-input`, which has **no `onChange` property** — only a `tc-change` event. And an inline array
+   in a `useTc` props object is re-assigned every render, which resets the element's internal state:
+   hoist or `useMemo` it. Both traps are written up in
+   [known-problems/usetc-property-assignment.md](known-problems/usetc-property-assignment.md).
+5. **A disabled `tc-button` still fires its React `onClick`.** The package sets `pointer-events: none`
+   on the inner `.btn.disabled`, so the click lands on the host instead and React's handler on the host
+   runs — disabled wizard steps advanced, and a saving button could be clicked twice. `styles/app.scss`
+   puts `pointer-events: none` on the host for `[disabled]` and `[loading]`.
+
+Registration happens once, in `main.tsx` (`register()` plus the package stylesheet). `lib/tc.ts`
+deliberately does not register again — a second call reloads the package's own theme over the app's.
+
+## Project screens
+
+Each project screen is its own route and page — `/projects/:id/{assets,bundles,builds,configs,members,settings}` —
+not tabs on one detail page. Every page is the same shape: `usePageContext` sets the title and
+description, `AuthGuard secured` wraps it, and `components/ProjectPageShell.tsx` resolves the project
+from the route, syncs `activeProjectId`, and renders — in order — the lock banner, `ProjectHeader`,
+`ProjectPipeline`, then `.console-section` around a single list module (`FileList`, `BundleList`,
+`BuildList`, `ConfigEditor`/`SchemaEditor`).
+
+**`ProjectPipeline` fetches the slices it counts.** It shows Assets / Bundles / Builds / Live on every
+project screen, but those counts come from the `bundles` and `builds` slices, which only the matching page
+would otherwise load — so the strip read `Bundles 0 · Builds 0 · Live 0` on the Assets page of a project
+that had both. It now calls `fetchBundles` and `fetchBuilds` on `project.id`, unconditionally rather than on
+the `*Loaded` flags, because those flags are global and would keep the previous project's numbers after a
+switch. Assets prefer `assets.length` and fall back to `project.assetCount`, since the project row is not
+refetched after an upload.
+
+`ProjectPageShell` takes `title`, `subline?(project)`, `action?(project)`, `pipeline?` (default
+`true`) and `children(project)`:
+
+- **`subline`** is the screen's live state as data, not prose — counts wrapped in `<strong>` so they
+  read as numbers (`12 assets · 4 tagged`).
+- **`action`** is the ONE primary action for that screen, and it lives in the page header rather
+  than in the module below it. Derive its permission from the `project` argument
+  (`project.permissions.includes('bundle.write')`), NOT from a page-level `useProjectCan` — that
+  hook reads the active project, which has not synced yet on first render of a deep link.
+  Shipped: Assets none (upload is the strip), Bundles *Create bundle*, Builds *Purge N untagged*
+  (quiet `danger outline`, only when there are untagged builds), Configs *New config* / *New schema*
+  following the active tab, Members *Invite*.
+- **`pipeline={false}`** for screens that are not stages of the asset→build flow (Members, Settings).
+
+Because the header owns the primary action, modules must NOT repeat it. A module's own
+`tc-action-header` is for actions scoped to the current selection (save, revert, delete the selected
+config) — never for "new X".
+
+The dashboard's onboarding guide opens the project wizard in place for the *Create your first project* step (rather than routing to `/projects` and letting the redirect land on the onboarding screen); the *Upload your first asset* step still routes.
+
+## Page rhythm
+
+`styles/modules/_console.scss` is the single spacing sheet for the console, built on the 4px scale in
+`_abstracts.scss` (`$space-1`…`$space-8`; the old `$space-xs`/`sm`/`md`/`lg` names remain as aliases
+for modules that have not migrated). The classes there are the vocabulary — reach for one before
+adding a margin to a module:
+
+| Class | Job |
+| --- | --- |
+| `.project-page` / `.console-page` | Page measure: column, `$space-5` between sections, `max-width: 72rem`, centred. Every full-page screen uses one of these — project screens the former, everything else (dashboard, admin, profile, billing, email, moderation, invoices, enquiries, realms) the latter. There is no `.container > .row > .col-12` left in `pages/`. |
+| `.console-section` | The content column under the header, `$space-3` gap. |
+| `.console-stack` | A run of `tc-group` cards, `$space-2` gap, each with its own border so consecutive groups do not merge. |
+| `.console-empty` | Empty state: title + body + action, dashed edge. |
+| `.console-hint` | Muted helper line under a control. |
+| `.upload-strip` | Compacts `tc-file-dropzone` into a row that sits UNDER the list — browsing is the default state, uploading is an action. |
+| `.member-remove` | The rare destructive row on Members: captioned, ruled off, small. |
+
+`tc-group[data-empty='true']` mutes an empty group's label and count so it stays addressable without
+competing with a group that has content.
+
+Colours in module styles come from the theme tokens in `_abstracts.scss` (`$line`, `$text-muted`,
+`$surface`, `$accent`), which resolve through `var(--tc-*)`. Do not hard-code hex greys in
+`styles/modules/` — a retint then misses them.

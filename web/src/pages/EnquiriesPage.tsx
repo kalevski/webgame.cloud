@@ -21,12 +21,8 @@ const EnquiriesPage: React.FC = () => {
 
     return (
         <AuthGuard secured permission="enquiry.read">
-            <section className="container">
-                <div className="row">
-                    <div className="col-12">
-                        <EnquiriesAdmin />
-                    </div>
-                </div>
+            <section className="console-page">
+                <EnquiriesAdmin />
             </section>
         </AuthGuard>
     )

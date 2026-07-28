@@ -15,13 +15,29 @@ export const MODAL = {
 
     CREATE_PROJECT: 'create-project',
 
-    CREATE_TASK: 'create-task',
-
-    CONFIRM_DELETE_TASK: 'confirm-delete-task',
-
     RESOLVE_REPORT: 'resolve-report',
 
     CONFIRM_DELETE_PROJECT: 'confirm-delete-project',
+
+    ARCHIVE_PROJECT: 'archive-project',
+    TRANSFER_PROJECT: 'transfer-project',
+    LEAVE_PROJECT: 'leave-project',
+
+    INVITE_MEMBER: 'invite-member',
+    EDIT_MEMBER_PERMISSIONS: 'edit-member-permissions',
+    REMOVE_MEMBER: 'remove-member',
+
+    REALM_EDITOR: 'realm-editor',
+    REALM_TOKEN: 'realm-token',
+    MOVE_PROJECT: 'move-project',
+
+    PLAN_LIMIT: 'plan-limit',
+
+    EDIT_ASSET_TAGS: 'edit-asset-tags',
+
+    BUNDLE_WIZARD: 'bundle-wizard',
+    CREATE_CONFIG: 'create-config',
+    SCHEMA_EDITOR: 'schema-editor',
 
     CONTACT_SALES: 'contact-sales',
 
@@ -35,7 +51,7 @@ export const MODAL = {
     EMAIL_TRIGGER: 'email-trigger',
     API_KEY: 'api-key',
     WEBHOOK: 'webhook',
-    FILE_SOURCE: 'file-source',
+    ASSET_SOURCE: 'asset-source',
 
     EMAIL_COMPOSE: 'email-compose',
 

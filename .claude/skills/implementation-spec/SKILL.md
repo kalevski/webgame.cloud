@@ -97,7 +97,7 @@ quota: a feature extending an existing stack skips stages that don't apply — w
 
 ## Verification
 <Concrete steps: npm run typecheck; dropdb + npm run migrate; curl calls with
-expected enveloped responses (jq '.data'); browser walkthrough at localhost:5001,
+expected enveloped responses (jq '.data'); browser walkthrough at localhost:6001,
 including the failure paths (limit hit, paywall, forbidden) — not just the happy path.>
 
 ## Open questions

@@ -1,86 +1,306 @@
 @use '../abstracts' as *;
 
 .module-landing {
-    display: flex;
-    flex-direction: column;
-    min-height: 100vh;
+    --bp-teal: #0aa89a;
+    --bp-teal-hover: #0bbcab;
+    --bp-teal-fg: #097f74;
+    --bp-teal-ink: #fff;
+    --bp-teal-soft: rgb(10 168 154 / 8%);
+    --bp-teal-line: rgb(10 168 154 / 40%);
+    --bp-teal-glow: rgb(10 168 154 / 32%);
+    --bp-success: var(--bp-teal);
+    --bp-success-hover: var(--bp-teal-hover);
+    --bp-success-fg: var(--bp-teal-fg);
+    --bp-success-soft: var(--bp-teal-soft);
+    --bp-success-line: var(--bp-teal-line);
+    --bp-success-glow: var(--bp-teal-glow);
+    --bp-glow-field:
+        radial-gradient(ellipse at 70% 12%, rgb(255 126 95 / 6%), transparent 55%),
+        radial-gradient(ellipse at 12% 70%, rgb(10 168 154 / 7%), transparent 55%);
 
-    &__nav {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: $space-md;
-        max-width: 72rem;
-        width: 100%;
-        margin: 0 auto;
-        padding: $space-md $space-lg;
+    --tc-accent-hex: #0aa89a;
+    --tc-cyan: #0aa89a;
+    --tc-success: var(--bp-teal);
+    --tc-success-bg: rgb(10 168 154 / 12%);
+    --bs-success: var(--bp-teal);
+    --bs-success-rgb: 10, 168, 154;
+
+    --wg-seam: linear-gradient(
+        90deg,
+        transparent 0%,
+        var(--bp-pink-line) 22%,
+        var(--bp-teal-line) 50%,
+        var(--bp-pink-line) 78%,
+        transparent 100%
+    );
+
+    --wg-radius-card: 14px;
+    --wg-radius-inner: 10px;
+    --wg-shadow-card: var(--tc-shadow-sm);
+    --wg-h2: clamp(1.75rem, 3vw, 2.25rem);
+
+    --bp-r-xs: 4px;
+    --bp-r-sm: 6px;
+    --bp-r-md: 10px;
+    --bp-r-lg: 14px;
+    --bp-r-xl: 18px;
+
+    font-family: Inter, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+
+    :is(.btn, button, a.btn) {
+        font-family: inherit;
+        text-transform: none;
+        letter-spacing: 0;
     }
 
-    &__terminal {
-        max-width: 56rem;
-        width: 100%;
-        margin: -$space-2xl auto 0;
-        padding: 0 $space-lg;
-        position: relative;
-        z-index: 1;
-
-        tc-terminal-window {
-            display: block;
-            box-shadow: 0 24px 60px rgb(10 12 24 / 35%);
-            border-radius: $radius-md;
-        }
-    }
-
-    &__band {
-        width: 100%;
-        padding: $space-2xl $space-lg;
-
-        &--tint {
-            background: #f6f7f9;
-        }
-    }
-
-    &__inner {
-        max-width: 72rem;
-        margin: 0 auto;
-
-        &--narrow {
-            max-width: 46rem;
-        }
-    }
-
-    &__features {
-        padding-top: calc(#{$space-2xl} + #{$space-xl});
-    }
-
-    &__section-title {
-        margin: 0 0 $space-xs;
-        font-size: 1.5rem;
-        font-weight: 700;
-        text-align: center;
+    :is(h1, h2, h3, h4, h5, h6) {
+        font-family: var(--bp-display, inherit);
+        text-transform: none;
         letter-spacing: -0.01em;
     }
 
-    &__section-intro {
-        max-width: 38rem;
-        margin: 0 auto $space-xl;
-        color: #6b7280;
-        font-size: 0.95rem;
-        text-align: center;
+    h2:where(.display-6, .early-access__title, .tc-pinned-feature-showcase-title),
+    .tc-pinned-feature-showcase h2,
+    .landing-faq h2 {
+        font-size: var(--wg-h2);
+        font-weight: 700;
+        line-height: 1.15;
     }
 
-    tc-pipeline {
-        display: block;
-        max-width: 56rem;
-        margin: 0 auto;
+    .landing-eyebrow,
+    .tc-hero-eyebrow.tc-hero-eyebrow,
+    .tc-pinned-feature-showcase-eyebrow.tc-pinned-feature-showcase-eyebrow,
+    .tc-feature-card-eyebrow.tc-feature-card-eyebrow,
+    .early-access__eyebrow,
+    .early-access__quota,
+    .early-access__label,
+    .early-access__rail-caption {
+        font-family: var(--tc-font-mono, ui-monospace, monospace);
+        font-size: 0.6875rem;
+        font-weight: 600;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: var(--bp-pink);
     }
 
-    &__chain {
-        max-width: 46rem;
-        margin: $space-xl auto 0;
+    .early-access__quota,
+    .early-access__label,
+    .early-access__rail-caption {
+        color: var(--bp-text-muted);
+    }
+
+    :is(
+        .tc-feature-card.tc-feature-card,
+        .tc-pricing-card.tc-pricing-card,
+        .tc-asset-row-list,
+        .tc-config-preview.tc-config-preview,
+        .tc-team-list.tc-team-list,
+        .tc-cdn-map.tc-cdn-map,
+        .tc-bundle-bar.tc-bundle-bar,
+        .early-access
+    ) {
+        border-radius: var(--wg-radius-card);
+    }
+
+    :is(.tc-feature-card.tc-feature-card, .tc-pricing-card.tc-pricing-card) {
+        border-width: 1px;
+        box-shadow: var(--wg-shadow-card);
+    }
+
+    :is(.early-access__form, .early-access__input, .early-access__consent, .tc-asset-row-list) {
+        border-radius: var(--wg-radius-inner);
+    }
+
+    .tc-feature-card.tc-feature-card::before,
+    .tc-feature-card.tc-feature-card::after,
+    .tc-pricing-card.tc-pricing-card::after,
+    .tc-pinned-feature-showcase-item.tc-pinned-feature-showcase-item::before,
+    .tc-pinned-feature-showcase-item.tc-pinned-feature-showcase-item::after,
+    .early-access__mark {
+        content: none;
+        display: none;
+    }
+
+    .btn-primary {
+        background-color: var(--bp-pink);
+        background-image: var(--bp-pink-grad);
+        border: 0;
+        border-radius: 999px;
+        color: var(--bp-pink-ink, #fff);
+        font-weight: 700;
+        box-shadow: var(--bp-glow-pink);
+
+        &:hover {
+            background-image: var(--bp-pink-grad);
+            color: var(--bp-pink-ink, #fff);
+            transform: translateY(-1px);
+            box-shadow: var(--bp-glow-pink-strong);
+        }
+
+        &:active {
+            transform: translateY(1px);
+            box-shadow: var(--bp-glow-pink);
+        }
+    }
+
+    :is(.btn-secondary, .btn-outline-secondary) {
+        border-radius: 999px;
+        border: 2px solid var(--bp-teal);
+        background: var(--bp-paper);
+        color: var(--bp-teal-fg);
+        font-weight: 600;
+
+        &:hover {
+            background: var(--bp-teal-soft);
+            color: var(--bp-teal-fg);
+        }
+    }
+
+    .bg-light {
+        background-color: var(--bp-bg-2);
+        background-image:
+            var(--wg-seam),
+            var(--bp-glow-field);
+        background-repeat: no-repeat;
+        background-size: 100% 1px, 100% 100%, 100% 100%;
+        background-position: top, top, top;
+    }
+
+    tc-hero {
+        --bs-hero-title-font-weight: 800;
+        --bs-hero-eyebrow-color: var(--bp-pink);
+        --bs-hero-border-color: transparent;
+        --bs-hero-bg:
+            radial-gradient(120% 70% at 50% 116%, var(--bp-pink-glow) 0%, transparent 72%),
+            radial-gradient(48% 46% at 88% 4%, var(--bp-teal-glow) 0%, transparent 62%),
+            var(--bp-pink-surface);
+    }
+
+    .tc-hero-backdrop {
+        display: none;
+    }
+
+    .tc-hero-eyebrow {
+        border: 0;
+        padding: 0;
+        background: transparent;
+        color: var(--bp-pink);
+    }
+
+    .tc-hero-eyebrow::before,
+    .tc-hero-eyebrow .tc-hero-eyebrow-dot {
+        display: none;
+    }
+
+    tc-pinned-feature-showcase {
+        --bs-pinned-feature-showcase-sticky-top: 6.5rem;
+    }
+
+    div.tc-pricing-card--highlight {
+        --bs-pricing-card-highlight-cap-bg: var(--bp-pink-grad);
+    }
+
+    .tc-feature-card {
+        transition: transform 160ms ease, border-color 160ms ease;
+
+        &:hover {
+            border-color: var(--bp-pink-line);
+            transform: translateY(-2px);
+        }
+    }
+
+    tc-announcement-bar.tc-banner-announce {
+        --wg-discord: #5865f2;
+
+        --bs-banner-bg: var(--wg-discord);
+        --bs-banner-border-color: var(--wg-discord);
+        --bs-banner-color: #fff;
+        --bs-banner-cta-color: #fff;
+        --bs-banner-border-radius: 0;
+
+        justify-content: center;
+        gap: 0.75rem;
+        padding-inline: 1.5rem;
+        border: 0;
+        border-radius: 0;
+
+        .tc-banner-icon {
+            flex: 0 0 auto;
+            color: #fff;
+        }
+
+        &.tc-banner span.tc-banner-content {
+            flex: 0 0 auto;
+            font-family: inherit;
+            font-size: 0.875rem;
+            text-transform: none;
+            letter-spacing: 0;
+            color: #fff;
+        }
+
+        a.tc-banner-cta {
+            flex: 0 0 auto;
+            padding: 0.25rem 0.9rem;
+            border-radius: 999px;
+            background: #fff;
+            color: var(--wg-discord);
+            font-family: inherit;
+            font-size: 0.8rem;
+            font-weight: 700;
+            text-transform: none;
+            letter-spacing: 0;
+            text-decoration: none;
+
+            &:hover {
+                background: #f2f3ff;
+                color: var(--wg-discord);
+            }
+        }
+    }
+
+    ul.tc-cool-nav-items {
+        justify-content: center;
+    }
+
+    tc-cool-nav.tc-cool-nav a.tc-cool-nav-link,
+    tc-cool-nav.tc-cool-nav .tc-cool-nav-brand,
+    tc-cool-nav.tc-cool-nav button.tc-cool-nav-login,
+    tc-cool-nav.tc-cool-nav a.tc-cool-nav-login {
+        font-family: inherit;
+        text-transform: none;
+        letter-spacing: 0;
+        font-size: 0.9rem;
+    }
+
+    nav.tc-cool-nav-inner {
+        background-image: var(--wg-seam);
+        background-repeat: no-repeat;
+        background-size: 100% 1px;
+        background-position: bottom;
     }
 
     tc-page-footer {
-        margin-top: auto;
+        --bs-page-footer-padding-x: max(2rem, calc((100% - 1400px) / 2 + 0.75rem));
+        --bs-page-footer-border-color: transparent;
+
+        background-image: var(--wg-seam);
+        background-repeat: no-repeat;
+        background-size: 100% 1px;
+        background-position: top;
+    }
+
+    .landing-faq {
+        max-width: 46rem;
+        margin: 0 auto;
+    }
+
+    tc-page-footer .tc-page-footer-tagline,
+    tc-page-footer .tc-page-footer-description,
+    tc-page-footer .tc-page-footer-menu-link,
+    tc-page-footer .tc-page-footer-legal-link,
+    tc-page-footer .tc-page-footer-legal-text {
+        font-family: inherit;
+        text-transform: none;
+        letter-spacing: 0;
     }
 }

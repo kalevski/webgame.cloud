@@ -2,6 +2,8 @@ import Fastify from 'fastify'
 import type { FastifyError, FastifyInstance } from 'fastify'
 import { injectable } from 'tsyringe'
 import { registerAuth } from './auth.js'
+import { registerProjectAuth } from './projectAuth.js'
+import { REALM_ROUTE_PREFIXES, registerRealmAuth } from './realmAuth.js'
 import { encodeErrorCause } from './contracts/index.js'
 import { CORS_ORIGIN, DEV_LOGIN, PORT } from './env.js'
 
@@ -14,6 +16,15 @@ import { moderationRouter } from './routers/moderationRouter.js'
 import { notificationRouter } from './routers/notificationRouter.js'
 import { accessPolicyRouter } from './routers/accessPolicyRouter.js'
 import { projectRouter } from './routers/projectRouter.js'
+import { inviteRouter } from './routers/inviteRouter.js'
+import { realmRouter } from './routers/realmRouter.js'
+import { assetRouter } from './routers/assetRouter.js'
+import { internalRouter } from './routers/internalRouter.js'
+import { bundleRouter } from './routers/bundleRouter.js'
+import { buildRouter } from './routers/buildRouter.js'
+import { configRouter } from './routers/configRouter.js'
+import { publicGameRouter } from './routers/publicGameRouter.js'
+import { publicWaitlistRouter, waitlistRouter } from './routers/waitlistRouter.js'
 import { billingRouter, publicBillingRouter } from './routers/billingRouter.js'
 import { emailRouter } from './routers/emailRouter.js'
 import { platformRouter } from './routers/platformRouter.js'
@@ -31,6 +42,16 @@ const ROUTE_PLUGINS = [
     notificationRouter,
     moderationRouter,
     projectRouter,
+    inviteRouter,
+    realmRouter,
+    assetRouter,
+    internalRouter,
+    bundleRouter,
+    buildRouter,
+    configRouter,
+    publicGameRouter,
+    publicWaitlistRouter,
+    waitlistRouter,
     billingRouter,
     publicBillingRouter,
     emailRouter,
@@ -72,6 +93,8 @@ export class Http {
 
         this.server.addHook('onRequest', async (request, reply) => {
             if (!MUTATING.has(request.method)) return
+            if (REALM_ROUTE_PREFIXES.some((prefix) => request.url.startsWith(prefix))) return
+            if (request.url.startsWith('/api/public/')) return
             const origin = request.headers.origin
             if (!origin) return
 
@@ -84,6 +107,8 @@ export class Http {
         registerSecurityHeaders(this.server)
         registerEnvelope(this.server)
         registerAuth(this.server)
+        registerProjectAuth(this.server)
+        registerRealmAuth(this.server)
         registerIdempotency(this.server)
 
         this.server.setErrorHandler((error: FastifyError, request, reply) => {

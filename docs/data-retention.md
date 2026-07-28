@@ -83,3 +83,14 @@ element inside `onFilterChange`. Full explanation:
 Purging used to be a `retention_purge` job enqueued hourly (`jobs.ts`). That handler is gone — a dedicated
 worker replaced it so the cadence and batch size are tunable independently of the generic job queue. The
 job queue still owns session purging, subscription expiry and webhook delivery.
+
+
+## Console tables
+
+All fourteen console tables are discovered automatically and labelled in `contracts/retention.ts`.
+Defaults stay at `0` (keep forever) except `project_migrations` (90 days — a finished migration is a log
+line). `builds` and `build_files` keep `0` deliberately: purge-untagged is the user-facing control, and a
+silent sweep would delete a tagged release nobody asked it to touch.
+
+Soft-deleted `assets` rows are the record of which bytes `realm.purge` was told to delete, which is the
+other reason they are not swept eagerly.

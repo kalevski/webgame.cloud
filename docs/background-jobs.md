@@ -78,3 +78,17 @@ sweep happens immediately on init and reads the registry.
 `kinds` triggers exactly those. Any registered kind is accepted, including event-driven ones, which makes
 the endpoint useful for smoke-testing a handler. An unregistered kind is rejected with
 `job_kind_unknown` (400) rather than queueing a job that could never run.
+
+
+## Jobs this workspace adds
+
+| Kind | Cron | What it does |
+| --- | --- | --- |
+| `assets.reap_orphans` | `*/5 * * * *` | Soft-deletes `pending_upload` assets older than 20 minutes. |
+| `builds.reap_stale` | `*/5 * * * *` | Fails builds a realm claimed and never reported on (`build_timeout_minutes`, default 30). |
+| `realms.reap_stale_migrations` | `*/5 * * * *` | Fails migrations stuck in a non-terminal state, releasing the project lock. |
+| `realm.migrate` | — | Drives one project migration between realms. Queued by a staff move, re-enqueued at boot. |
+| `realm.purge` | — | Deletes files on a realm after the rows they belong to were deleted. |
+
+Build work is deliberately **not** a `jobs` row: the realm long-polls and claims from the `builds` table
+directly, because the claim, the status and the result all belong to the build row the user is watching.

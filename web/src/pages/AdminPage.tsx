@@ -16,12 +16,8 @@ const AdminPage: React.FC = () => {
 
     return (
         <AuthGuard secured permission="admin.overview.read">
-            <section className="container">
-                <div className="row">
-                    <div className="col-12">
-                        <AdminWorkspace />
-                    </div>
-                </div>
+            <section className="console-page">
+                <AdminWorkspace />
             </section>
         </AuthGuard>
     )

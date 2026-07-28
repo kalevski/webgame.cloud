@@ -142,7 +142,7 @@ CREATE INDEX audit_log_actor_idx ON audit_log (actor_id) WHERE deleted_at IS NUL
 CREATE TABLE notifications (
     id         text PRIMARY KEY,
     user_id    text NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    kind       text NOT NULL CHECK (kind IN ('welcome', 'project_shared', 'task_activity', 'system')),
+    kind       text NOT NULL CHECK (kind IN ('welcome', 'system', 'project_invite', 'project_moved', 'build_failed')),
     title      text NOT NULL,
     link       text NOT NULL DEFAULT '',
     read_at    timestamptz,
@@ -171,41 +171,6 @@ CREATE TABLE settings (
     deleted_at timestamptz
 );
 
-CREATE TABLE projects (
-    id                   text PRIMARY KEY,
-    owner_id             text NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    name                 text NOT NULL,
-    description          text NOT NULL DEFAULT '',
-    visibility           text NOT NULL DEFAULT 'private' CHECK (visibility IN ('private', 'shared')),
-    icon                 text NOT NULL DEFAULT 'FolderKanban',
-    color                text NOT NULL DEFAULT '',
-    priority             integer NOT NULL DEFAULT 3 CHECK (priority BETWEEN 1 AND 5),
-    due_date             date,
-    notify_on_activity   boolean NOT NULL DEFAULT true,
-    created_at           timestamptz NOT NULL DEFAULT now(),
-    updated_at           timestamptz NOT NULL DEFAULT now(),
-    deleted_at           timestamptz
-);
-CREATE INDEX projects_owner_idx ON projects (owner_id) WHERE deleted_at IS NULL;
-
-CREATE INDEX projects_shared_idx ON projects (updated_at DESC)
-    WHERE visibility = 'shared' AND deleted_at IS NULL;
-
-CREATE TABLE tasks (
-    id         text PRIMARY KEY,
-    project_id text NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
-
-    owner_id   text NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    title      text NOT NULL,
-    status     text NOT NULL DEFAULT 'planned' CHECK (status IN ('planned', 'in-progress', 'shipped')),
-    position   integer NOT NULL DEFAULT 0,
-    created_at timestamptz NOT NULL DEFAULT now(),
-    updated_at timestamptz NOT NULL DEFAULT now(),
-    deleted_at timestamptz
-);
-CREATE INDEX tasks_project_idx ON tasks (project_id, position) WHERE deleted_at IS NULL;
-CREATE INDEX tasks_owner_idx ON tasks (owner_id) WHERE deleted_at IS NULL;
-
 CREATE TABLE billing_plans (
     id           text PRIMARY KEY,
     name         text NOT NULL,
@@ -220,6 +185,7 @@ CREATE TABLE billing_plans (
     features     jsonb NOT NULL DEFAULT '[]'::jsonb,
     sales_fields jsonb NOT NULL DEFAULT '[]'::jsonb,
     trial_days   integer NOT NULL DEFAULT 0 CHECK (trial_days >= 0),
+    storage_overage_allowed boolean NOT NULL DEFAULT false,
     created_at   timestamptz NOT NULL DEFAULT now(),
     updated_at   timestamptz NOT NULL DEFAULT now(),
     deleted_at   timestamptz
@@ -236,6 +202,9 @@ CREATE TABLE subscriptions (
     cancel_at_period_end     boolean NOT NULL DEFAULT false,
     current_period_end       timestamptz,
     started_at               timestamptz,
+    staff_override_plan_id   text REFERENCES billing_plans(id) ON UPDATE CASCADE ON DELETE SET NULL,
+    storage_overage_bytes    bigint NOT NULL DEFAULT 0,
+    storage_overage_flagged_at timestamptz,
     created_at               timestamptz NOT NULL DEFAULT now(),
     updated_at               timestamptz NOT NULL DEFAULT now(),
     deleted_at               timestamptz
@@ -523,7 +492,7 @@ CREATE TABLE invoice_reminders (
 CREATE UNIQUE INDEX invoice_reminders_unique_idx ON invoice_reminders (invoice_id, stage)
     WHERE deleted_at IS NULL;
 
-CREATE TABLE file_sources (
+CREATE TABLE asset_sources (
     id         text PRIMARY KEY,
     name       text NOT NULL,
     type       text NOT NULL CHECK (type IN ('disk', 's3')),
@@ -533,12 +502,12 @@ CREATE TABLE file_sources (
     updated_at timestamptz NOT NULL DEFAULT now(),
     deleted_at timestamptz
 );
-CREATE UNIQUE INDEX file_sources_name_idx ON file_sources (lower(name)) WHERE deleted_at IS NULL;
+CREATE UNIQUE INDEX asset_sources_name_idx ON asset_sources (lower(name)) WHERE deleted_at IS NULL;
 
 CREATE TABLE files (
     id            text PRIMARY KEY,
-    file_type     text NOT NULL,
-    source_id     text NOT NULL REFERENCES file_sources(id),
+    asset_type    text NOT NULL,
+    source_id     text NOT NULL REFERENCES asset_sources(id),
     location      text NOT NULL,
     owner_id      text REFERENCES users(id) ON DELETE SET NULL,
     original_name text NOT NULL DEFAULT '',
@@ -549,12 +518,304 @@ CREATE TABLE files (
     deleted_at    timestamptz
 );
 CREATE INDEX files_owner_idx ON files (owner_id) WHERE deleted_at IS NULL;
-CREATE INDEX files_type_idx ON files (file_type) WHERE deleted_at IS NULL;
+CREATE INDEX files_type_idx ON files (asset_type) WHERE deleted_at IS NULL;
 CREATE UNIQUE INDEX files_source_location_idx ON files (source_id, location) WHERE deleted_at IS NULL;
 
+CREATE TABLE realms (
+    id              text PRIMARY KEY,
+    name            text NOT NULL,
+    base_url        text NOT NULL,
+    region          text NOT NULL DEFAULT '',
+    plan_id         text REFERENCES billing_plans(id) ON UPDATE CASCADE ON DELETE SET NULL,
+    exclusive       boolean NOT NULL DEFAULT false,
+    status          text NOT NULL DEFAULT 'active' CHECK (status IN ('active', 'draining', 'offline')),
+    token_hash      text NOT NULL,
+    disk_free_bytes bigint NOT NULL DEFAULT 0,
+    queue_depth     integer NOT NULL DEFAULT 0,
+    health          text NOT NULL DEFAULT 'unknown' CHECK (health IN ('unknown', 'healthy', 'degraded', 'unhealthy')),
+    last_seen_at    timestamptz,
+    created_at      timestamptz NOT NULL DEFAULT now(),
+    updated_at      timestamptz NOT NULL DEFAULT now(),
+    deleted_at      timestamptz
+);
+CREATE UNIQUE INDEX realms_name_idx ON realms (lower(name)) WHERE deleted_at IS NULL;
+CREATE INDEX realms_assignable_idx ON realms (status) WHERE NOT exclusive AND deleted_at IS NULL;
+
+CREATE TABLE projects (
+    id                  text PRIMARY KEY,
+    owner_id            text NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    realm_id            text REFERENCES realms(id) ON DELETE RESTRICT,
+    name                text NOT NULL,
+    description         text NOT NULL DEFAULT '',
+    app_type            text NOT NULL DEFAULT 'game' CHECK (app_type IN ('game', 'app', 'prototype')),
+    icon                text NOT NULL DEFAULT 'Gamepad2',
+    color               text NOT NULL DEFAULT '',
+    default_category_id text NOT NULL DEFAULT '',
+    archived_at         timestamptz,
+    created_at          timestamptz NOT NULL DEFAULT now(),
+    updated_at          timestamptz NOT NULL DEFAULT now(),
+    deleted_at          timestamptz
+);
+CREATE INDEX projects_owner_idx ON projects (owner_id) WHERE deleted_at IS NULL;
+CREATE INDEX projects_realm_idx ON projects (realm_id) WHERE deleted_at IS NULL;
+
+CREATE TABLE project_migrations (
+    id            text PRIMARY KEY,
+    project_id    text NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+    from_realm_id text REFERENCES realms(id) ON DELETE SET NULL,
+    to_realm_id   text NOT NULL REFERENCES realms(id) ON DELETE RESTRICT,
+    state         text NOT NULL DEFAULT 'exporting'
+                  CHECK (state IN ('exporting', 'importing', 'repointing', 'purging', 'completed', 'failed')),
+    actor_id      text REFERENCES users(id) ON DELETE SET NULL,
+    error         text NOT NULL DEFAULT '',
+    started_at    timestamptz NOT NULL DEFAULT now(),
+    finished_at   timestamptz,
+    created_at    timestamptz NOT NULL DEFAULT now(),
+    updated_at    timestamptz NOT NULL DEFAULT now(),
+    deleted_at    timestamptz
+);
+CREATE UNIQUE INDEX project_migrations_lock_idx ON project_migrations (project_id)
+    WHERE state NOT IN ('completed', 'failed') AND deleted_at IS NULL;
+CREATE INDEX project_migrations_project_idx ON project_migrations (project_id, created_at DESC)
+    WHERE deleted_at IS NULL;
+
+CREATE TABLE project_members (
+    id          text PRIMARY KEY,
+    project_id  text NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+    user_id     text NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    permissions text[] NOT NULL DEFAULT '{}',
+    created_at  timestamptz NOT NULL DEFAULT now(),
+    updated_at  timestamptz NOT NULL DEFAULT now(),
+    deleted_at  timestamptz
+);
+CREATE UNIQUE INDEX project_members_unique_idx ON project_members (project_id, user_id)
+    WHERE deleted_at IS NULL;
+CREATE INDEX project_members_user_idx ON project_members (user_id) WHERE deleted_at IS NULL;
+
+CREATE TABLE project_invites (
+    id          text PRIMARY KEY,
+    project_id  text NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+    email       text NOT NULL DEFAULT '',
+    user_id     text REFERENCES users(id) ON DELETE CASCADE,
+    permissions text[] NOT NULL DEFAULT '{}',
+    invited_by  text REFERENCES users(id) ON DELETE SET NULL,
+    expires_at  timestamptz NOT NULL,
+    accepted_at timestamptz,
+    created_at  timestamptz NOT NULL DEFAULT now(),
+    updated_at  timestamptz NOT NULL DEFAULT now(),
+    deleted_at  timestamptz
+);
+CREATE UNIQUE INDEX project_invites_pending_idx ON project_invites (project_id, lower(email))
+    WHERE accepted_at IS NULL AND deleted_at IS NULL;
+CREATE INDEX project_invites_user_idx ON project_invites (user_id) WHERE deleted_at IS NULL;
+
+CREATE TABLE asset_categories (
+    id         text PRIMARY KEY,
+    project_id text NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+    name       text NOT NULL,
+    position   integer NOT NULL DEFAULT 0,
+    created_at timestamptz NOT NULL DEFAULT now(),
+    updated_at timestamptz NOT NULL DEFAULT now(),
+    deleted_at timestamptz
+);
+CREATE UNIQUE INDEX asset_categories_name_idx ON asset_categories (project_id, lower(name))
+    WHERE deleted_at IS NULL;
+
+CREATE TABLE project_tags (
+    id         text PRIMARY KEY,
+    project_id text NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+    name       text NOT NULL,
+    created_at timestamptz NOT NULL DEFAULT now(),
+    updated_at timestamptz NOT NULL DEFAULT now(),
+    deleted_at timestamptz
+);
+CREATE UNIQUE INDEX project_tags_name_idx ON project_tags (project_id, lower(name))
+    WHERE deleted_at IS NULL;
+
+CREATE TABLE project_build_tags (
+    id         text PRIMARY KEY,
+    project_id text NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+    name       text NOT NULL,
+    created_at timestamptz NOT NULL DEFAULT now(),
+    updated_at timestamptz NOT NULL DEFAULT now(),
+    deleted_at timestamptz
+);
+CREATE UNIQUE INDEX project_build_tags_name_idx ON project_build_tags (project_id, lower(name))
+    WHERE deleted_at IS NULL;
+
+CREATE TABLE assets (
+    id              text PRIMARY KEY,
+    project_id      text NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+    uploaded_by     text REFERENCES users(id) ON DELETE SET NULL,
+    parent_asset_id text REFERENCES assets(id) ON DELETE CASCADE,
+    kind            text NOT NULL DEFAULT 'texture'
+                    CHECK (kind IN ('texture', 'normal-map', 'physics', 'audio', 'shader', 'text', 'json')),
+    category_id     text REFERENCES asset_categories(id) ON DELETE SET NULL,
+    name            text NOT NULL,
+    extension       text NOT NULL DEFAULT '',
+    mime            text NOT NULL DEFAULT '',
+    size_bytes      bigint NOT NULL DEFAULT 0,
+    tags            text[] NOT NULL DEFAULT '{}',
+    upload_status   text NOT NULL DEFAULT 'pending_upload'
+                    CHECK (upload_status IN ('pending_upload', 'processing', 'ready', 'failed')),
+    upload_uuid     text NOT NULL,
+    storage_path    text NOT NULL DEFAULT '',
+    checksum        text NOT NULL DEFAULT '',
+    finalized_at    timestamptz,
+    created_at      timestamptz NOT NULL DEFAULT now(),
+    updated_at      timestamptz NOT NULL DEFAULT now(),
+    deleted_at      timestamptz
+);
+CREATE INDEX assets_project_idx ON assets (project_id, category_id) WHERE deleted_at IS NULL;
+CREATE INDEX assets_tags_idx ON assets USING gin (tags) WHERE deleted_at IS NULL;
+CREATE INDEX assets_pending_idx ON assets (created_at)
+    WHERE upload_status = 'pending_upload' AND deleted_at IS NULL;
+CREATE UNIQUE INDEX assets_upload_uuid_idx ON assets (upload_uuid) WHERE deleted_at IS NULL;
+CREATE UNIQUE INDEX assets_normal_map_idx ON assets (parent_asset_id)
+    WHERE kind = 'normal-map' AND deleted_at IS NULL;
+
+CREATE TABLE bundles (
+    id               text PRIMARY KEY,
+    project_id       text NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+    name             text NOT NULL,
+    engine           text NOT NULL DEFAULT 'phaser' CHECK (engine IN ('phaser', 'pixi', 'custom')),
+    category_id      text REFERENCES asset_categories(id) ON DELETE SET NULL,
+    included_tags    text[] NOT NULL DEFAULT '{}',
+    excluded_tags    text[] NOT NULL DEFAULT '{}',
+    build_tag        text NOT NULL DEFAULT '',
+    algorithm        text NOT NULL DEFAULT 'max-rects'
+                     CHECK (algorithm IN ('basic', 'max-rects', 'shelf', 'guillotine')),
+    downscale        integer NOT NULL DEFAULT 100 CHECK (downscale BETWEEN 1 AND 100),
+    rotation_enabled boolean NOT NULL DEFAULT false,
+    created_at       timestamptz NOT NULL DEFAULT now(),
+    updated_at       timestamptz NOT NULL DEFAULT now(),
+    deleted_at       timestamptz
+);
+CREATE UNIQUE INDEX bundles_name_idx ON bundles (project_id, lower(name)) WHERE deleted_at IS NULL;
+CREATE INDEX bundles_project_idx ON bundles (project_id) WHERE deleted_at IS NULL;
+
+CREATE TABLE builds (
+    id           text PRIMARY KEY,
+    project_id   text NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+    bundle_id    text NOT NULL REFERENCES bundles(id) ON DELETE CASCADE,
+    realm_id     text REFERENCES realms(id) ON DELETE SET NULL,
+    triggered_by text REFERENCES users(id) ON DELETE SET NULL,
+    status       text NOT NULL DEFAULT 'pending'
+                 CHECK (status IN ('pending', 'running', 'done', 'failed')),
+    build_tag    text NOT NULL DEFAULT '',
+    snapshot     jsonb NOT NULL DEFAULT '{}'::jsonb,
+    artifact_url text NOT NULL DEFAULT '',
+    manifest_url text NOT NULL DEFAULT '',
+    checksum     text NOT NULL DEFAULT '',
+    size_bytes   bigint NOT NULL DEFAULT 0,
+    duration_ms  integer NOT NULL DEFAULT 0,
+    error        text NOT NULL DEFAULT '',
+    claimed_at   timestamptz,
+    finished_at  timestamptz,
+    created_at   timestamptz NOT NULL DEFAULT now(),
+    updated_at   timestamptz NOT NULL DEFAULT now(),
+    deleted_at   timestamptz
+);
+CREATE INDEX builds_bundle_idx ON builds (bundle_id, created_at DESC) WHERE deleted_at IS NULL;
+CREATE INDEX builds_claimable_idx ON builds (realm_id, created_at)
+    WHERE status = 'pending' AND deleted_at IS NULL;
+CREATE INDEX builds_keyset_idx ON builds (project_id, created_at DESC, id DESC) WHERE deleted_at IS NULL;
+CREATE UNIQUE INDEX builds_tag_unique_idx ON builds (bundle_id, build_tag)
+    WHERE build_tag <> '' AND deleted_at IS NULL;
+
+CREATE TABLE build_files (
+    id         text PRIMARY KEY,
+    build_id   text NOT NULL REFERENCES builds(id) ON DELETE CASCADE,
+    group_name text NOT NULL DEFAULT 'textures'
+               CHECK (group_name IN ('textures', 'audio', 'text', 'configs', 'fonts', 'locales', 'dialogues')),
+    name       text NOT NULL,
+    url        text NOT NULL DEFAULT '',
+    size_bytes bigint NOT NULL DEFAULT 0,
+    checksum   text NOT NULL DEFAULT '',
+    created_at timestamptz NOT NULL DEFAULT now(),
+    updated_at timestamptz NOT NULL DEFAULT now(),
+    deleted_at timestamptz
+);
+CREATE INDEX build_files_build_idx ON build_files (build_id, group_name) WHERE deleted_at IS NULL;
+
+CREATE TABLE config_schemas (
+    id              text PRIMARY KEY,
+    project_id      text NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+    name            text NOT NULL,
+    definition      jsonb NOT NULL DEFAULT '[]'::jsonb,
+    update_iterator integer NOT NULL DEFAULT 0,
+    created_at      timestamptz NOT NULL DEFAULT now(),
+    updated_at      timestamptz NOT NULL DEFAULT now(),
+    deleted_at      timestamptz
+);
+CREATE UNIQUE INDEX config_schemas_name_idx ON config_schemas (project_id, lower(name))
+    WHERE deleted_at IS NULL;
+
+CREATE TABLE configs (
+    id                     text PRIMARY KEY,
+    project_id             text NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+    schema_id              text NOT NULL REFERENCES config_schemas(id) ON DELETE RESTRICT,
+    key                    text NOT NULL,
+    description            text NOT NULL DEFAULT '',
+    schema_update_iterator integer NOT NULL DEFAULT 0,
+    created_at             timestamptz NOT NULL DEFAULT now(),
+    updated_at             timestamptz NOT NULL DEFAULT now(),
+    deleted_at             timestamptz
+);
+CREATE UNIQUE INDEX configs_key_idx ON configs (project_id, lower(key)) WHERE deleted_at IS NULL;
+
+CREATE TABLE config_versions (
+    id         text PRIMARY KEY,
+    config_id  text NOT NULL REFERENCES configs(id) ON DELETE CASCADE,
+    build_tag  text NOT NULL DEFAULT '',
+    is_default boolean NOT NULL DEFAULT false,
+    values     jsonb NOT NULL DEFAULT '{}'::jsonb,
+    updated_by text REFERENCES users(id) ON DELETE SET NULL,
+    created_at timestamptz NOT NULL DEFAULT now(),
+    updated_at timestamptz NOT NULL DEFAULT now(),
+    deleted_at timestamptz
+);
+CREATE UNIQUE INDEX config_versions_default_idx ON config_versions (config_id)
+    WHERE is_default AND deleted_at IS NULL;
+CREATE UNIQUE INDEX config_versions_tag_idx ON config_versions (config_id, build_tag)
+    WHERE build_tag <> '' AND deleted_at IS NULL;
+
+CREATE TABLE waitlist_signups (
+    id               text PRIMARY KEY,
+    email            text NOT NULL,
+    marketing_opt_in boolean NOT NULL DEFAULT false,
+    consent_version  text NOT NULL DEFAULT '',
+    source           text NOT NULL DEFAULT 'landing',
+    granted_bytes    bigint NOT NULL DEFAULT 262144000,
+    claimed_by       text REFERENCES users(id) ON DELETE SET NULL,
+    claimed_at       timestamptz,
+    created_at       timestamptz NOT NULL DEFAULT now(),
+    updated_at       timestamptz NOT NULL DEFAULT now(),
+    deleted_at       timestamptz
+);
+CREATE UNIQUE INDEX waitlist_signups_email_idx ON waitlist_signups (lower(email)) WHERE deleted_at IS NULL;
+CREATE INDEX waitlist_signups_created_idx ON waitlist_signups (created_at DESC, id DESC)
+    WHERE deleted_at IS NULL;
+
 -- +goose Down
+DROP TABLE waitlist_signups;
+DROP TABLE config_versions;
+DROP TABLE configs;
+DROP TABLE config_schemas;
+DROP TABLE build_files;
+DROP TABLE builds;
+DROP TABLE bundles;
+DROP TABLE assets;
+DROP TABLE project_build_tags;
+DROP TABLE project_tags;
+DROP TABLE asset_categories;
+DROP TABLE project_invites;
+DROP TABLE project_members;
+DROP TABLE project_migrations;
+DROP TABLE projects;
+DROP TABLE realms;
 DROP TABLE files;
-DROP TABLE file_sources;
+DROP TABLE asset_sources;
 DROP TABLE invoice_reminders;
 DROP TABLE usage_events;
 DROP TABLE coupon_redemptions;
@@ -575,8 +836,6 @@ DROP TABLE sales_enquiries;
 DROP TABLE invoices;
 DROP TABLE subscriptions;
 DROP TABLE billing_plans;
-DROP TABLE tasks;
-DROP TABLE projects;
 DROP TABLE settings;
 DROP TABLE push_subscriptions;
 DROP TABLE notifications;

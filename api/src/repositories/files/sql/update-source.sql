@@ -1,4 +1,4 @@
-UPDATE file_sources SET
+UPDATE asset_sources SET
     name = COALESCE($2, name),
     config = COALESCE($3::jsonb, config),
     secret = COALESCE($4, secret),

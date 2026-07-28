@@ -43,6 +43,8 @@ import SELECT_EXPIRED_SUBSCRIPTIONS from './sql/select-expired-subscriptions.sql
 import SELECT_PLAN from './sql/select-plan.sql'
 import SELECT_SUBSCRIPTION from './sql/select-subscription.sql'
 import UPSERT_SUBSCRIPTION from './sql/upsert-subscription.sql'
+import UPDATE_STORAGE_OVERAGE from './sql/update-storage-overage.sql'
+import UPDATE_PLAN_OVERRIDE from './sql/update-plan-override.sql'
 
 export type PlanWrite = {
     id: string
@@ -192,6 +194,14 @@ export class BillingRepository {
     async findSubscription(userId: string, trx?: QueryRunner): Promise<SubscriptionRow | undefined> {
         const { rows } = await this.run(trx).query<SubscriptionRow>(SELECT_SUBSCRIPTION, [userId])
         return rows[0]
+    }
+
+    async flagStorageOverage(userId: string, bytes: number, trx?: QueryRunner): Promise<void> {
+        await this.run(trx).query(UPDATE_STORAGE_OVERAGE, [userId, Math.max(0, Math.floor(bytes))])
+    }
+
+    async setPlanOverride(userId: string, planId: string | null, trx?: QueryRunner): Promise<void> {
+        await this.run(trx).query(UPDATE_PLAN_OVERRIDE, [userId, planId])
     }
 
     async saveSubscription(write: SubscriptionWrite, trx?: QueryRunner): Promise<SubscriptionRow> {

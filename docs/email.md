@@ -99,10 +99,10 @@ The `members` audience in both `EmailComposeModal` and `EmailTriggerModal` is a 
 ## Verifying locally
 
 ```bash
-curl -s -b admin.txt -X PUT localhost:5000/api/settings/features \
-    -H 'Content-Type: application/json' -H 'Origin: http://localhost:5000' -d '{"email":true}'
-curl -s -b admin.txt -X POST localhost:5000/api/email/config/test -H 'Origin: http://localhost:5000' | jq '.data'
-curl -s -b admin.txt localhost:5000/api/email/messages | jq '.data.stats'
+curl -s -b admin.txt -X PUT localhost:6000/api/settings/features \
+    -H 'Content-Type: application/json' -H 'Origin: http://localhost:6000' -d '{"email":true}'
+curl -s -b admin.txt -X POST localhost:6000/api/email/config/test -H 'Origin: http://localhost:6000' | jq '.data'
+curl -s -b admin.txt localhost:6000/api/email/messages | jq '.data.stats'
 ```
 
 With the default `log` provider the API log prints one `email (log provider)` line per message and the rows flip to `sent` on the next tick.

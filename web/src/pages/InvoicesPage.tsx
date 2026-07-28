@@ -21,12 +21,8 @@ const InvoicesPage: React.FC = () => {
 
     return (
         <AuthGuard secured permission="invoice.read">
-            <section className="container">
-                <div className="row">
-                    <div className="col-12">
-                        <InvoicesAdmin />
-                    </div>
-                </div>
+            <section className="console-page">
+                <InvoicesAdmin />
             </section>
         </AuthGuard>
     )

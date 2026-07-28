@@ -6,9 +6,9 @@ import {
     ApiKey,
     ApiKeyDraft,
     ApiKeyIssued,
-    FileSource,
-    FileSourceDraft,
-    FileTypeBindings,
+    AssetSource,
+    AssetSourceDraft,
+    AssetTypeBindings,
     Job,
     JobFilters,
     JobSchedule,
@@ -44,14 +44,14 @@ export type PlatformSlice = {
     deliveryFilters: WebhookDeliveryFilters
     fetchDeliveries: (filters?: WebhookDeliveryFilters) => Promise<void>
 
-    fileSources: FileSource[]
-    fileSourcesLoaded: boolean
-    fileBindings: FileTypeBindings | null
-    fetchFileSources: () => Promise<void>
+    assetSources: AssetSource[]
+    assetSourcesLoaded: boolean
+    fileBindings: AssetTypeBindings | null
+    fetchAssetSources: () => Promise<void>
     fetchFileBindings: () => Promise<void>
-    saveFileSource: (sourceId: string | null, draft: FileSourceDraft) => Promise<FileSource | null>
-    deleteFileSource: (sourceId: string) => Promise<boolean>
-    saveFileBindings: (patch: Partial<FileTypeBindings>) => Promise<FileTypeBindings | null>
+    saveAssetSource: (sourceId: string | null, draft: AssetSourceDraft) => Promise<AssetSource | null>
+    deleteAssetSource: (sourceId: string) => Promise<boolean>
+    saveFileBindings: (patch: Partial<AssetTypeBindings>) => Promise<AssetTypeBindings | null>
 
     jobSchedules: JobSchedule[]
     jobSchedulesLoaded: boolean
@@ -97,8 +97,8 @@ export const createPlatformSlice: StateCreator<AppStore, [], [], PlatformSlice> 
     deliveriesLoading: false,
     deliveryFilters: { limit: 25, offset: 0 },
 
-    fileSources: [],
-    fileSourcesLoaded: false,
+    assetSources: [],
+    assetSourcesLoaded: false,
     fileBindings: null,
 
     jobSchedules: [],
@@ -205,12 +205,12 @@ export const createPlatformSlice: StateCreator<AppStore, [], [], PlatformSlice> 
         }
     },
 
-    async fetchFileSources() {
+    async fetchAssetSources() {
         try {
-            const fileSources = await PlatformService.getInstance().listFileSources()
-            set({ fileSources, fileSourcesLoaded: true })
+            const assetSources = await PlatformService.getInstance().listAssetSources()
+            set({ assetSources, assetSourcesLoaded: true })
         } catch (error) {
-            set({ fileSourcesLoaded: true })
+            set({ assetSourcesLoaded: true })
             fail(get, error, STRINGS.common.loadFailed)
         }
     },
@@ -223,12 +223,12 @@ export const createPlatformSlice: StateCreator<AppStore, [], [], PlatformSlice> 
         }
     },
 
-    async saveFileSource(sourceId, draft) {
+    async saveAssetSource(sourceId, draft) {
         try {
             const saved = sourceId
-                ? await PlatformService.getInstance().updateFileSource(sourceId, draft)
-                : await PlatformService.getInstance().createFileSource(draft)
-            await get().fetchFileSources()
+                ? await PlatformService.getInstance().updateAssetSource(sourceId, draft)
+                : await PlatformService.getInstance().createAssetSource(draft)
+            await get().fetchAssetSources()
             get().addAlert({ variant: 'success', message: STRINGS.files.sourceSaved, dismissible: true })
             return saved
         } catch (error) {
@@ -237,10 +237,10 @@ export const createPlatformSlice: StateCreator<AppStore, [], [], PlatformSlice> 
         }
     },
 
-    async deleteFileSource(sourceId) {
+    async deleteAssetSource(sourceId) {
         try {
-            await PlatformService.getInstance().deleteFileSource(sourceId)
-            await Promise.all([get().fetchFileSources(), get().fetchFileBindings()])
+            await PlatformService.getInstance().deleteAssetSource(sourceId)
+            await Promise.all([get().fetchAssetSources(), get().fetchFileBindings()])
             get().addAlert({ variant: 'success', message: STRINGS.files.sourceDeleted, dismissible: true })
             return true
         } catch (error) {

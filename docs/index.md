@@ -11,7 +11,14 @@ One file per feature area. Jump to the focused doc instead of re-reading the cod
 | [email.md](email.md) | Email delivery — provider port (log/SMTP/Mailchimp), templates, audit-driven transactional mail, scheduled campaigns and the queue worker. |
 | [notifications-and-moderation.md](notifications-and-moderation.md) | Bell inbox + web push; the reports queue and the append-only audit log. |
 | [file-storage.md](file-storage.md) | Pluggable upload sources (disk/S3), the file-type → source binding, and the upload API — behind the `files` flag. |
-| [projects-example.md](projects-example.md) | The worked example feature — the reference for building a new full-stack feature. |
+| [projects-and-members.md](projects-and-members.md) | Projects, the second (per-project) permission plane, membership, invitations, vocabularies, ownership transfer, archive and delete. |
+| [realms-and-migrations.md](realms-and-migrations.md) | Build machines, realm selection, the per-realm bearer token, the project lock and the migration state machine. |
+| [asset-files.md](asset-files.md) | Game assets — the direct-to-realm upload protocol, tags and categories, the orphan reaper. |
+| [bundles.md](bundles.md) | A bundle is a saved file query — the shared preview/build predicate and the parent/child relations array. |
+| [builds.md](builds.md) | Triggering, the realm claim/report/result protocol, build tags, purge and stale reaping. |
+| [config-data.md](config-data.md) | Schemas, configs and per-build-tag versions — changing a shipped game without rebuilding it. |
+| [game-runtime-api.md](game-runtime-api.md) | The public, unenveloped surface a shipped game reads, its caching and its in-process rate limiter. |
+| [landing-and-waitlist.md](landing-and-waitlist.md) | The public marketing route, the waitlist write and the 250 MB grant applied at sign-in. |
 | [frontend-architecture.md](frontend-architecture.md) | Web SPA layering, store/slices, modal registry, layouts, the theme. |
 | [deployment.md](deployment.md) | Docker image, entrypoint, env vars, same-origin vs cross-origin. |
 | [pagination.md](pagination.md) | Offset vs cursor (keyset) paging, the `(created_at, id)` total order, and which endpoints support which. |

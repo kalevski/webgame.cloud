@@ -81,3 +81,14 @@ With two instances that would mean up to 30s of stale authorization after a role
 cache and publishes on the `access_policy_changed` channel (`Database.notify`); every instance subscribes on
 boot (`Database.listen`) and clears the same entry. Payload `*` means the whole policy, anything else is a
 user id. No Redis involved.
+
+
+## Realm and public route exemptions
+
+`/api/realm/*` and `/api/internal/*` authenticate with a per-realm bearer token and carry no cookie, so
+they are skipped by the CSRF origin guard. `/api/public/*` writes are cross-origin form posts and are
+skipped too — the waitlist POST is protected by the DB-backed limiter (5/hour/IP) and a honeypot instead.
+
+Public **reads** (the game runtime API) do not use the DB-backed limiter at all: they get an in-process
+token bucket (20 rps, burst 100, per IP) plus a short response cache, because a `rate_limits` upsert per
+request would mean a Postgres write per player per fetch. See [game-runtime-api.md](game-runtime-api.md).

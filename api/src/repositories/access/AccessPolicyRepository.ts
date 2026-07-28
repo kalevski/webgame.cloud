@@ -1,13 +1,15 @@
 import { inject, injectable } from 'tsyringe'
 import type {
     AccessPolicy,
+    AccountLimitedResource,
     LimitableResource,
     LimitMap,
     Permission,
     PermissionDelta,
+    ProjectLimitedResource,
     UserAccessOverrides,
 } from '../../contracts/index.js'
-import { LIMITABLE_RESOURCES } from '../../contracts/index.js'
+import { ACCOUNT_LIMITED, LIMITABLE_RESOURCES } from '../../contracts/index.js'
 import { Database, type QueryRunner } from '../../Database.js'
 
 import SELECT_ROLES from './sql/select-roles.sql'
@@ -30,11 +32,20 @@ import INSERT_USER_PERMISSION from './sql/insert-user-permission.sql'
 import INSERT_USER_LIMIT from './sql/insert-user-limit.sql'
 
 import COUNT_PROJECTS from './sql/count-projects.sql'
-import COUNT_TASKS from './sql/count-tasks.sql'
+import SUM_STORAGE_BYTES from './sql/sum-storage-bytes.sql'
+import COUNT_BUNDLES from './sql/count-bundles.sql'
+import COUNT_CONFIGS from './sql/count-configs.sql'
+import COUNT_MEMBERS from './sql/count-members.sql'
 
-const COUNT_SQL: Record<LimitableResource, string> = {
+const COUNT_SQL: Record<AccountLimitedResource, string> = {
     projects: COUNT_PROJECTS,
-    tasks: COUNT_TASKS,
+    storage_mb: SUM_STORAGE_BYTES,
+}
+
+const PROJECT_COUNT_SQL: Record<ProjectLimitedResource, string> = {
+    bundles_per_project: COUNT_BUNDLES,
+    configs_per_project: COUNT_CONFIGS,
+    members_per_project: COUNT_MEMBERS,
 }
 
 const isResource = (value: string): value is LimitableResource =>
@@ -143,16 +154,25 @@ export class AccessPolicyRepository {
         })
     }
 
-    async count(resource: LimitableResource, userId: string, trx?: QueryRunner): Promise<number> {
+    async count(resource: AccountLimitedResource, userId: string, trx?: QueryRunner): Promise<number> {
         const { rows } = await this.run(trx).query<{ c: string }>(COUNT_SQL[resource], [userId])
         return Number(rows[0]?.c ?? 0)
     }
 
-    async countAll(userId: string, trx?: QueryRunner): Promise<Record<LimitableResource, number>> {
+    async countAll(userId: string, trx?: QueryRunner): Promise<Record<AccountLimitedResource, number>> {
         const entries = await Promise.all(
-            LIMITABLE_RESOURCES.map(async (resource) => [resource, await this.count(resource, userId, trx)] as const)
+            ACCOUNT_LIMITED.map(async (resource) => [resource, await this.count(resource, userId, trx)] as const)
         )
-        return Object.fromEntries(entries) as Record<LimitableResource, number>
+        return Object.fromEntries(entries) as Record<AccountLimitedResource, number>
+    }
+
+    async countInProject(
+        resource: ProjectLimitedResource,
+        projectId: string,
+        trx?: QueryRunner
+    ): Promise<number> {
+        const { rows } = await this.run(trx).query<{ c: string }>(PROJECT_COUNT_SQL[resource], [projectId])
+        return Number(rows[0]?.c ?? 0)
     }
 }
 

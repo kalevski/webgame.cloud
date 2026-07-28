@@ -81,16 +81,23 @@ export class AccountService {
         const user = await this.users.findById(userId)
         if (!user) return null
 
-        const projects = await this.projects.listVisible(userId)
+        const projects = await this.projects.list(user)
         const owned = projects.filter((project) => project.ownerId === userId)
-        const tasks = (await Promise.all(owned.map((project) => this.projects.listTasks(project.id)))).flat()
+        const memberships = projects
+            .filter((project) => project.ownerId !== userId)
+            .map((project) => ({
+                projectId: project.id,
+                projectName: project.name,
+                permissions: project.permissions,
+                joinedAt: project.createdAt,
+            }))
 
         return {
             exportedAt: new Date().toISOString(),
             user,
             identities: await this.listIdentities(userId),
             projects: owned,
-            tasks,
+            memberships,
         }
     }
 

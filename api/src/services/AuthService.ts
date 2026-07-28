@@ -17,6 +17,7 @@ import { SessionRepository } from '../repositories/users/SessionRepository.js'
 import type { SessionContext } from '../repositories/users/SessionRepository.js'
 import { AccessPolicyService } from './AccessPolicyService.js'
 import { BillingService } from './BillingService.js'
+import { WaitlistService } from './WaitlistService.js'
 
 export type OAuthProfile = { subject: string; email: string; name: string; picture: string }
 
@@ -43,7 +44,8 @@ export class AuthService {
         @inject(IdentityRepository) private identities: IdentityRepository,
         @inject(SessionRepository) private sessions: SessionRepository,
         @inject(AccessPolicyService) private access: AccessPolicyService,
-        @inject(BillingService) private billing: BillingService
+        @inject(BillingService) private billing: BillingService,
+        @inject(WaitlistService) private waitlist: WaitlistService
     ) {}
 
     private providers: Partial<Record<OAuthProvider, OAuth2ProviderConfig>> = {}
@@ -167,11 +169,12 @@ export class AuthService {
                 email: profile.email,
                 name: profile.name,
                 picture: profile.picture,
-                defaultRoleId: bindings.default ?? 'member',
+                defaultRoleId: bindings.default ?? 'indie',
             })
             void notify(user.id, 'welcome', WELCOME_TITLE, '/dashboard')
         }
         await this.identities.link(user.id, id, profile.subject, profile.email)
+        void this.waitlist.claimGrant(user).catch(() => undefined)
         return user
     }
 
@@ -182,16 +185,19 @@ export class AuthService {
                 name,
                 picture: existing.picture,
             })
-            return touched ?? existing
+            const resolved = touched ?? existing
+            void this.waitlist.claimGrant(resolved).catch(() => undefined)
+            return resolved
         }
         const bindings = await this.access.getBindings()
         const created = await this.users.createWithAutoRole({
             email,
             name,
             picture: '',
-            defaultRoleId: bindings.default ?? 'member',
+            defaultRoleId: bindings.default ?? 'indie',
         })
         void notify(created.id, 'welcome', WELCOME_TITLE, '/dashboard')
+        void this.waitlist.claimGrant(created).catch(() => undefined)
         return created
     }
 

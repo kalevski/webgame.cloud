@@ -3,13 +3,13 @@
 .module-dashboard {
     display: flex;
     flex-direction: column;
-    gap: $space-lg;
+    gap: $space-5;
 
     &__head {
         display: flex;
         align-items: center;
         justify-content: space-between;
-        gap: $space-md;
+        gap: $space-3;
         flex-wrap: wrap;
     }
 
@@ -21,14 +21,14 @@
 
     &__date {
         margin: 2px 0 0;
-        color: #6b7280;
+        color: $text-muted;
         font-size: 0.85rem;
     }
 
     &__columns {
         display: grid;
         grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-        gap: $space-lg;
+        gap: $space-5;
         align-items: start;
 
         @include down($bp-md) {
@@ -39,15 +39,15 @@
     &__panel {
         display: flex;
         flex-direction: column;
-        gap: $space-sm;
-        padding: $space-md;
+        gap: $space-2;
+        padding: $space-4;
     }
 
     &__panel-head {
         display: flex;
         align-items: baseline;
         justify-content: space-between;
-        gap: $space-sm;
+        gap: $space-2;
     }
 
     &__panel-body {
@@ -75,10 +75,10 @@
     &__row {
         display: flex;
         align-items: center;
-        gap: $space-sm;
-        padding: $space-xs 0;
+        gap: $space-2;
+        padding: $space-2 0;
         border: 0;
-        border-bottom: 1px solid #f1f2f4;
+        border-bottom: 1px solid $line;
         background: transparent;
         color: inherit;
         text-align: left;
@@ -93,7 +93,7 @@
 
     &__row-icon {
         display: inline-flex;
-        color: #6b7280;
+        color: $text-muted;
     }
 
     &__row-text {
@@ -112,12 +112,12 @@
     }
 
     &__row-meta {
-        color: #6b7280;
+        color: $text-muted;
         font-size: 0.75rem;
     }
 
     &__row-side {
-        color: #9ca3af;
+        color: $text-muted;
         font-size: 0.75rem;
         white-space: nowrap;
     }

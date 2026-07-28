@@ -16,12 +16,8 @@ const ProfilePage: React.FC = () => {
 
     return (
         <AuthGuard secured>
-            <section className="container">
-                <div className="row">
-                    <div className="col-12">
-                        <Profile />
-                    </div>
-                </div>
+            <section className="console-page">
+                <Profile />
             </section>
         </AuthGuard>
     )

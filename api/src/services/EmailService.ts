@@ -425,6 +425,29 @@ export class EmailService {
         return this.queue({ ...write, templateKey: null, scheduledAt: new Date() })
     }
 
+    async queueTemplate(
+        key: string,
+        toEmail: string,
+        values: Record<string, string>
+    ): Promise<string | null> {
+        const template = await this.email.findTemplate(key)
+        if (!template) return null
+
+        const context = {
+            ...this.context({ email: toEmail, name: '' }),
+            workspaceName: WORKSPACE_NAME,
+            ...values,
+        }
+        return this.queue({
+            toEmail,
+            toName: '',
+            subject: renderTemplate(template.subject, context),
+            body: renderTemplate(template.body, context),
+            templateKey: template.key,
+            scheduledAt: new Date(),
+        })
+    }
+
     private async queue(write: {
         toEmail: string
         toName: string

@@ -7,8 +7,8 @@ import { recordAudit } from '../audit.js'
 import { sendError } from './sendError.js'
 import { FileService } from '../services/FileService.js'
 import { encodeErrorCause } from '../contracts/index.js'
-import type { FileSource, FileSourceDraft, FileType, FileTypeBindings, StoredFile, User } from '../contracts/index.js'
-import { FILE_SOURCE_TYPES, FILE_TYPES, OWNER_ROLE_ID } from '../contracts/index.js'
+import type { AssetSource, AssetSourceDraft, AssetType, AssetTypeBindings, StoredFile, User } from '../contracts/index.js'
+import { ASSET_SOURCE_TYPES, ASSET_TYPES, OWNER_ROLE_ID } from '../contracts/index.js'
 
 const UPLOAD_MAX_BYTES = 20 * 1024 * 1024
 
@@ -17,7 +17,7 @@ const files = () => container.resolve(FileService)
 const canAccessFile = (user: User, file: StoredFile): boolean =>
     user.role === OWNER_ROLE_ID || file.ownerId === user.id
 
-const fileSourceConfigSchema = {
+const assetSourceConfigSchema = {
     type: 'object',
     additionalProperties: false,
     properties: {
@@ -30,14 +30,14 @@ const fileSourceConfigSchema = {
     },
 } as const
 
-const fileSourceSchema = {
+const assetSourceSchema = {
     type: 'object',
     additionalProperties: false,
     required: ['name', 'type'],
     properties: {
         name: { type: 'string', minLength: 1, maxLength: 120 },
-        type: { type: 'string', enum: [...FILE_SOURCE_TYPES] },
-        config: fileSourceConfigSchema,
+        type: { type: 'string', enum: [...ASSET_SOURCE_TYPES] },
+        config: assetSourceConfigSchema,
         secret: { type: 'string', maxLength: 500 },
     },
 } as const
@@ -46,19 +46,19 @@ const bindingsSchema = {
     type: 'object',
     additionalProperties: false,
     properties: Object.fromEntries(
-        FILE_TYPES.map((fileType) => [fileType, { type: ['string', 'null'], maxLength: 80 }])
+        ASSET_TYPES.map((assetType) => [assetType, { type: ['string', 'null'], maxLength: 80 }])
     ),
 } as const
 
-const listSourcesEndpoint = async (): Promise<FileSource[]> => files().listSources()
+const listSourcesEndpoint = async (): Promise<AssetSource[]> => files().listSources()
 
 const createSourceEndpoint = async (
-    request: FastifyRequest<{ Body: FileSourceDraft }>,
+    request: FastifyRequest<{ Body: AssetSourceDraft }>,
     reply: FastifyReply
-): Promise<FileSource | { error: string }> => {
+): Promise<AssetSource | { error: string }> => {
     try {
         const created = await files().createSource(request.body)
-        void recordAudit(request.user!, 'create_file_source', created.id, created.name, request.id)
+        void recordAudit(request.user!, 'create_asset_source', created.id, created.name, request.id)
         reply.code(201)
         return created
     } catch (error) {
@@ -67,12 +67,12 @@ const createSourceEndpoint = async (
 }
 
 const updateSourceEndpoint = async (
-    request: FastifyRequest<{ Params: { sourceId: string }; Body: Partial<FileSourceDraft> }>,
+    request: FastifyRequest<{ Params: { sourceId: string }; Body: Partial<AssetSourceDraft> }>,
     reply: FastifyReply
-): Promise<FileSource | { error: string }> => {
+): Promise<AssetSource | { error: string }> => {
     try {
         const updated = await files().updateSource(request.params.sourceId, request.body)
-        void recordAudit(request.user!, 'update_file_source', updated.id, updated.name, request.id)
+        void recordAudit(request.user!, 'update_asset_source', updated.id, updated.name, request.id)
         return updated
     } catch (error) {
         return sendError(reply, error)
@@ -85,7 +85,7 @@ const deleteSourceEndpoint = async (
 ): Promise<null | { error: string }> => {
     try {
         await files().deleteSource(request.params.sourceId)
-        void recordAudit(request.user!, 'delete_file_source', request.params.sourceId, '', request.id)
+        void recordAudit(request.user!, 'delete_asset_source', request.params.sourceId, '', request.id)
         reply.code(204)
         return null
     } catch (error) {
@@ -93,15 +93,15 @@ const deleteSourceEndpoint = async (
     }
 }
 
-const getBindingsEndpoint = async (): Promise<FileTypeBindings> => files().getBindings()
+const getBindingsEndpoint = async (): Promise<AssetTypeBindings> => files().getBindings()
 
 const saveBindingsEndpoint = async (
-    request: FastifyRequest<{ Body: Partial<FileTypeBindings> }>,
+    request: FastifyRequest<{ Body: Partial<AssetTypeBindings> }>,
     reply: FastifyReply
-): Promise<FileTypeBindings | { error: string }> => {
+): Promise<AssetTypeBindings | { error: string }> => {
     try {
         const saved = await files().saveBindings(request.body)
-        void recordAudit(request.user!, 'update_file_bindings', '', JSON.stringify(saved), request.id)
+        void recordAudit(request.user!, 'update_asset_bindings', '', JSON.stringify(saved), request.id)
         return saved
     } catch (error) {
         return sendError(reply, error)
@@ -116,18 +116,18 @@ const uploadFileEndpoint = async (
         const data = await request.file()
         if (!data) {
             reply.code(400)
-            return { error: encodeErrorCause('file_type_invalid') }
+            return { error: encodeErrorCause('asset_type_invalid') }
         }
 
-        const fileTypeField = data.fields.fileType
-        const fileType = fileTypeField && 'value' in fileTypeField ? String(fileTypeField.value) : ''
+        const assetTypeField = data.fields.assetType
+        const assetType = assetTypeField && 'value' in assetTypeField ? String(assetTypeField.value) : ''
         const buffer = await data.toBuffer()
 
-        const created = await files().upload(fileType as FileType, request.user!.id, buffer, {
+        const created = await files().upload(assetType as AssetType, request.user!.id, buffer, {
             originalName: data.filename,
             mime: data.mimetype,
         })
-        void recordAudit(request.user!, 'upload_file', created.id, created.fileType, request.id)
+        void recordAudit(request.user!, 'upload_file', created.id, created.assetType, request.id)
         reply.code(201)
         return created
     } catch (error) {
@@ -143,7 +143,7 @@ const downloadFileEndpoint = async (
         const file = await files().get(request.params.fileId)
         if (!canAccessFile(request.user!, file)) {
             reply.code(404)
-            return { error: encodeErrorCause('file_not_found', request.params.fileId) }
+            return { error: encodeErrorCause('asset_not_found', request.params.fileId) }
         }
 
         const data = await files().readBytes(file)
@@ -166,11 +166,11 @@ const deleteFileEndpoint = async (
         const file = await files().get(request.params.fileId)
         if (!canAccessFile(request.user!, file)) {
             reply.code(404)
-            return { error: encodeErrorCause('file_not_found', request.params.fileId) }
+            return { error: encodeErrorCause('asset_not_found', request.params.fileId) }
         }
 
         await files().remove(file)
-        void recordAudit(request.user!, 'delete_file', file.id, file.fileType, request.id)
+        void recordAudit(request.user!, 'delete_file', file.id, file.assetType, request.id)
         reply.code(204)
         return null
     } catch (error) {
@@ -184,34 +184,34 @@ export const filesRouter: FastifyPluginAsync = async (app) => {
     app.addHook('preHandler', requireAuth)
     app.addHook('preHandler', requireFeature('files'))
 
-    app.get('/api/file-sources', { preHandler: [requirePermission('file.source.read')] }, listSourcesEndpoint)
+    app.get('/api/asset-sources', { preHandler: [requirePermission('file.source.read')] }, listSourcesEndpoint)
 
-    app.post<{ Body: FileSourceDraft }>(
-        '/api/file-sources',
-        { schema: { body: fileSourceSchema }, preHandler: [requirePermission('file.source.write')] },
+    app.post<{ Body: AssetSourceDraft }>(
+        '/api/asset-sources',
+        { schema: { body: assetSourceSchema }, preHandler: [requirePermission('file.source.write')] },
         createSourceEndpoint
     )
 
-    app.patch<{ Params: { sourceId: string }; Body: Partial<FileSourceDraft> }>(
-        '/api/file-sources/:sourceId',
-        { schema: { body: { ...fileSourceSchema, required: [] } }, preHandler: [requirePermission('file.source.write')] },
+    app.patch<{ Params: { sourceId: string }; Body: Partial<AssetSourceDraft> }>(
+        '/api/asset-sources/:sourceId',
+        { schema: { body: { ...assetSourceSchema, required: [] } }, preHandler: [requirePermission('file.source.write')] },
         updateSourceEndpoint
     )
 
     app.delete<{ Params: { sourceId: string } }>(
-        '/api/file-sources/:sourceId',
+        '/api/asset-sources/:sourceId',
         { preHandler: [requirePermission('file.source.write')] },
         deleteSourceEndpoint
     )
 
     app.get(
-        '/api/file-sources/bindings',
+        '/api/asset-sources/bindings',
         { preHandler: [requirePermission('file.source.read')] },
         getBindingsEndpoint
     )
 
-    app.put<{ Body: Partial<FileTypeBindings> }>(
-        '/api/file-sources/bindings',
+    app.put<{ Body: Partial<AssetTypeBindings> }>(
+        '/api/asset-sources/bindings',
         { schema: { body: bindingsSchema }, preHandler: [requirePermission('file.source.write')] },
         saveBindingsEndpoint
     )

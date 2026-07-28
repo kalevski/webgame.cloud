@@ -5,7 +5,7 @@ const normalizeOrigin = (value: string): string => {
     return trimmed && !/^https?:\/\//.test(trimmed) ? `https://${trimmed}` : trimmed
 }
 
-export const PORT = env('PORT', 5000, 'number')
+export const PORT = env('PORT', 6000, 'number')
 
 export const CORS_ORIGIN = normalizeOrigin(env('CORS_ORIGIN', ''))
 

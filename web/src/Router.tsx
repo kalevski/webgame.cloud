@@ -11,9 +11,16 @@ import DashboardPage from 'pages/DashboardPage'
 import LoginPage from 'pages/LoginPage'
 import PrivacyPage from 'pages/PrivacyPage'
 import TermsPage from 'pages/TermsPage'
+import DmcaPage from 'pages/DmcaPage'
 import ProfilePage from 'pages/ProfilePage'
-import ProjectsPage from 'pages/ProjectsPage'
-import ProjectDetailPage from 'pages/ProjectDetailPage'
+import ActiveProjectRedirect from 'modules/ActiveProjectRedirect'
+import AssetsPage from 'pages/AssetsPage'
+import BundlesPage from 'pages/BundlesPage'
+import BuildsPage from 'pages/BuildsPage'
+import ConfigsPage from 'pages/ConfigsPage'
+import MembersPage from 'pages/MembersPage'
+import ProjectSettingsPage from 'pages/ProjectSettingsPage'
+import RealmsAdminPage from 'pages/RealmsAdminPage'
 
 const AdminPage = lazy(() => import('pages/AdminPage'))
 const ModerationPage = lazy(() => import('pages/ModerationPage'))
@@ -52,7 +59,7 @@ const TrackPageViews = () => {
 
 export const Router = () => {
     return (
-        <tc-theme name="default">
+        <tc-theme name="blueprint" variant="sunset">
             <ModalContext>
                 <BrowserRouter>
                     <Init />
@@ -68,9 +75,16 @@ export const Router = () => {
                                     <Route path="/login" element={<LoginPage />} />
                                     <Route path="/privacy" element={<PrivacyPage />} />
                                     <Route path="/terms" element={<TermsPage />} />
-                                    <Route path="/projects" element={<ProjectsPage />} />
-                                    <Route path="/projects/:id" element={<ProjectDetailPage />} />
-                                    <Route path="/projects/:id/:tab" element={<ProjectDetailPage />} />
+                                    <Route path="/dmca" element={<DmcaPage />} />
+                                    <Route path="/projects" element={<ActiveProjectRedirect />} />
+                                    <Route path="/projects/:id" element={<AssetsPage />} />
+                                    <Route path="/projects/:id/assets" element={<AssetsPage />} />
+                                    <Route path="/projects/:id/bundles" element={<BundlesPage />} />
+                                    <Route path="/projects/:id/builds" element={<BuildsPage />} />
+                                    <Route path="/projects/:id/configs" element={<ConfigsPage />} />
+                                    <Route path="/projects/:id/members" element={<MembersPage />} />
+                                    <Route path="/projects/:id/settings" element={<ProjectSettingsPage />} />
+                                    <Route path="/admin/realms" element={<RealmsAdminPage />} />
                                     <Route path="/profile" element={<ProfilePage />} />
                                     <Route path="/profile/billing" element={<Navigate to="/billing" replace />} />
                                     <Route path="/profile/:tab" element={<ProfilePage />} />

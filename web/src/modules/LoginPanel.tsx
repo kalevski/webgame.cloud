@@ -67,7 +67,7 @@ const LoginPanel: React.FC = () => {
     )
 
     const ecosystem = useTc<HTMLElement>({
-        core: { name: t.auth.ecosystem.coreName, label: t.auth.ecosystem.coreLabel },
+        core: { name: t.auth.ecosystem.coreLabel, label: null },
         rings: t.auth.ecosystem.rings,
     })
 

@@ -18,6 +18,8 @@ declare module 'fastify' {
         readonly permissionSet: ReadonlySet<Permission>
 
         resolvedPermissions: ReadonlySet<Permission> | null
+
+        apiKeyAuth: boolean
     }
 }
 
@@ -69,6 +71,7 @@ const readBearerToken = (request: FastifyRequest): string | undefined => {
 export const registerAuth = (app: FastifyInstance): void => {
     app.decorateRequest('user', null)
 
+    app.decorateRequest('apiKeyAuth', false)
     app.decorateRequest('resolvedPermissions', null)
     app.decorateRequest('permissionSet', {
         getter(this: FastifyRequest): ReadonlySet<Permission> {
@@ -85,6 +88,7 @@ export const registerAuth = (app: FastifyInstance): void => {
             if (!resolved) return
 
             request.user = resolved.user
+            request.apiKeyAuth = true
             const full = await container.resolve(AccessPolicyService).permissionsFor(resolved.user)
             request.resolvedPermissions = resolved.scopes.length === 0
                 ? full

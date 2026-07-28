@@ -49,6 +49,7 @@ export type RetentionReport = {
 }
 
 export const DEFAULT_RETENTION_DAYS: RetentionPolicy = {
+    project_migrations: 90,
     audit_log: 0,
     notifications: 90,
     email_messages: 90,
@@ -58,12 +59,27 @@ export const DEFAULT_RETENTION_DAYS: RetentionPolicy = {
 }
 
 export const TABLE_LABELS: Record<string, string> = {
+    realms: 'Build realms',
+    project_migrations: 'Project migrations',
+    project_members: 'Project members',
+    project_invites: 'Project invites',
+    asset_categories: 'Asset categories',
+    project_tags: 'Asset tags',
+    project_build_tags: 'Build tags',
+    assets: 'Game assets',
+    bundles: 'Bundles',
+    builds: 'Builds',
+    build_files: 'Build outputs',
+    config_schemas: 'Config schemas',
+    configs: 'Configs',
+    config_versions: 'Config versions',
+    waitlist_signups: 'Waitlist signups',
     audit_log: 'Audit log',
     email_messages: 'Email outbox',
     jobs: 'Background jobs',
     webhook_deliveries: 'Webhook deliveries',
     webhook_endpoints: 'Webhook endpoints',
-    file_sources: 'File storage sources',
+    asset_sources: 'File storage sources',
     user_identities: 'Linked sign-in identities',
     user_permissions: 'Per-account permissions',
     user_limit_overrides: 'Per-account limits',

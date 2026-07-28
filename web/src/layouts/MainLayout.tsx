@@ -1,6 +1,7 @@
 import React from 'react'
 import AppBrand from 'modules/AppBrand'
 import SidebarMenu from 'modules/SidebarMenu'
+import ProjectSwitcher from 'modules/ProjectSwitcher'
 import PageHeader from 'modules/PageHeader'
 import AlertPanel from 'modules/AlertPanel'
 import OfflineBanner from 'modules/OfflineBanner'
@@ -12,7 +13,10 @@ const MainLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     return (
     <tc-dashboard-layout className="layout-main">
         <div slot="brand"><AppBrand /></div>
-        <div slot="sidebar-menu"><SidebarMenu /></div>
+        <div slot="sidebar-menu">
+            <ProjectSwitcher />
+            <SidebarMenu />
+        </div>
         <div slot="sidebar-panel" className="layout-main__panel">
             <UserPanel />
         </div>

@@ -1,16 +1,16 @@
-export const FILE_SOURCE_TYPES = [
+export const ASSET_SOURCE_TYPES = [
     'disk',
     's3',
 ] as const
 
-export type FileSourceType = typeof FILE_SOURCE_TYPES[number]
+export type AssetSourceType = typeof ASSET_SOURCE_TYPES[number]
 
-export const FILE_SOURCE_TYPE_LABELS: Record<FileSourceType, string> = {
+export const ASSET_SOURCE_TYPE_LABELS: Record<AssetSourceType, string> = {
     disk: 'Local disk',
     s3: 'S3-compatible bucket',
 }
 
-export type FileSourceConfig = {
+export type AssetSourceConfig = {
     basePath?: string
 
     bucket?: string
@@ -20,44 +20,44 @@ export type FileSourceConfig = {
     accessKeyId?: string
 }
 
-export type FileSource = {
+export type AssetSource = {
     id: string
 
     name: string
-    type: FileSourceType
+    type: AssetSourceType
 
-    config: FileSourceConfig
+    config: AssetSourceConfig
     secretSet: boolean
 
     createdAt: string
     updatedAt: string
 }
 
-export type FileSourceDraft = {
+export type AssetSourceDraft = {
     name: string
-    type: FileSourceType
+    type: AssetSourceType
 
-    config?: FileSourceConfig
+    config?: AssetSourceConfig
     secret?: string
 }
 
-export const FILE_TYPES = [
+export const ASSET_TYPES = [
 
     'profile_picture',
 ] as const
 
-export type FileType = typeof FILE_TYPES[number]
+export type AssetType = typeof ASSET_TYPES[number]
 
-export const FILE_TYPE_LABELS: Record<FileType, string> = {
+export const ASSET_TYPE_LABELS: Record<AssetType, string> = {
     profile_picture: 'Profile pictures',
 }
 
-export type FileTypeBindings = Record<FileType, string | null>
+export type AssetTypeBindings = Record<AssetType, string | null>
 
 export type StoredFile = {
     id: string
 
-    fileType: FileType
+    assetType: AssetType
     sourceId: string
     location: string
 

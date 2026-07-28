@@ -41,19 +41,15 @@ const EmailPage: React.FC = () => {
 
     return (
         <AuthGuard secured permission="email.outbox.read">
-            <section className="container">
-                <div className="row">
-                    <div className="col-12">
-                        <div className="module module-email">
-                            <RouteTabs tabs={tabs} activeId={tab} />
+            <section className="console-page">
+                <div className="module module-email">
+                    <RouteTabs tabs={tabs} activeId={tab} />
 
-                            <div className="module-email__content">
-                                {tab === 'outbox' && <EmailOutbox />}
-                                {tab === 'templates' && <EmailTemplatesAdmin />}
-                                {tab === 'triggers' && <EmailTriggersAdmin />}
-                                {tab === 'settings' && <EmailSettingsPanel />}
-                            </div>
-                        </div>
+                    <div className="module-email__content">
+                        {tab === 'outbox' && <EmailOutbox />}
+                        {tab === 'templates' && <EmailTemplatesAdmin />}
+                        {tab === 'triggers' && <EmailTriggersAdmin />}
+                        {tab === 'settings' && <EmailSettingsPanel />}
                     </div>
                 </div>
             </section>

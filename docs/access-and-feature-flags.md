@@ -79,3 +79,30 @@ With the billing flag on, the *Slots* panel in `/admin/access` grows one row per
 4. If it should be sellable, add an `ENTITLEMENTS` entry + `strings.upgrade.features` block.
 
 Adding a *role* needs no code — the owner creates it in the admin UI. Adding a *permission key* is the only part that needs a deploy.
+
+
+## Two permission planes
+
+This workspace has a second, project-scoped plane on top of the platform one documented above. Platform
+permissions are role grants; project permissions are **row data** on `project_members.permissions`. See
+[projects-and-members.md](projects-and-members.md) — including the compile-time guard that keeps the two
+key spaces disjoint.
+
+## Account-scoped vs project-scoped limits
+
+`LIMITABLE_RESOURCES` is partitioned:
+
+- `ACCOUNT_LIMITED` — `projects`, `storage_mb`. Counted per user, resolved from the caller's plan.
+- `PROJECT_LIMITED` — `bundles_per_project`, `configs_per_project`, `members_per_project`. Counted per
+  project, and the ceiling always resolves from the **project owner's** plan, never the caller's.
+
+Ceilings (`role_limits`, `user_limit_overrides`, both admin editors) keep the full union. *Usage* types
+(`ResolvedLimits`, `countAll`, `UserAccessPayload.usage`) narrow to the account-scoped half — there is no
+per-user count of a project-scoped resource.
+
+Where a plan leaves a limit `null`, `INTERNAL_SOFT_CAPS` (`domain/access.ts`) applies a ceiling that is
+never surfaced in any payload.
+
+**Downgrades never destroy or lock data.** When a plan change leaves an account over its new ceiling,
+existing resources are grandfathered: reads, edits and deletes keep working, only creates and uploads
+refuse, and the usage panel shows the overage.

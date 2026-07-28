@@ -66,12 +66,13 @@ export const useModalInput = <T,>(key: string): T | undefined => {
 
 type ModalWindowProps = {
     modalKey: string
-    title: string
+    title: string | ((input: unknown) => string)
     size?: 'sm' | 'lg' | 'xl'
+    staticBackdrop?: boolean
     children: React.ReactNode
 }
 
-export const ModalWindow: FC<ModalWindowProps> = ({ modalKey, title, size, children }) => {
+export const ModalWindow: FC<ModalWindowProps> = ({ modalKey, title, size, staticBackdrop, children }) => {
     const { active, close } = useContext(ModalStateContext)
     const isOpen = active?.key === modalKey
     const isOpenRef = useRef(isOpen)
@@ -104,7 +105,7 @@ export const ModalWindow: FC<ModalWindowProps> = ({ modalKey, title, size, child
         if (!isOpen) return
         const onKeydown = (event: KeyboardEvent) => {
             if (event.key !== 'Escape') return
-            if (!modal.current?.querySelector('.tc-extended-select__menu--open')) return
+            if (!modal.current?.querySelector('.tc-extended-select__menu--open, .tc-tag-input-menu--open')) return
             event.stopPropagation()
             document.dispatchEvent(new MouseEvent('mousedown', { bubbles: true }))
         }
@@ -112,8 +113,17 @@ export const ModalWindow: FC<ModalWindowProps> = ({ modalKey, title, size, child
         return () => document.removeEventListener('keydown', onKeydown, true)
     }, [isOpen, modal])
 
+    const resolvedTitle = typeof title === 'function' ? title(isOpen ? active?.input : undefined) : title
+
     return (
-        <tc-modal ref={modal} title={title} size={size} centered lazy>
+        <tc-modal
+            ref={modal}
+            title={resolvedTitle}
+            size={size}
+            static-backdrop={staticBackdrop || undefined}
+            centered
+            lazy
+        >
             {children}
         </tc-modal>
     )

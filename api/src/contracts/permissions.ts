@@ -1,9 +1,10 @@
 export const PERMISSIONS = [
 
-    'project.write',           // create / edit / delete own projects
-    'project.share',           // publish a project so other members can see it
-    'project.export',          // download a project's data (sold by the paid role)
-    'task.write',              // create / edit / delete tasks inside a project
+    'project.create',
+
+    'realm.read',              'realm.write',
+    'admin.project.read',      'admin.project.move',
+    'waitlist.read',
 
     'moderation.queue.read',   'moderation.report.resolve', 'audit.read',
 

@@ -27,7 +27,7 @@ WHERE id = $1 AND deleted_at IS NULL
 and every read filters the flag — in the `WHERE`, in joins, and in subquery counts:
 
 ```sql
-SELECT p.*, (SELECT count(*) FROM tasks t WHERE t.project_id = p.id AND t.deleted_at IS NULL) AS task_count
+SELECT p.*, (SELECT count(*) FROM assets a WHERE a.project_id = p.id AND a.deleted_at IS NULL) AS asset_count
 FROM projects p
 WHERE p.id = $1 AND p.deleted_at IS NULL
 ```
@@ -42,9 +42,9 @@ exists yet — recovery today is a `psql` update.
 deleted. A delete with dependents must soft-delete them itself, atomically, in one data-modifying
 CTE. Two worked examples:
 
-- `projects/sql/delete-project.sql` — the project and its tasks.
+- `projects/sql/delete-project.sql` — the project and its members, invites, vocabularies, assets, bundles, builds, build files, configs, schemas and config versions.
 - `account/sql/delete-user.sql` — the account plus its sessions, identities, permission and limit
-  overrides, push subscriptions, notifications, reports, projects, tasks, subscription, invoices and
+  overrides, push subscriptions, notifications, reports, memberships, subscription, invoices and
   sales enquiries. It ends in `SELECT count(*)::int AS c FROM deleted_user` because a CTE statement
   has no meaningful `rowCount`; `AccountRepository.deleteUser` reads `rows[0].c`.
 

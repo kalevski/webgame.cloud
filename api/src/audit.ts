@@ -7,15 +7,28 @@ import { JobService } from './services/JobService.js'
 import { WebhookService } from './services/WebhookService.js'
 import { JOB_WEBHOOK_DELIVERY } from './jobs.js'
 
+const SYSTEM_ACTOR: User = {
+    id: 'system',
+    email: 'system@local',
+    name: 'System',
+    picture: '',
+    role: 'system',
+    active: true,
+    verified: true,
+    consentedAt: null,
+    createdAt: new Date(0).toISOString(),
+}
+
 export const recordAudit = async (
-    actor: User,
+    rawActor: User | null,
     action: string,
     targetId: string,
     detail = '',
     requestId = ''
 ): Promise<void> => {
+    const actor = rawActor ?? SYSTEM_ACTOR
     await container.resolve(AuditRepository).record(
-        actor.id,
+        rawActor ? actor.id : null,
         actor.name || actor.email,
         action,
         targetId,

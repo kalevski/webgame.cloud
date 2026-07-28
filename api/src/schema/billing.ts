@@ -29,6 +29,7 @@ export type PlanRow = {
     features: string[]
     sales_fields: SalesField[]
     trial_days: number
+    storage_overage_allowed: boolean
     created_at: Date
 }
 
@@ -46,6 +47,7 @@ export const toPlan = (row: PlanRow): Plan => ({
     features: Array.isArray(row.features) ? row.features : [],
     salesFields: Array.isArray(row.sales_fields) ? row.sales_fields : [],
     trialDays: row.trial_days ?? 0,
+    storageOverageAllowed: row.storage_overage_allowed ?? false,
 })
 
 export type SubscriptionRow = {
@@ -58,6 +60,9 @@ export type SubscriptionRow = {
     cancel_at_period_end: boolean
     current_period_end: Date | null
     started_at: Date | null
+    staff_override_plan_id: string | null
+    storage_overage_bytes: string | number
+    storage_overage_flagged_at: Date | null
     updated_at: Date
 }
 
@@ -69,6 +74,9 @@ export const toSubscription = (row: SubscriptionRow): Subscription => ({
     currentPeriodEnd: row.current_period_end?.toISOString() ?? null,
     startedAt: row.started_at?.toISOString() ?? null,
     updatedAt: row.updated_at.toISOString(),
+    staffOverridePlanId: row.staff_override_plan_id ?? null,
+    storageOverageBytes: Number(row.storage_overage_bytes ?? 0),
+    storageOverageFlaggedAt: row.storage_overage_flagged_at?.toISOString() ?? null,
 })
 
 export type InvoiceRow = {

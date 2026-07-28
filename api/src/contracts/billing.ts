@@ -80,6 +80,8 @@ export type Plan = {
     salesFields: SalesField[]
 
     trialDays: number
+
+    storageOverageAllowed: boolean
 }
 
 export type PlanDraft = {
@@ -108,6 +110,10 @@ export type Subscription = {
     currentPeriodEnd: string | null
     startedAt: string | null
     updatedAt: string | null
+
+    staffOverridePlanId: string | null
+    storageOverageBytes: number
+    storageOverageFlaggedAt: string | null
 }
 
 export const NO_SUBSCRIPTION: Subscription = {
@@ -118,6 +124,9 @@ export const NO_SUBSCRIPTION: Subscription = {
     currentPeriodEnd: null,
     startedAt: null,
     updatedAt: null,
+    staffOverridePlanId: null,
+    storageOverageBytes: 0,
+    storageOverageFlaggedAt: null,
 }
 
 export const CHECKOUT_OUTCOMES = [

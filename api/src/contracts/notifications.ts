@@ -1,8 +1,9 @@
 export const NOTIFICATION_KINDS = [
     'welcome',
-    'project_shared',
-    'task_activity',
     'system',
+    'project_invite',
+    'project_moved',
+    'build_failed',
 ] as const
 
 export type NotificationKind = typeof NOTIFICATION_KINDS[number]

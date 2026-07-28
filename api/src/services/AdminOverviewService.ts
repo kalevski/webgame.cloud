@@ -11,7 +11,7 @@ export class AdminOverviewService {
     ) {}
 
     async overview(): Promise<AdminOverview> {
-        const [stats, reportPending, weeks, visibility, statuses, roles] = await Promise.all([
+        const [stats, reportPending, weeks, appTypes, statuses, roles] = await Promise.all([
             this.database.pool.query<{
                 signups_total: string
                 signups_last_30: string
@@ -20,7 +20,7 @@ export class AdminOverviewService {
                 cohort_active: string
                 projects_total: string
                 projects_last_30: string
-                tasks_total: string
+                builds_total: string
             }>(
                 `SELECT
                     (SELECT count(*) FROM users) AS signups_total,
@@ -33,7 +33,7 @@ export class AdminOverviewService {
                        AND last_seen_at > now() - interval '7 days') AS cohort_active,
                     (SELECT count(*) FROM projects) AS projects_total,
                     (SELECT count(*) FROM projects WHERE created_at > now() - interval '30 days') AS projects_last_30,
-                    (SELECT count(*) FROM tasks) AS tasks_total`
+                    (SELECT count(*) FROM builds WHERE deleted_at IS NULL) AS builds_total`
             ),
             this.reports.countPending(),
 
@@ -47,11 +47,11 @@ export class AdminOverviewService {
                  LEFT JOIN users u ON date_trunc('week', u.created_at) = w.week
                  GROUP BY w.week ORDER BY w.week`
             ),
-            this.database.pool.query<{ visibility: string; count: string }>(
-                `SELECT visibility, count(*) AS count FROM projects GROUP BY visibility`
+            this.database.pool.query<{ app_type: string; count: string }>(
+                `SELECT app_type, count(*) AS count FROM projects WHERE deleted_at IS NULL GROUP BY app_type`
             ),
             this.database.pool.query<{ status: string; count: string }>(
-                `SELECT status, count(*) AS count FROM tasks GROUP BY status`
+                `SELECT status, count(*) AS count FROM builds WHERE deleted_at IS NULL GROUP BY status`
             ),
             this.database.pool.query<{ role: string; name: string; count: string }>(
                 `SELECT u.role, coalesce(r.name, u.role) AS name, count(*) AS count
@@ -68,11 +68,11 @@ export class AdminOverviewService {
             d30Retention: cohortSize > 0 ? Math.round((Number(row.cohort_active) / cohortSize) * 100) / 100 : null,
             projectsTotal: Number(row.projects_total),
             projectsLast30: Number(row.projects_last_30),
-            tasksTotal: Number(row.tasks_total),
+            buildsTotal: Number(row.builds_total),
             reportQueue: { pending: reportPending },
             signupsByWeek: weeks.rows.map((r) => ({ week: r.week, count: Number(r.count) })),
-            projectsByVisibility: visibility.rows.map((r) => ({ visibility: r.visibility, count: Number(r.count) })),
-            tasksByStatus: statuses.rows.map((r) => ({ status: r.status, count: Number(r.count) })),
+            projectsByAppType: appTypes.rows.map((r) => ({ appType: r.app_type, count: Number(r.count) })),
+            buildsByStatus: statuses.rows.map((r) => ({ status: r.status, count: Number(r.count) })),
             usersByRole: roles.rows.map((r) => ({ role: r.role, name: r.name, count: Number(r.count) })),
         }
     }

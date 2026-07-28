@@ -1,24 +1,69 @@
 import { StateCreator } from 'zustand'
 import ProjectService from 'services/ProjectService'
 import { STRINGS } from 'configs/strings'
-import { Project, ProjectDraft, Task, TaskStatus } from 'types'
+import { readFromStorage, writeToStorage } from 'helpers/storage'
+import {
+    InviteDraft,
+    LimitUsage,
+    Project,
+    ProjectDraft,
+    ProjectInvite,
+    ProjectLock,
+    ProjectMember,
+    ProjectPermission,
+    ProjectVocabularies,
+    VocabulariesDraft,
+} from 'types'
 import type { AppStore } from './index'
+
+const ACTIVE_KEY = 'activeProjectId'
 
 export type ProjectsSlice = {
     projects: Project[]
     projectsLoaded: boolean
 
-    tasksByProject: Record<string, Task[]>
-    fetchProjects: () => Promise<void>
+    activeProjectId: string | null
+
+    members: ProjectMember[]
+    invites: ProjectInvite[]
+    myInvites: ProjectInvite[]
+    vocabularies: ProjectVocabularies | null
+    projectUsage: Record<string, LimitUsage[]>
+    lock: ProjectLock | null
+
+    activeProject: () => Project | null
+
+    setActiveProject: (id: string | null) => void
+    fetchProjects: (archived?: boolean) => Promise<void>
     createProject: (draft: ProjectDraft) => Promise<Project | null>
-    updateProject: (id: string, patch: Partial<ProjectDraft>) => Promise<boolean>
+    updateProject: (id: string, patch: Partial<ProjectDraft> & { defaultCategoryId?: string | null }) => Promise<boolean>
+    archiveProject: (id: string, archived: boolean) => Promise<boolean>
+    transferProject: (id: string, userId: string) => Promise<boolean>
     deleteProject: (id: string) => Promise<boolean>
-    fetchTasks: (projectId: string) => Promise<void>
-    addTask: (projectId: string, title: string, status?: TaskStatus) => Promise<boolean>
-    moveTask: (projectId: string, task: Task, status: TaskStatus) => Promise<void>
-    deleteTask: (projectId: string, taskId: string) => Promise<void>
-    exportProject: (id: string) => Promise<void>
+
+    fetchVocabularies: (id: string) => Promise<void>
+    saveVocabularies: (id: string, draft: VocabulariesDraft) => Promise<boolean>
+
+    fetchMembers: (id: string) => Promise<void>
+    updateMemberPermissions: (id: string, memberId: string, permissions: ProjectPermission[]) => Promise<boolean>
+    removeMember: (id: string, memberId: string) => Promise<boolean>
+    leaveProject: (id: string) => Promise<boolean>
+
+    fetchInvites: (id: string) => Promise<void>
+    sendInvite: (id: string, draft: InviteDraft) => Promise<boolean>
+    revokeInvite: (id: string, inviteId: string) => Promise<boolean>
+
+    fetchMyInvites: () => Promise<void>
+    acceptInvite: (inviteId: string) => Promise<boolean>
+    declineInvite: (inviteId: string) => Promise<boolean>
+
+    fetchProjectUsage: (id: string) => Promise<void>
+
+    pollLock: (id: string) => void
+    stopLockPoll: () => void
 }
+
+let lockTimer: ReturnType<typeof setInterval> | null = null
 
 const fail = (get: () => AppStore, error: unknown, fallback: string) =>
     get().addAlert({
@@ -27,14 +72,40 @@ const fail = (get: () => AppStore, error: unknown, fallback: string) =>
         dismissible: true,
     })
 
+export const resolveActiveProject = (projects: Project[], stored: string | null): string | null => {
+    if (projects.length === 0) return null
+    if (stored && projects.some((project) => project.id === stored)) return stored
+    return projects[0].id
+}
+
 export const createProjectsSlice: StateCreator<AppStore, [], [], ProjectsSlice> = (set, get) => ({
     projects: [],
     projectsLoaded: false,
-    tasksByProject: {},
+    activeProjectId: readFromStorage<string | null>(ACTIVE_KEY, null),
+    members: [],
+    invites: [],
+    myInvites: [],
+    vocabularies: null,
+    projectUsage: {},
+    lock: null,
 
-    async fetchProjects() {
+    activeProject() {
+        const { projects, activeProjectId } = get()
+        return projects.find((project) => project.id === activeProjectId) ?? null
+    },
+
+    setActiveProject(id) {
+        get().stopLockPoll()
+        set({ activeProjectId: id, lock: null, members: [], invites: [], vocabularies: null })
+        writeToStorage(ACTIVE_KEY, id)
+    },
+
+    async fetchProjects(archived = false) {
         try {
-            set({ projects: await ProjectService.getInstance().list(), projectsLoaded: true })
+            const projects = await ProjectService.getInstance().list(archived)
+            const resolved = resolveActiveProject(projects, get().activeProjectId)
+            set({ projects, projectsLoaded: true, activeProjectId: resolved })
+            writeToStorage(ACTIVE_KEY, resolved)
         } catch (error) {
             fail(get, error, STRINGS.common.loadFailed)
         }
@@ -44,7 +115,7 @@ export const createProjectsSlice: StateCreator<AppStore, [], [], ProjectsSlice> 
         try {
             const created = await ProjectService.getInstance().create(draft)
             await get().fetchProjects()
-
+            get().setActiveProject(created.id)
             void get().refreshSession()
             get().addAlert({ variant: 'success', message: STRINGS.projects.created, dismissible: true })
             return created
@@ -58,7 +129,29 @@ export const createProjectsSlice: StateCreator<AppStore, [], [], ProjectsSlice> 
         try {
             const updated = await ProjectService.getInstance().update(id, patch)
             set({ projects: get().projects.map((project) => (project.id === id ? updated : project)) })
-            get().addAlert({ variant: 'success', message: STRINGS.projects.saved, dismissible: true })
+            return true
+        } catch (error) {
+            fail(get, error, STRINGS.projects.saveFailed)
+            return false
+        }
+    },
+
+    async archiveProject(id, archived) {
+        try {
+            await ProjectService.getInstance().archive(id, archived)
+            await get().fetchProjects()
+            return true
+        } catch (error) {
+            fail(get, error, STRINGS.projects.saveFailed)
+            return false
+        }
+    },
+
+    async transferProject(id, userId) {
+        try {
+            await ProjectService.getInstance().transfer(id, userId)
+            await get().fetchProjects()
+            void get().refreshSession()
             return true
         } catch (error) {
             fail(get, error, STRINGS.projects.saveFailed)
@@ -69,9 +162,9 @@ export const createProjectsSlice: StateCreator<AppStore, [], [], ProjectsSlice> 
     async deleteProject(id) {
         try {
             await ProjectService.getInstance().remove(id)
-            set({ projects: get().projects.filter((project) => project.id !== id) })
+            if (get().activeProjectId === id) get().setActiveProject(null)
+            await get().fetchProjects()
             void get().refreshSession()
-            get().addAlert({ variant: 'success', message: STRINGS.projects.deleted, dismissible: true })
             return true
         } catch (error) {
             fail(get, error, STRINGS.projects.saveFailed)
@@ -79,23 +172,17 @@ export const createProjectsSlice: StateCreator<AppStore, [], [], ProjectsSlice> 
         }
     },
 
-    async fetchTasks(projectId) {
+    async fetchVocabularies(id) {
         try {
-            const tasks = await ProjectService.getInstance().listTasks(projectId)
-            set({ tasksByProject: { ...get().tasksByProject, [projectId]: tasks } })
+            set({ vocabularies: await ProjectService.getInstance().vocabularies(id) })
         } catch (error) {
             fail(get, error, STRINGS.common.loadFailed)
         }
     },
 
-    async addTask(projectId, title, status) {
+    async saveVocabularies(id, draft) {
         try {
-            const task = await ProjectService.getInstance().addTask(projectId, title, status)
-            const current = get().tasksByProject[projectId] ?? []
-            set({ tasksByProject: { ...get().tasksByProject, [projectId]: [...current, task] } })
-
-            set({ projects: get().projects.map((p) => (p.id === projectId ? { ...p, taskCount: p.taskCount + 1 } : p)) })
-            void get().refreshSession()
+            set({ vocabularies: await ProjectService.getInstance().saveVocabularies(id, draft) })
             return true
         } catch (error) {
             fail(get, error, STRINGS.projects.saveFailed)
@@ -103,45 +190,139 @@ export const createProjectsSlice: StateCreator<AppStore, [], [], ProjectsSlice> 
         }
     },
 
-    async moveTask(projectId, task, status) {
+    async fetchMembers(id) {
         try {
-            const updated = await ProjectService.getInstance().updateTask(task.id, { status })
-            const current = get().tasksByProject[projectId] ?? []
-            set({
-                tasksByProject: {
-                    ...get().tasksByProject,
-                    [projectId]: current.map((entry) => (entry.id === task.id ? updated : entry)),
-                },
-            })
+            set({ members: await ProjectService.getInstance().members(id) })
         } catch (error) {
-            fail(get, error, STRINGS.projects.saveFailed)
+            fail(get, error, STRINGS.common.loadFailed)
         }
     },
 
-    async deleteTask(projectId, taskId) {
+    async updateMemberPermissions(id, memberId, permissions) {
         try {
-            await ProjectService.getInstance().removeTask(taskId)
-            const current = get().tasksByProject[projectId] ?? []
-            set({ tasksByProject: { ...get().tasksByProject, [projectId]: current.filter((t) => t.id !== taskId) } })
-            set({ projects: get().projects.map((p) => (p.id === projectId ? { ...p, taskCount: Math.max(0, p.taskCount - 1) } : p)) })
-            void get().refreshSession()
+            const member = await ProjectService.getInstance().setMemberPermissions(id, memberId, permissions)
+            set({ members: get().members.map((entry) => (entry.id === memberId ? member : entry)) })
+            return true
         } catch (error) {
             fail(get, error, STRINGS.projects.saveFailed)
+            return false
         }
     },
 
-    async exportProject(id) {
+    async removeMember(id, memberId) {
         try {
-            const data = await ProjectService.getInstance().exportProject(id)
-            const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
-            const url = URL.createObjectURL(blob)
-            const anchor = document.createElement('a')
-            anchor.href = url
-            anchor.download = `project-${id}.json`
-            anchor.click()
-            URL.revokeObjectURL(url)
+            await ProjectService.getInstance().removeMember(id, memberId)
+            set({ members: get().members.filter((entry) => entry.id !== memberId) })
+            void get().fetchProjectUsage(id)
+            return true
         } catch (error) {
-            fail(get, error, STRINGS.projects.exportFailed)
+            fail(get, error, STRINGS.projects.saveFailed)
+            return false
         }
+    },
+
+    async leaveProject(id) {
+        try {
+            await ProjectService.getInstance().leave(id)
+            if (get().activeProjectId === id) get().setActiveProject(null)
+            await get().fetchProjects()
+            return true
+        } catch (error) {
+            fail(get, error, STRINGS.projects.saveFailed)
+            return false
+        }
+    },
+
+    async fetchInvites(id) {
+        try {
+            set({ invites: await ProjectService.getInstance().invites(id) })
+        } catch (error) {
+            fail(get, error, STRINGS.common.loadFailed)
+        }
+    },
+
+    async sendInvite(id, draft) {
+        try {
+            await ProjectService.getInstance().invite(id, draft)
+            await get().fetchInvites(id)
+            void get().fetchProjectUsage(id)
+            return true
+        } catch (error) {
+            fail(get, error, STRINGS.projects.saveFailed)
+            return false
+        }
+    },
+
+    async revokeInvite(id, inviteId) {
+        try {
+            await ProjectService.getInstance().revokeInvite(id, inviteId)
+            set({ invites: get().invites.filter((invite) => invite.id !== inviteId) })
+            void get().fetchProjectUsage(id)
+            return true
+        } catch (error) {
+            fail(get, error, STRINGS.projects.saveFailed)
+            return false
+        }
+    },
+
+    async fetchMyInvites() {
+        try {
+            set({ myInvites: await ProjectService.getInstance().myInvites() })
+        } catch (error) {
+            fail(get, error, STRINGS.common.loadFailed)
+        }
+    },
+
+    async acceptInvite(inviteId) {
+        try {
+            const project = await ProjectService.getInstance().acceptInvite(inviteId)
+            await get().fetchProjects()
+            get().setActiveProject(project.id)
+            set({ myInvites: get().myInvites.filter((invite) => invite.id !== inviteId) })
+            return true
+        } catch (error) {
+            fail(get, error, STRINGS.projects.saveFailed)
+            return false
+        }
+    },
+
+    async declineInvite(inviteId) {
+        try {
+            await ProjectService.getInstance().declineInvite(inviteId)
+            set({ myInvites: get().myInvites.filter((invite) => invite.id !== inviteId) })
+            return true
+        } catch (error) {
+            fail(get, error, STRINGS.projects.saveFailed)
+            return false
+        }
+    },
+
+    async fetchProjectUsage(id) {
+        try {
+            const usage = await ProjectService.getInstance().usage(id)
+            set({ projectUsage: { ...get().projectUsage, [id]: usage } })
+        } catch {
+            return
+        }
+    },
+
+    pollLock(id) {
+        get().stopLockPoll()
+        const read = async () => {
+            try {
+                const lock = await ProjectService.getInstance().lock(id)
+                set({ lock })
+                if (!lock.locked) get().stopLockPoll()
+            } catch {
+                get().stopLockPoll()
+            }
+        }
+        void read()
+        lockTimer = setInterval(read, 5000)
+    },
+
+    stopLockPoll() {
+        if (lockTimer) clearInterval(lockTimer)
+        lockTimer = null
     },
 })

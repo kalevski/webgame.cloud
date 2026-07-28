@@ -2,15 +2,15 @@ import React, { useEffect, useReducer, useRef, useState } from 'react'
 import { useNavigate } from 'react-router'
 import { useStore } from 'state'
 import useStrings from 'hooks/useStrings'
-import useCan from 'hooks/useCan'
+import { useIsProjectOwner, useProjectCan } from 'hooks/useProjectCan'
 import { useTc } from '@toolcase/web-components/react'
 import { MODAL, useModalOpen } from 'modals'
-import { Project, ProjectVisibility } from 'types'
+import { AppType, Project } from 'types'
 
 type ValueElement = HTMLElement & { value?: string }
 
 const ICON_OPTIONS = [
-    { value: 'FolderKanban', label: 'Folder' },
+    { value: 'Gamepad2', label: 'Gamepad' },
     { value: 'Rocket', label: 'Rocket' },
     { value: 'Target', label: 'Target' },
     { value: 'Flag', label: 'Flag' },
@@ -33,22 +33,16 @@ const COLOR_OPTIONS = [
 
 type ProjectDraft = {
     name: string
-    visibility: ProjectVisibility
+    appType: AppType
     icon: string
     color: string
-    priority: number
-    dueDate: string
-    notifyOnActivity: boolean
 }
 
 const toDraft = (project: Project): ProjectDraft => ({
     name: project.name,
-    visibility: project.visibility,
+    appType: project.appType,
     icon: project.icon,
     color: project.color,
-    priority: project.priority,
-    dueDate: project.dueDate ?? '',
-    notifyOnActivity: project.notifyOnActivity,
 })
 
 const draftReducer = (draft: ProjectDraft, patch: Partial<ProjectDraft>): ProjectDraft => ({ ...draft, ...patch })
@@ -59,8 +53,9 @@ const ProjectSettings: React.FC<{ project: Project }> = ({ project }) => {
     const p = t.projects
     const updateProject = useStore((state) => state.updateProject)
     const deleteProject = useStore((state) => state.deleteProject)
-    const canWrite = useCan('project.write')
+    const canWrite = useProjectCan('project.settings')
 
+    const isOwner = useIsProjectOwner()
     const [draft, updateDraft] = useReducer(draftReducer, project, toDraft)
     const description = useRef(project.description)
     const [saving, setSaving] = useState(false)
@@ -74,29 +69,21 @@ const ProjectSettings: React.FC<{ project: Project }> = ({ project }) => {
             description.current = value ?? ''
         },
     })
-    const visibilityGroup = useTc<HTMLElement>({
+    const typeGroup = useTc<HTMLElement>({
         options: [
-            { value: 'private', label: p.visibilityPrivate },
-            { value: 'shared', label: p.visibilityShared },
+            { value: 'game', label: p.appTypeGame },
+            { value: 'app', label: p.appTypeApp },
+            { value: 'prototype', label: p.appTypePrototype },
         ],
-        onChange: (next: string) => updateDraft({ visibility: (next as ProjectVisibility) || 'private' }),
+        onChange: (next: string) => updateDraft({ appType: (next as AppType) || 'game' }),
     })
     const iconPicker = useTc<HTMLElement>({
         icons: ICON_OPTIONS,
-        onChange: (next: string) => updateDraft({ icon: next || 'FolderKanban' }),
+        onChange: (next: string) => updateDraft({ icon: next || 'Gamepad2' }),
     })
     const colorPicker = useTc<HTMLElement>({
         colors: COLOR_OPTIONS,
         onChange: (next: string) => updateDraft({ color: next || '' }),
-    })
-    const priorityRating = useTc<HTMLElement>({
-        onChange: (next: number) => updateDraft({ priority: next || 1 }),
-    })
-    const dueDatePicker = useTc<HTMLElement>({
-        onChange: (next: string) => updateDraft({ dueDate: next || '' }),
-    })
-    const notifySwitch = useTc<HTMLElement>({
-        onChange: (next: boolean) => updateDraft({ notifyOnActivity: !!next }),
     })
 
     useEffect(() => {
@@ -113,12 +100,9 @@ const ProjectSettings: React.FC<{ project: Project }> = ({ project }) => {
             await updateProject(project.id, {
                 name: draft.name.trim(),
                 description: description.current.trim(),
-                visibility: draft.visibility,
+                appType: draft.appType,
                 icon: draft.icon,
                 color: draft.color,
-                priority: draft.priority,
-                dueDate: draft.dueDate || null,
-                notifyOnActivity: draft.notifyOnActivity,
             })
         } finally {
             setSaving(false)
@@ -131,8 +115,28 @@ const ProjectSettings: React.FC<{ project: Project }> = ({ project }) => {
         if (ok) navigate('/projects')
     })
 
+    const openArchive = useModalOpen<boolean, Project>(MODAL.ARCHIVE_PROJECT)
+    const openTransfer = useModalOpen<boolean, Project>(MODAL.TRANSFER_PROJECT)
+    const openLeave = useModalOpen<boolean, Project>(MODAL.LEAVE_PROJECT, (left) => {
+        if (left) navigate('/projects')
+    })
+
     const dangerZone = useTc<HTMLElement>({
         actions: [
+            {
+                key: 'archive',
+                title: project.archivedAt ? p.unarchive : p.archive,
+                description: p.archivedBanner,
+                buttonLabel: project.archivedAt ? p.unarchive : p.archive,
+                icon: 'Archive',
+            },
+            {
+                key: 'transfer',
+                title: p.transfer,
+                description: p.transferHint,
+                buttonLabel: p.transfer,
+                icon: 'UserCheck',
+            },
             {
                 key: 'delete',
                 title: p.dangerZone,
@@ -143,6 +147,8 @@ const ProjectSettings: React.FC<{ project: Project }> = ({ project }) => {
         ],
         onactionclick: (key: string) => {
             if (key === 'delete') openConfirmDelete(project)
+            if (key === 'archive') openArchive(project)
+            if (key === 'transfer') openTransfer(project)
         },
     })
 
@@ -167,9 +173,9 @@ const ProjectSettings: React.FC<{ project: Project }> = ({ project }) => {
                     ></tc-markdown-editor>
 
                     <tc-radio-group
-                        ref={visibilityGroup}
-                        label={p.visibilityLabel}
-                        value={draft.visibility}
+                        ref={typeGroup}
+                        label={p.appTypeLabel}
+                        value={draft.appType}
                         inline
                         disabled={!canWrite || undefined}
                     ></tc-radio-group>
@@ -193,33 +199,6 @@ const ProjectSettings: React.FC<{ project: Project }> = ({ project }) => {
                         </tc-col>
                     </tc-row>
 
-                    <tc-row g="3">
-                        <tc-col md="6">
-                            <div>
-                                <tc-tooltip title={p.priorityHint}>
-                                    <tc-label>{p.priorityLabel}</tc-label>
-                                </tc-tooltip>
-                                <tc-rating ref={priorityRating} count={5} value={draft.priority} read-only={!canWrite || undefined}></tc-rating>
-                            </div>
-                        </tc-col>
-                        <tc-col md="6">
-                            <tc-date-picker
-                                ref={dueDatePicker}
-                                label={p.dueDateLabel}
-                                value={draft.dueDate || undefined}
-                                disabled={!canWrite || undefined}
-                            ></tc-date-picker>
-                        </tc-col>
-                    </tc-row>
-
-                    <tc-switch
-                        ref={notifySwitch}
-                        label={p.notifyLabel}
-                        help={p.notifyHelp}
-                        checked={draft.notifyOnActivity || undefined}
-                        disabled={!canWrite || undefined}
-                    ></tc-switch>
-
                     {canWrite && (
                         <tc-button variant="primary" disabled={!valid || saving || undefined} onClick={handleSave}>
                             {p.save}
@@ -228,7 +207,13 @@ const ProjectSettings: React.FC<{ project: Project }> = ({ project }) => {
                 </tc-stack>
             </tc-panel>
 
-            {canWrite && <tc-danger-zone-actions ref={dangerZone}></tc-danger-zone-actions>}
+            {isOwner && <tc-danger-zone-actions ref={dangerZone}></tc-danger-zone-actions>}
+
+            {!isOwner && (
+                <tc-button variant="danger" outline onClick={() => openLeave(project)}>
+                    {p.leave}
+                </tc-button>
+            )}
         </div>
     )
 }

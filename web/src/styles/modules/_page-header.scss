@@ -1,26 +1,49 @@
+@use '../abstracts' as *;
+
 .module-page-header {
     display: flex;
     align-items: baseline;
-    gap: 0.75rem;
+    gap: $space-2;
     min-width: 0;
+
+    &__crumb {
+        color: $text-muted;
+        font-size: 0.875rem;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: 14rem;
+    }
+
+    &__separator {
+        color: $text-muted;
+        opacity: 0.5;
+    }
 
     &__title {
         display: inline;
         margin: 0;
-        font-size: 1rem;
-        font-weight: 700;
+        font-size: 0.9375rem;
+        font-weight: 600;
         line-height: inherit;
         white-space: nowrap;
     }
 
     &__description {
-        color: #777;
+        color: $text-muted;
         font-size: 0.8125rem;
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
 
-        @media (max-width: 767px) {
+        @include down($bp-md) {
+            display: none;
+        }
+    }
+
+    @include down($bp-sm) {
+        &__crumb,
+        &__separator {
             display: none;
         }
     }

@@ -15,6 +15,7 @@
             "helpers/*":    ["./src/helpers/*"],
             "hooks/*":      ["./src/hooks/*"],
             "layouts/*":    ["./src/layouts/*"],
+            "lib/*":        ["./src/lib/*"],
             "modals":       ["./src/modals/index.tsx"],
             "modals/*":     ["./src/modals/*"],
             "modules/*":    ["./src/modules/*"],

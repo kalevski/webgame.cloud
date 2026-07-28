@@ -129,18 +129,18 @@ The plan cards on `/billing` disable the manual-plan action while `myEnquiry` is
 ## Verifying locally
 
 ```bash
-curl -s -b c.txt localhost:5000/api/billing/plans | jq '.data'          # 404 feature_disabled while the flag is off
-curl -s -b admin.txt -X PUT localhost:5000/api/settings/features \
-    -H 'Content-Type: application/json' -H 'Origin: http://localhost:5000' -d '{"billing":true}'
-curl -s -b admin.txt -X PATCH localhost:5000/api/billing/subscriptions/<userId> \
-    -H 'Content-Type: application/json' -H 'Origin: http://localhost:5000' \
+curl -s -b c.txt localhost:6000/api/billing/plans | jq '.data'          # 404 feature_disabled while the flag is off
+curl -s -b admin.txt -X PUT localhost:6000/api/settings/features \
+    -H 'Content-Type: application/json' -H 'Origin: http://localhost:6000' -d '{"billing":true}'
+curl -s -b admin.txt -X PATCH localhost:6000/api/billing/subscriptions/<userId> \
+    -H 'Content-Type: application/json' -H 'Origin: http://localhost:6000' \
     -d '{"status":"active","planId":"plus","currentPeriodEnd":"2026-12-31T00:00:00.000Z"}'
 ```
 
 The second call promotes that user to `member_plus`, issues an invoice, and `POST /api/billing/cancel` as that user drops them back to `member`.
 
 ```bash
-curl -s -b admin.txt 'localhost:5000/api/billing/invoices?status=open&q=member' | jq '.data'
+curl -s -b admin.txt 'localhost:6000/api/billing/invoices?status=open&q=member' | jq '.data'
 ```
 
 ## Billing depth: trials, coupons, usage, proration, dunning
@@ -176,3 +176,25 @@ is the intended shape, and is one of the reasons the job registry takes a cron e
 
 Treated honestly, that means the billing surface ships a complete *manual* lifecycle plus the arithmetic
 for the rest. Don't assume an invoice chases itself.
+
+
+## Storage, the grace zone and staff overrides
+
+`storage_mb` is stored in **megabytes** in `role_limits` (readable in `psql`, consistent with the other
+four counts). Bytes exist only on the wire and inside the checks — `AccessPolicyService` converts once.
+
+`assertStorageHeadroom(ownerId, addBytes)` returns a three-tier verdict against the *pending batch*:
+
+- `used + add < cap` → `ok`
+- below `cap × 1.5` → `grace` — allowed, and the overage is flagged on the subscription row. Requires
+  `billing_plans.storage_overage_allowed`; a plan without it is hard-capped at `cap`.
+- otherwise → `400 storage_hard_cap_exceeded`, and the batch is refused **whole**.
+
+The flag is also cleared by `GET /api/account/usage`: a user who deletes files to get back under the cap
+never writes again, and the write path alone would leave the danger-toned navbar up forever.
+
+`resolvePlan(userId)` is the single branch every plan read goes through:
+`staff_override_plan_id ?? subscription.plan_id ?? default-slot plan`. `PUT /api/admin/users/:id/plan-override`
+(`billing.subscription.write`) sets the override, syncs the user's role and invalidates their cached
+policy. With the `billing` flag off, quotas fall back to the default-slot role and overrides are ignored —
+turning billing off is never a way to buy an unlimited plan.

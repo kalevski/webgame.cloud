@@ -9,7 +9,7 @@ The **web** build is deployed separately (static output). `.github/workflows/pub
 ## Environment
 
 - Database: `DATABASE_HOST`, `DATABASE_PORT` (5432), `DATABASE_USER`, `DATABASE_PASS`, `DATABASE_NAME` (`starter`), `DATABASE_SSLMODE` (`disable`).
-- Server: `PORT` (5000), `WEB_URL`, `API_URL`, `WORKSPACE_NAME` (`AppKit` — the name printed on public invoices and returned by `/api/public/constants`).
+- Server: `PORT` (6000), `WEB_URL`, `API_URL`, `WORKSPACE_NAME` (`AppKit` — the name printed on public invoices and returned by `/api/public/constants`).
 - Auth: `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `DISCORD_CLIENT_ID`, `DISCORD_CLIENT_SECRET` (each provider activates when both its vars are set), `DEV_LOGIN` (never `true` in prod; auto-disabled when any provider is configured).
 - Logging: `LOG_LEVEL` (`info`) for the app-level logger, `DEBUG` — scope patterns widened to debug (e.g. `DEBUG=repo` for per-query timings). Fastify's request logs are separate and always on.
 - `CORS_ORIGIN` — the switch between deploy shapes:

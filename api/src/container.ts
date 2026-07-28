@@ -39,7 +39,21 @@ import { ReportRepository } from './repositories/moderation/ReportRepository.js'
 import { ModerationService } from './services/ModerationService.js'
 import { AdminOverviewService } from './services/AdminOverviewService.js'
 import { ProjectRepository } from './repositories/projects/ProjectRepository.js'
-import { TaskRepository } from './repositories/projects/TaskRepository.js'
+import { MemberRepository } from './repositories/projects/MemberRepository.js'
+import { InviteRepository } from './repositories/projects/InviteRepository.js'
+import { RealmRepository } from './repositories/realms/RealmRepository.js'
+import { ProjectMigrationRepository } from './repositories/realms/ProjectMigrationRepository.js'
+import { RealmService } from './services/RealmService.js'
+import { AssetFileRepository } from './repositories/assets/AssetFileRepository.js'
+import { UploadService } from './services/UploadService.js'
+import { BundleRepository } from './repositories/bundles/BundleRepository.js'
+import { BundleService } from './services/BundleService.js'
+import { BuildRepository } from './repositories/builds/BuildRepository.js'
+import { BuildService } from './services/BuildService.js'
+import { ConfigRepository } from './repositories/configs/ConfigRepository.js'
+import { ConfigService } from './services/ConfigService.js'
+import { WaitlistRepository } from './repositories/waitlist/WaitlistRepository.js'
+import { WaitlistService } from './services/WaitlistService.js'
 import { ProjectService } from './services/ProjectService.js'
 import { UserRepository } from './repositories/users/UserRepository.js'
 import { IdentityRepository } from './repositories/users/IdentityRepository.js'
@@ -79,7 +93,21 @@ container.registerSingleton(ModerationService, ModerationService)
 container.registerSingleton(AdminOverviewService, AdminOverviewService)
 
 container.registerSingleton(ProjectRepository, ProjectRepository)
-container.registerSingleton(TaskRepository, TaskRepository)
+container.registerSingleton(MemberRepository, MemberRepository)
+container.registerSingleton(InviteRepository, InviteRepository)
+container.registerSingleton(RealmRepository, RealmRepository)
+container.registerSingleton(ProjectMigrationRepository, ProjectMigrationRepository)
+container.registerSingleton(RealmService, RealmService)
+container.registerSingleton(AssetFileRepository, AssetFileRepository)
+container.registerSingleton(UploadService, UploadService)
+container.registerSingleton(BundleRepository, BundleRepository)
+container.registerSingleton(BundleService, BundleService)
+container.registerSingleton(BuildRepository, BuildRepository)
+container.registerSingleton(BuildService, BuildService)
+container.registerSingleton(ConfigRepository, ConfigRepository)
+container.registerSingleton(ConfigService, ConfigService)
+container.registerSingleton(WaitlistRepository, WaitlistRepository)
+container.registerSingleton(WaitlistService, WaitlistService)
 container.registerSingleton(ProjectService, ProjectService)
 
 container.registerSingleton(BillingRepository, BillingRepository)

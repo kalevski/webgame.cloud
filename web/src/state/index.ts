@@ -9,6 +9,11 @@ import { createModerationSlice, ModerationSlice } from './moderation.slice'
 import { createNotificationsSlice, NotificationsSlice } from './notifications.slice'
 import { createPlatformSlice, PlatformSlice } from './platform.slice'
 import { createProjectsSlice, ProjectsSlice } from './projects.slice'
+import { createRealmsSlice, RealmsSlice } from './realms.slice'
+import { createAssetsSlice, AssetsSlice } from './assets.slice'
+import { createBundlesSlice, BundlesSlice } from './bundles.slice'
+import { createBuildsSlice, BuildsSlice } from './builds.slice'
+import { createConfigsSlice, ConfigsSlice } from './configs.slice'
 import { createUsersSlice, UsersSlice } from './users.slice'
 
 export type AppStore = AccessPolicySlice &
@@ -20,6 +25,11 @@ export type AppStore = AccessPolicySlice &
     NotificationsSlice &
     PlatformSlice &
     ProjectsSlice &
+    RealmsSlice &
+    AssetsSlice &
+    BundlesSlice &
+    BuildsSlice &
+    ConfigsSlice &
     UsersSlice
 
 export const useStore = create<AppStore>()(
@@ -34,6 +44,11 @@ export const useStore = create<AppStore>()(
             ...createNotificationsSlice(...args),
             ...createPlatformSlice(...args),
             ...createProjectsSlice(...args),
+            ...createRealmsSlice(...args),
+            ...createAssetsSlice(...args),
+            ...createBundlesSlice(...args),
+            ...createBuildsSlice(...args),
+            ...createConfigsSlice(...args),
             ...createUsersSlice(...args),
         }),
         { name: 'store' }

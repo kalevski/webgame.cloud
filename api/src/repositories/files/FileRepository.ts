@@ -1,6 +1,6 @@
 import { inject, injectable } from 'tsyringe'
 import { Database, type QueryRunner } from '../../Database.js'
-import type { FileRow, FileSourceRow } from '../../schema/files.js'
+import type { FileRow, AssetSourceRow } from '../../schema/files.js'
 
 import COUNT_FILES_FOR_SOURCE from './sql/count-files-for-source.sql'
 import DELETE_FILE from './sql/delete-file.sql'
@@ -23,7 +23,7 @@ export class FileRepository {
     async insertSource(
         write: { id: string; name: string; type: string; config: Record<string, unknown>; secret: string },
         trx?: QueryRunner
-    ): Promise<FileSourceRow | undefined> {
+    ): Promise<AssetSourceRow | undefined> {
         await this.run(trx).query(INSERT_SOURCE, [
             write.id, write.name, write.type, JSON.stringify(write.config), write.secret,
         ])
@@ -34,7 +34,7 @@ export class FileRepository {
         id: string,
         patch: { name: string | null; config: Record<string, unknown> | null; secret: string | null },
         trx?: QueryRunner
-    ): Promise<FileSourceRow | undefined> {
+    ): Promise<AssetSourceRow | undefined> {
         const result = await this.run(trx).query(UPDATE_SOURCE, [
             id, patch.name, patch.config === null ? null : JSON.stringify(patch.config), patch.secret,
         ])
@@ -47,13 +47,13 @@ export class FileRepository {
         return (result.rowCount ?? 0) > 0
     }
 
-    async findSource(id: string, trx?: QueryRunner): Promise<FileSourceRow | undefined> {
-        const { rows } = await this.run(trx).query<FileSourceRow>(SELECT_SOURCE, [id])
+    async findSource(id: string, trx?: QueryRunner): Promise<AssetSourceRow | undefined> {
+        const { rows } = await this.run(trx).query<AssetSourceRow>(SELECT_SOURCE, [id])
         return rows[0]
     }
 
-    async listSources(trx?: QueryRunner): Promise<FileSourceRow[]> {
-        const { rows } = await this.run(trx).query<FileSourceRow>(SELECT_SOURCES)
+    async listSources(trx?: QueryRunner): Promise<AssetSourceRow[]> {
+        const { rows } = await this.run(trx).query<AssetSourceRow>(SELECT_SOURCES)
         return rows
     }
 
@@ -65,7 +65,7 @@ export class FileRepository {
     async insertFile(
         write: {
             id: string
-            fileType: string
+            assetType: string
             sourceId: string
             location: string
             ownerId: string | null
@@ -76,7 +76,7 @@ export class FileRepository {
         trx?: QueryRunner
     ): Promise<FileRow | undefined> {
         await this.run(trx).query(INSERT_FILE, [
-            write.id, write.fileType, write.sourceId, write.location,
+            write.id, write.assetType, write.sourceId, write.location,
             write.ownerId, write.originalName, write.mime, write.size,
         ])
         return this.findFile(write.id, trx)

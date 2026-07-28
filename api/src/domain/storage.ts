@@ -1,25 +1,25 @@
 import { promises as fs } from 'node:fs'
 import path from 'node:path'
-import type { FileSourceType } from '../contracts/index.js'
-import type { FileSourceRow } from '../schema/files.js'
+import type { AssetSourceType } from '../contracts/index.js'
+import type { AssetSourceRow } from '../schema/files.js'
 
 export type StoragePort = {
-    id: FileSourceType
+    id: AssetSourceType
 
-    put(source: FileSourceRow, location: string, data: Buffer): Promise<void>
-    get(source: FileSourceRow, location: string): Promise<Buffer>
-    remove(source: FileSourceRow, location: string): Promise<void>
+    put(source: AssetSourceRow, location: string, data: Buffer): Promise<void>
+    get(source: AssetSourceRow, location: string): Promise<Buffer>
+    remove(source: AssetSourceRow, location: string): Promise<void>
 }
 
-const registry = new Map<FileSourceType, StoragePort>()
+const registry = new Map<AssetSourceType, StoragePort>()
 
 export const registerStoragePort = (port: StoragePort): void => {
     registry.set(port.id, port)
 }
 
-export const getStoragePort = (id: FileSourceType): StoragePort | undefined => registry.get(id)
+export const getStoragePort = (id: AssetSourceType): StoragePort | undefined => registry.get(id)
 
-const diskPath = (source: FileSourceRow, location: string): string =>
+const diskPath = (source: AssetSourceRow, location: string): string =>
     path.join(source.config.basePath || './uploads', location)
 
 export const diskStoragePort: StoragePort = {
@@ -40,13 +40,13 @@ export const diskStoragePort: StoragePort = {
     },
 }
 
-const s3Bucket = (source: FileSourceRow): string => {
+const s3Bucket = (source: AssetSourceRow): string => {
     const bucket = source.config.bucket
     if (!bucket) throw new Error('s3 source has no bucket configured')
     return bucket
 }
 
-const s3ClientFor = async (source: FileSourceRow) => {
+const s3ClientFor = async (source: AssetSourceRow) => {
     const { S3Client } = await import('@aws-sdk/client-s3')
     const { region, endpoint, forcePathStyle, accessKeyId } = source.config
     return new S3Client({

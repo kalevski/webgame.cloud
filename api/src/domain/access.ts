@@ -10,7 +10,7 @@ import type {
     User,
     UserAccessOverrides,
 } from '../contracts/index.js'
-import { ACCOUNT_SHAPED, LIMITABLE_RESOURCES, OWNER_ROLE_ID, PERMISSIONS } from '../contracts/index.js'
+import { ACCOUNT_LIMITED, ACCOUNT_SHAPED, OWNER_ROLE_ID, PERMISSIONS } from '../contracts/index.js'
 import { ForbiddenError } from './errors.js'
 
 const EMPTY: ReadonlySet<Permission> = new Set()
@@ -41,8 +41,16 @@ export const resolvePermissions = (
 }
 
 const DEFAULT_UNLIMITED: ResolvedLimits = Object.fromEntries(
-    LIMITABLE_RESOURCES.map((resource) => [resource, null])
+    ACCOUNT_LIMITED.map((resource) => [resource, null])
 ) as ResolvedLimits
+
+export const INTERNAL_SOFT_CAPS: Record<LimitableResource, number> = {
+    projects: 100,
+    storage_mb: 1_048_576,
+    bundles_per_project: 1_000,
+    configs_per_project: 10_000,
+    members_per_project: 500,
+}
 
 export const resolveLimits = (
     user: User,
@@ -51,16 +59,30 @@ export const resolveLimits = (
 ): ResolvedLimits => {
     const limits: ResolvedLimits = { ...DEFAULT_UNLIMITED }
     const roleMap = policy.roleLimits[user.role] ?? {}
-    for (const resource of LIMITABLE_RESOURCES) {
+    for (const resource of ACCOUNT_LIMITED) {
         if (resource in roleMap) limits[resource] = roleMap[resource] ?? null
         if (resource in overrides.limits) limits[resource] = overrides.limits[resource] ?? null
     }
     return limits
 }
 
+export const resolveLimitFor = (
+    resource: LimitableResource,
+    roleId: string,
+    policy: AccessPolicy = EMPTY_POLICY,
+    overrides: UserAccessOverrides = EMPTY_OVERRIDES
+): number | null => {
+    const roleMap = policy.roleLimits[roleId] ?? {}
+    if (resource in overrides.limits) return overrides.limits[resource] ?? null
+    if (resource in roleMap) return roleMap[resource] ?? null
+    return null
+}
+
+export const effectiveCeiling = (resource: LimitableResource, limit: number | null): number =>
+    limit ?? INTERNAL_SOFT_CAPS[resource]
+
 export const legacyLimits = (resolved: ResolvedLimits): Limits => ({
     projects: resolved.projects,
-    tasks: resolved.tasks,
 })
 
 export const isInSlot = (role: string, slot: RoleSlot, bindings: RoleBindings): boolean =>

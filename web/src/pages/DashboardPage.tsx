@@ -24,12 +24,8 @@ const DashboardPage: React.FC = () => {
 
     return (
         <AuthGuard secured>
-            <section className="container">
-                <div className="row">
-                    <div className="col-12">
-                        <Dashboard />
-                    </div>
-                </div>
+            <section className="console-page">
+                <Dashboard />
             </section>
         </AuthGuard>
     )

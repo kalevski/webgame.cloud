@@ -42,23 +42,29 @@ export const SEED_ROLES: ReadonlyArray<{
     permissions: readonly Permission[]
 }> = [
     {
-        id: 'member',
-        name: 'Member',
+        id: 'indie',
+        name: 'Indie',
         position: 10,
-        permissions: ['project.write', 'task.write', 'project.share', 'file.upload'],
+        permissions: ['project.create', 'file.upload'],
     },
     {
-        id: 'member_plus',
-        name: 'Member Plus',
+        id: 'indie_plus',
+        name: 'Indie Plus',
         position: 20,
-        permissions: ['project.write', 'task.write', 'project.share', 'project.export', 'file.upload'],
+        permissions: ['project.create', 'file.upload'],
+    },
+    {
+        id: 'studio',
+        name: 'Studio',
+        position: 30,
+        permissions: ['project.create', 'file.upload'],
     },
     {
         id: 'maintainer',
         name: 'Maintainer',
-        position: 30,
+        position: 40,
         permissions: [
-            'project.write', 'task.write', 'project.share',
+            'project.create',
             'moderation.queue.read', 'moderation.report.resolve', 'audit.read',
             'admin.overview.read', 'admin.user.read',
             'admin.role.read', 'admin.settings.read',
@@ -71,7 +77,7 @@ export const SEED_ROLES: ReadonlyArray<{
 ]
 
 export const SEED_ROLE_BINDINGS: RoleBindings = {
-    default: 'member',
+    default: 'indie',
 }
 
 export const toRoleId = (raw: string): string =>

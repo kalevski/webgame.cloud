@@ -38,7 +38,7 @@ const AdminWorkspace: React.FC = () => {
     const canReadRoles = useCan('admin.role.read')
     const canReadSettings = useCan('admin.settings.read')
     const canReadWebhooks = useCan('webhook.read')
-    const canReadFileSources = useCan('file.source.read')
+    const canReadAssetSources = useCan('file.source.read')
     const canReadJobs = useCan('job.read')
     const canReadSigningKeys = useCan('signing.key.read')
     const filesEnabled = useFeature('files')
@@ -51,7 +51,7 @@ const AdminWorkspace: React.FC = () => {
         ...(canReadSettings ? [{ id: 'settings', label: t.admin.tabSettings, icon: 'settings', path: '/admin/settings' }] : []),
         { id: 'api-keys', label: t.apiKeys.tab, icon: 'key', path: '/admin/api-keys' },
         ...(canReadWebhooks ? [{ id: 'webhooks', label: t.webhooks.tab, icon: 'webhook', path: '/admin/webhooks' }] : []),
-        ...(filesEnabled && canReadFileSources ? [{ id: 'files', label: t.files.tab, icon: 'database', path: '/admin/files' }] : []),
+        ...(filesEnabled && canReadAssetSources ? [{ id: 'files', label: t.files.tab, icon: 'database', path: '/admin/files' }] : []),
         ...(canReadJobs ? [{ id: 'jobs', label: t.jobs.tab, icon: 'calendar-clock', path: '/admin/jobs' }] : []),
         ...(canReadSettings ? [{ id: 'retention', label: t.retention.tab, icon: 'timer', path: '/admin/retention' }] : []),
         ...(canReadSigningKeys ? [{ id: 'signing-keys', label: t.signingKeys.tab, icon: 'key-round', path: '/admin/signing-keys' }] : []),

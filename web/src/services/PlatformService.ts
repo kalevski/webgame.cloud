@@ -3,10 +3,10 @@ import {
     ApiKey,
     ApiKeyDraft,
     ApiKeyIssued,
-    FileSource,
-    FileSourceDraft,
-    FileType,
-    FileTypeBindings,
+    AssetSource,
+    AssetSourceDraft,
+    AssetType,
+    AssetTypeBindings,
     Job,
     JobFilters,
     JobRunResult,
@@ -82,39 +82,39 @@ class PlatformService {
         )
     }
 
-    async listFileSources(): Promise<FileSource[]> {
-        return apiFetch<FileSource[]>('/api/file-sources')
+    async listAssetSources(): Promise<AssetSource[]> {
+        return apiFetch<AssetSource[]>('/api/asset-sources')
     }
 
-    async createFileSource(draft: FileSourceDraft): Promise<FileSource> {
-        return apiFetch<FileSource>('/api/file-sources', { method: 'POST', body: JSON.stringify(draft) })
+    async createAssetSource(draft: AssetSourceDraft): Promise<AssetSource> {
+        return apiFetch<AssetSource>('/api/asset-sources', { method: 'POST', body: JSON.stringify(draft) })
     }
 
-    async updateFileSource(sourceId: string, patch: Partial<FileSourceDraft>): Promise<FileSource> {
-        return apiFetch<FileSource>(`/api/file-sources/${encodeURIComponent(sourceId)}`, {
+    async updateAssetSource(sourceId: string, patch: Partial<AssetSourceDraft>): Promise<AssetSource> {
+        return apiFetch<AssetSource>(`/api/asset-sources/${encodeURIComponent(sourceId)}`, {
             method: 'PATCH',
             body: JSON.stringify(patch),
         })
     }
 
-    async deleteFileSource(sourceId: string): Promise<void> {
-        await apiFetch<void>(`/api/file-sources/${encodeURIComponent(sourceId)}`, { method: 'DELETE' })
+    async deleteAssetSource(sourceId: string): Promise<void> {
+        await apiFetch<void>(`/api/asset-sources/${encodeURIComponent(sourceId)}`, { method: 'DELETE' })
     }
 
-    async getFileBindings(): Promise<FileTypeBindings> {
-        return apiFetch<FileTypeBindings>('/api/file-sources/bindings')
+    async getFileBindings(): Promise<AssetTypeBindings> {
+        return apiFetch<AssetTypeBindings>('/api/asset-sources/bindings')
     }
 
-    async saveFileBindings(patch: Partial<FileTypeBindings>): Promise<FileTypeBindings> {
-        return apiFetch<FileTypeBindings>('/api/file-sources/bindings', {
+    async saveFileBindings(patch: Partial<AssetTypeBindings>): Promise<AssetTypeBindings> {
+        return apiFetch<AssetTypeBindings>('/api/asset-sources/bindings', {
             method: 'PUT',
             body: JSON.stringify(patch),
         })
     }
 
-    async uploadFile(fileType: FileType, file: File): Promise<StoredFile> {
+    async uploadFile(assetType: AssetType, file: File): Promise<StoredFile> {
         const formData = new FormData()
-        formData.append('fileType', fileType)
+        formData.append('assetType', assetType)
         formData.append('file', file)
         return apiFetch<StoredFile>('/api/files', { method: 'POST', body: formData, headers: {} })
     }

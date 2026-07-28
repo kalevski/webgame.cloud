@@ -1,17 +1,22 @@
 import { inject, injectable } from 'tsyringe'
 import type {
     AccessPolicy,
-    LimitableResource,
+    AccountLimitedResource,
     LimitUsage,
+    ProjectLimitedResource,
     ResolvedLimits,
+    StorageStatus,
     User,
     UserAccessOverrides,
 } from '../contracts/index.js'
 import type { Role, RoleBindings, RoleDraft, RoleSlot } from '../contracts/index.js'
 import {
+    ACCOUNT_LIMITED,
+    BYTES_PER_MB,
     LIMITABLE_RESOURCES,
     OWNER_ROLE_ID,
     PERMISSIONS,
+    PROJECT_LIMITED,
     RESOURCE_LABELS,
     ROLE_SLOTS,
     SEED_ROLE_BINDINGS,
@@ -19,13 +24,17 @@ import {
 } from '../contracts/index.js'
 import { SettingsService } from './SettingsService.js'
 import { AccessPolicyRepository } from '../repositories/access/AccessPolicyRepository.js'
+import { BillingRepository } from '../repositories/billing/BillingRepository.js'
+import { UserRepository } from '../repositories/users/UserRepository.js'
 import { Database } from '../Database.js'
 
 export const ACCESS_POLICY_CHANNEL = 'access_policy_changed'
 import {
     EMPTY_OVERRIDES,
+    effectiveCeiling,
     isInSlot,
     permissionsOfRole,
+    resolveLimitFor,
     resolveLimits,
     resolvePermissions,
     rolesInSlot,
@@ -60,6 +69,8 @@ export class AccessPolicyService {
     constructor(
         @inject(AccessPolicyRepository) private repository: AccessPolicyRepository,
         @inject(SettingsService) private settings: SettingsService,
+        @inject(BillingRepository) private billing: BillingRepository,
+        @inject(UserRepository) private users: UserRepository,
         @inject(Database) private database: Database
     ) {}
 
@@ -292,15 +303,34 @@ export class AccessPolicyService {
             this.repository.countAll(user.id),
         ])
         const limits = resolveLimits(user, policy, overrides)
-        return LIMITABLE_RESOURCES.map((resource) => {
+        return ACCOUNT_LIMITED.map((resource) => {
             const limit = limits[resource]
+            const used = resource === 'storage_mb'
+                ? Math.round(counts[resource] / BYTES_PER_MB)
+                : counts[resource]
             return {
                 resource,
-                used: counts[resource],
+                used,
                 limit,
-                reached: limit !== null && counts[resource] >= limit,
+                reached: limit !== null && used >= limit,
             }
         })
+    }
+
+    async projectUsageFor(project: { id: string; ownerId: string }): Promise<LimitUsage[]> {
+        const owner = await this.users.findById(project.ownerId)
+        const [policy, overrides] = await Promise.all([
+            this.policy(),
+            this.getUserOverrides(project.ownerId),
+        ])
+        const usage = await Promise.all(PROJECT_LIMITED.map(async (resource) => {
+            const limit = owner
+                ? resolveLimitFor(resource, owner.role, policy, overrides)
+                : null
+            const used = await this.repository.countInProject(resource, project.id)
+            return { resource, used, limit, reached: limit !== null && used >= limit }
+        }))
+        return usage
     }
 
     async limitsFor(user: User): Promise<ResolvedLimits> {
@@ -313,21 +343,92 @@ export class AccessPolicyService {
         return resolvePermissions(user, policy, overrides)
     }
 
-    async countOf(user: User, resource: LimitableResource): Promise<number> {
+    async countOf(user: User, resource: AccountLimitedResource): Promise<number> {
         return this.repository.count(resource, user.id)
     }
 
-    async assertWithinLimit(user: User, resource: LimitableResource): Promise<void> {
+    async assertWithinLimit(user: User, resource: AccountLimitedResource): Promise<void> {
         const limits = await this.limitsFor(user)
-        const limit = limits[resource]
-        if (limit === null) return
+        const ceiling = effectiveCeiling(resource, limits[resource])
         const used = await this.repository.count(resource, user.id)
-        if (used >= limit) {
+        if (used >= ceiling) {
             throw new Conflict(
                 'limit_reached',
-                `limit of ${limit} ${resource} reached`,
-                [resource, limit]
+                `limit of ${ceiling} ${resource} reached`,
+                [resource, ceiling]
             )
         }
+    }
+
+    async assertWithinProjectLimit(
+        project: { id: string; ownerId: string },
+        resource: ProjectLimitedResource
+    ): Promise<void> {
+        const owner = await this.users.findById(project.ownerId)
+        const [policy, overrides] = await Promise.all([
+            this.policy(),
+            this.getUserOverrides(project.ownerId),
+        ])
+        const limit = owner ? resolveLimitFor(resource, owner.role, policy, overrides) : null
+        const ceiling = effectiveCeiling(resource, limit)
+        const used = await this.repository.countInProject(resource, project.id)
+        if (used >= ceiling) {
+            throw new ValidationError(
+                'project_limit_reached',
+                `limit of ${ceiling} ${resource} reached`,
+                [resource, used, ceiling]
+            )
+        }
+    }
+
+    async storageStatus(ownerId: string, addBytes = 0): Promise<StorageStatus> {
+        const owner = await this.users.findById(ownerId)
+        const [policy, overrides, usedBytes, plan] = await Promise.all([
+            this.policy(),
+            this.getUserOverrides(ownerId),
+            this.repository.count('storage_mb', ownerId),
+            this.planOf(ownerId),
+        ])
+        const limitMb = owner ? resolveLimitFor('storage_mb', owner.role, policy, overrides) : null
+        const limitBytes = effectiveCeiling('storage_mb', limitMb) * BYTES_PER_MB
+        const overageAllowed = plan?.storage_overage_allowed ?? false
+        const graceBytes = overageAllowed ? Math.floor(limitBytes * 1.5) : limitBytes
+        const projected = usedBytes + Math.max(0, addBytes)
+
+        const verdict: StorageStatus['verdict'] = projected < limitBytes
+            ? 'ok'
+            : projected < graceBytes ? 'grace' : 'blocked'
+
+        return { usedBytes, limitBytes, graceBytes, verdict, overageAllowed }
+    }
+
+    async assertStorageHeadroom(ownerId: string, addBytes: number): Promise<StorageStatus> {
+        const status = await this.storageStatus(ownerId, addBytes)
+        if (status.verdict === 'blocked') {
+            throw new ValidationError(
+                'storage_hard_cap_exceeded',
+                'storage hard cap exceeded',
+                [
+                    Math.round(status.usedBytes / BYTES_PER_MB),
+                    Math.round((status.limitBytes ?? 0) / BYTES_PER_MB),
+                ]
+            )
+        }
+        void this.syncOverageFlag(ownerId, status)
+        return status
+    }
+
+    async syncOverageFlag(ownerId: string, status: StorageStatus): Promise<void> {
+        const overBy = status.limitBytes === null
+            ? 0
+            : Math.max(0, status.usedBytes - status.limitBytes)
+        await this.billing.flagStorageOverage(ownerId, overBy).catch(() => undefined)
+    }
+
+    private async planOf(userId: string): Promise<{ storage_overage_allowed: boolean } | undefined> {
+        const subscription = await this.billing.findSubscription(userId).catch(() => undefined)
+        const planId = subscription?.staff_override_plan_id ?? subscription?.plan_id
+        if (!planId) return undefined
+        return this.billing.findPlan(planId).catch(() => undefined)
     }
 }

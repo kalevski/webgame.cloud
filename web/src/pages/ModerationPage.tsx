@@ -16,12 +16,8 @@ const ModerationPage: React.FC = () => {
 
     return (
         <AuthGuard secured permission="moderation.queue.read">
-            <section className="container">
-                <div className="row">
-                    <div className="col-12">
-                        <Moderation />
-                    </div>
-                </div>
+            <section className="console-page">
+                <Moderation />
             </section>
         </AuthGuard>
     )

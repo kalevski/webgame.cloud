@@ -1,4 +1,4 @@
-import type { Project, Task } from './projects.js'
+import type { Project } from './projects.js'
 import type { Permission, UserRole } from './permissions.js'
 import type { LimitUsage, ResolvedLimits } from './limits.js'
 import type { RoleSlot } from './roles.js'
@@ -58,7 +58,6 @@ export type User = {
 
 export type Limits = {
     projects: number | null
-    tasks: number | null
 }
 
 export type AuthSession = {
@@ -85,7 +84,7 @@ export type AccountExport = {
     user: User
     identities: UserIdentity[]
     projects: Project[]
-    tasks: Task[]
+    memberships: Array<{ projectId: string; projectName: string; permissions: string[]; joinedAt: string }>
 }
 
 export type AuthConfig = {
@@ -142,13 +141,13 @@ export type AdminOverview = {
     d30Retention: number | null
     projectsTotal: number
     projectsLast30: number
-    tasksTotal: number
+    buildsTotal: number
 
     reportQueue: { pending: number }
 
     signupsByWeek: Array<{ week: string; count: number }>
 
-    projectsByVisibility: Array<{ visibility: string; count: number }>
-    tasksByStatus: Array<{ status: string; count: number }>
+    projectsByAppType: Array<{ appType: string; count: number }>
+    buildsByStatus: Array<{ status: string; count: number }>
     usersByRole: Array<{ role: string; name: string; count: number }>
 }
