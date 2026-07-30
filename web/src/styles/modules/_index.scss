@@ -1,10 +1,13 @@
 @use 'admin';
+@use 'project-wizard';
+@use 'platform-directory';
 @use 'page-header';
 @use 'alert-panel';
 @use 'legal';
 @use 'login';
 @use 'landing';
 @use 'notifications';
+@use 'usage';
 @use 'filters-modal';
 @use 'upgrade-modal';
 @use 'access';

@@ -10,6 +10,7 @@ import {
     Invoice,
     InvoiceFilters,
     InvoiceStatus,
+    LimitUsage,
     NO_SUBSCRIPTION,
     Plan,
     PlanDraft,
@@ -36,6 +37,11 @@ export type BillingSlice = {
     featureFlags: FeatureFlags | null
 
     fetchBilling: () => Promise<void>
+
+    accountUsage: LimitUsage[]
+    accountUsageLoaded: boolean
+    fetchAccountUsage: () => Promise<void>
+
     myEnquiry: SalesEnquiry | null
     startCheckout: (planId: string) => Promise<CheckoutIntent | null>
     cancelSubscription: () => Promise<boolean>
@@ -99,6 +105,8 @@ export const createBillingSlice: StateCreator<AppStore, [], [], BillingSlice> = 
     enquiryEvents: [],
     enquiryEventsLoading: false,
     publicConstants: null,
+    accountUsage: [],
+    accountUsageLoaded: false,
     myInvoices: [],
     myInvoicesTotal: 0,
     myInvoicesLoading: false,
@@ -114,6 +122,15 @@ export const createBillingSlice: StateCreator<AppStore, [], [], BillingSlice> = 
             set({ plans, subscription, myEnquiry, billingLoaded: true })
         } catch {
             set({ billingLoaded: true })
+        }
+    },
+
+    async fetchAccountUsage() {
+        try {
+            const { usage } = await BillingService.getInstance().accountUsage()
+            set({ accountUsage: usage, accountUsageLoaded: true })
+        } catch {
+            set({ accountUsageLoaded: true })
         }
     },
 

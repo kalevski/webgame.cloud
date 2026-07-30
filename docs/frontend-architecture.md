@@ -53,11 +53,113 @@ Never call `toLocaleDateString()` / `toLocaleString()` inline. `helpers/dates.ts
 
 ## Layouts
 
-`MainLayout` = the `tc-dashboard-layout` shell (brand, `SidebarMenu`, `UserPanel`, `PageHeader`, `NotificationsBell`, `AlertPanel`). `BaseLayout` = chrome-free (login, legal). Both are HOCs.
+`MainLayout` = the `tc-dashboard-layout` shell (brand, `SidebarMenu`, `UserPanel`, `PageHeader`, `CommandPalette`, `UsageSummary`, `NotificationsBell`, `AlertPanel`). `BaseLayout` = chrome-free (login, legal). Both are HOCs.
 
 **Three navigation surfaces, one rule.** `SidebarMenu` (Project / Workspace / Platform sections), the `UserPanel` avatar menu (Profile, Billing, Admin, Moderation), and the ⌘K palette's *Go to* group each list routes, and each gates them on the same `useCan` / `useFeature` checks. When you add a route, add it to all three or deliberately decide not to: a route that exists in one surface and not the others is how the palette ended up missing half the app.
 
+**Live is deliberately not in the sidebar either.** `/projects/:id/live` is reached from the `Live` step of
+`ProjectPipeline` (see live-builds.md); it is a per-project destination, not a platform one, so it belongs to
+the pipeline rather than the nav.
+
+**Shared project surfaces.** `components/ChoiceCards.tsx` (the landing engine-card visual, reused for app
+types and bundle engines), `components/ProjectPreview.tsx` and `components/ProjectIconTile.tsx` are shared by
+the create-project page, project settings and the switcher, so those screens cannot drift apart.
+
 **Admin and Moderation are deliberately not in the sidebar.** They are staff destinations rather than everyday workspace ones, so they are reached from the `UserPanel` avatar menu and the ⌘K palette only. The sidebar carries Project, Workspace and Platform. If you re-add an Administration section, add it to all three surfaces and update this paragraph.
+
+## Console page shape
+
+Every console screen opens the same way, so the three product pages (`/projects/new`, project settings)
+and the platform pages read as one app:
+
+1. **A `tc-rich-page-header`** — `title-text`, `description`, `icon-name` (Lucide, PascalCase) and
+   `icon-color`, taking its copy from `strings.pages.*` so the header, the document title and the shell's
+   `PageHeader` all say the same thing. It sits either directly in the page (`CreateProjectPage`,
+   `RealmsAdminPage`, `InvoicesPage`, `EnquiriesPage`, `PlatformUsersPage`) or at the top of the one module
+   that owns the screen (`AdminWorkspace`, `Moderation`, `Profile`, `Dashboard`, `BillingPage`). Project
+   screens get theirs from `ProjectPageShell` instead.
+2. **`RouteTabs`** when the screen has several independent forms, so each is linkable.
+3. **`tc-section-card`s** for the content — each with a `title`, an `icon`, and its action in the card's
+   `action` slot.
+
+**The card title is written once.** Screens used to render a `tc-action-header` carrying the same words
+directly above a `tc-section-card` with the same `title`, which showed the heading twice and needed an
+effect that poked `.tc-action-header-content.textContent` on every render (the element relocates its own
+light-DOM children, so React children could not be used). Putting the action in the card's `action` slot
+removes both. `tc-action-header` is no longer used anywhere in `web/src`.
+
+**Slot children need the same wrapper as body children.** `tc-section-card` collects `[slot="action"]` at
+connect time and moves those nodes into its header, so a conditional straight under the card is the trap
+described in *Never conditionally swap a direct child of a `tc-*` element*. Render one stable
+`<span slot="action" className="section-card-actions">` (it is present from the first render, so it is
+relocated once) and put the permission check inside it. Do not repeat `slot="action"` on the buttons
+within — the card would collect them too and move them out of the span React owns.
+
+## The floating action bar
+
+`components/FloatingActionBar.tsx` is the console's commit surface: a card pinned to the bottom of the
+viewport carrying the actions that finish what the page is for — *Save* on both project settings tabs,
+on the profile's display name, on platform settings and on email delivery, and
+*Back / Next / Create project / Cancel* in the project wizard. Copy on the left, buttons on the right.
+A single-form settings screen commits this way; a *Save* button parked under the last field is the shape
+being replaced. The exception is a screen carrying two independent forms — *Data retention* saves the purge
+worker and the per-table policy separately, so each keeps its own inline button rather than sharing one bar
+whose target would be ambiguous.
+
+```tsx
+<FloatingActionBar label={p.unsavedHint} visible={dirty}>
+    {canWrite && <tc-button key="save" variant="primary" onClick={save}>{p.save}</tc-button>}
+</FloatingActionBar>
+```
+
+**On settings it is gated on a dirty flag**, so the bar is absent until the form is actually touched and
+slides away again once the save succeeds. The flag is set by the field handlers rather than derived by
+diffing the draft against the project: General keeps its markdown description in a `useRef` (so a
+description edit re-renders nothing and a computed diff would miss it), and Categories & tags re-seeds its
+three lists from the store in an effect (so a diff would fire on load). Both clear the flag when the
+seeding effect runs and when a save returns `true` — a failed save leaves the bar up with the edits intact.
+The wizard passes no `visible`, because its Cancel action is always available.
+
+Three things are load-bearing:
+
+- **It hides itself when it has nothing to offer.** `React.Children.toArray(children).filter(Boolean)`
+  drops `false` and `null`, so a bar whose every action is gated behind a permission renders as an empty
+  strip — which would be worse than no bar at all. Callers must therefore **conditionally render** their
+  buttons (`{canWrite && <tc-button…>}`), never `hidden={…}`: a hidden button is still a child, so the bar
+  would stay visible around an invisible action. The wizard's step buttons were converted from `hidden` to
+  conditional rendering for exactly this reason.
+- **Its width is measured, not guessed.** The component renders a zero-height anchor in normal flow, reads
+  that anchor's `left`/`width` through a `ResizeObserver`, and applies them to the `position: fixed` bar.
+  So the bar tracks whatever column its caller sits in — `.console-page`, `.project-page`, a narrower form
+  — with no knowledge of the sidebar width or the page's `max-width`, and it follows a layout change
+  automatically.
+- **Clearance is a page concern, not a spacer.** While visible the bar writes `--fab-clearance`
+  (its height plus a gap) onto `document.documentElement`, and `.project-page` / `.console-page` add that
+  to their `padding-bottom`. An in-flow spacer was the first attempt and it is wrong: on a page that renders
+  more content *after* the component (settings General puts the danger zone below the form) the spacer
+  opens a gap mid-page while the real last element still slides under the bar.
+
+Fade in/out is `opacity` + a small `translateY`, with `visibility` and `pointer-events` toggled so a hidden
+bar cannot be clicked or tabbed into; the `visibility` transition is delayed by the fade duration on the way
+out so the element stays hittable until it has finished fading. `prefers-reduced-motion` drops both the
+transition and the transform.
+
+## `tc-input-group` needs two shims
+
+`tc-input-group` renders a Bootstrap `.input-group` and moves its slotted children into it, but the
+package's rules target **direct** children — `.input-group > .form-control` for the flex sizing,
+`.input-group > .btn` for the seam. Put `tc-*` elements in the group and the control is a *grandchild*, so
+neither rule lands: the field collapses to its intrinsic width instead of filling the row. Any group built
+this way needs `> tc-input { flex: 1 1 auto; min-width: 0 }` plus `.form-control { width: 100% }`.
+(`.form-control` has `border-radius: 0` in this theme, so there is no corner-joining to redo.)
+
+The second shim is less obvious: **`tc-input` always reserves a validation slot.** `TextFieldBase` renders
+a `.tc-field-message` div with a `min-height` even when there is no help, error or state — 19 px of empty
+space below the control. On its own that is the point (messages appear without shifting the layout), but
+inside an `align-items: stretch` input group it makes the host 66 px against a 42 px control, and any
+button beside it stretches to match and towers over the field. Hide it where the group supplies its own
+hint: `.input-group > tc-input .tc-field-message:empty { display: none }`. The project wizard's name field
+(`styles/modules/_project-wizard.scss`, `&__name-group`) is the worked example.
 
 ## Never conditionally swap a direct child of a `tc-*` element
 
@@ -74,6 +176,68 @@ Many `tc-*` elements relocate their light-DOM children into an internal body con
 ```
 
 The same relocation is why a child mounted *after* the custom element connects can render outside its body — a stable wrapper (`tc-stack` or a `div`) that exists from the first render fixes that too (`DeviceSessions.tsx`, `AccountSettings.tsx`). A conditional whose value never flips at runtime is safe, but wrapping is cheap and removes the trap.
+
+## `FilterBar` — one filter surface for every list
+
+`components/FilterBar.tsx` is the console's filter chrome: an instrument-style strip with a mono legend
+gutter down the left, one row per filter, and a **readout** column on the right that reports the filter's
+*effect* rather than its settings — `33 files` when nothing is filtering, `16 of 33 files` with the match
+count in accent plus a `Clear` control once something is. The readout is the reason the component exists as
+a shared piece: every list had its own way of saying how much was showing (or no way at all), and the count
+belongs beside the controls that changed it, not buried in a footer.
+
+```tsx
+<FilterBar
+    rows={[
+        { key: 'category', legend: a.filterCategoryLabel, chips, value: category, onChange: pick },
+        { key: 'tags', legend: a.filterTagLabel, control: <tc-tag-input ref={tagFilterInput} /> },
+    ]}
+    total={assets.length}
+    matches={filtered.length}
+    unit={assets.length === 1 ? a.fileWord : a.filesWord}
+    active={filtersActive}
+    onClear={clearFilters}
+/>
+```
+
+A row is either **chips** (`chips` + `value` + `onChange`, optional `toggle` so clicking the active chip
+clears it) or an arbitrary **control** node — that split is what lets one component carry the assets screen's
+category chips *and* its `tc-tag-input` in the same frame. Chips are `tc-badge` inside a real `<button>`
+(`aria-pressed`), each with an optional count; `unit` should agree with `total`, not with `matches`, or a
+single match reads "1 of 33 file".
+
+Consumers: `FileList` (category + tags) and `BuildList` (status, replacing a bare `tc-chip` row — the old
+`.console-filters` helper had no callers left and is gone). Add filters to a list by adding a row here rather than
+by hand-rolling another chip strip.
+
+**Two specificity notes**, both learned the hard way. The chips keep `variant="secondary"` fixed and are
+styled through their own `data-active` attribute — swapping the badge's `variant` would re-render the custom
+element and relocate its slotted text (see `docs/known-problems/tc-elements-rebuild-their-children.md`). And
+the selected fill has to out-specify **two** `!important` rules: Bootstrap's `.text-bg-secondary` and the
+blueprint theme's `tc-theme[name=blueprint] .badge.text-bg-secondary`. Hence
+`.filter-bar__chip[data-active='true'] .badge.text-bg-secondary { background-color: … !important }` — four
+class-level selectors, which is what it takes to win. Note the painted node is `.badge`, not `.tc-badge`.
+
+## A table rebuild destroys the controls inside its rows
+
+`tc-advanced-table` takes its rows as an **HTML string**, so every re-render of the table replaces the row
+markup wholesale — and any custom element living in a cell (the permission multi-selects on Members and
+Invites) is destroyed and rebuilt with it. An open dropdown vanishes mid-pick, focus is lost, and a typed
+search query goes with it.
+
+`useTc` only assigns a property when the value's **identity** changed, which is the whole defence — so
+`components/AdvancedTable.tsx` runs `columns`, `filters`, `filterValues`, `sortableColumns` and `sort`
+through `useStableValue` (a `useMemo` keyed on the JSON of the value) before handing them to `useTc`. Without
+that, a caller passing `columns={[…]}` inline — the natural way to write it, and what every caller does —
+hands the element a fresh array on every render, so any unrelated state change rebuilt the table. That is
+what closed the permission dropdown on every pick: `tc-change` → `setPending` → re-render → new `columns`
+identity → `el.columns = …` → rows re-rendered → dropdown gone. The same bug is invisible in a modal
+(`InviteMemberModal`), because there is no table to rebuild.
+
+The matching rule for the imperative side: **wire each in-row element once.** `ProjectMembers` marks a
+select with `data-wired` after assigning `items` and only writes `values` when the set actually differs
+(`wireSelect`), because the `items` setter clears the search box and re-renders the option list — so an
+effect that reassigns `items` on every keystroke of state is its own version of the same failure.
 
 ## Multi-select (`tc-extended-select multiple`)
 
@@ -127,6 +291,17 @@ Rules, all of them things that bite:
 Cosmetic, but surprising the first time: past **3** picks the trigger collapses from the label list to
 "N selected" (`SUMMARY_THRESHOLD`), and drops back to labels when the count falls to 3 or fewer.
 
+**Selected rows need a colour override under the `blueprint` theme** (`styles/components/_extended-select.scss`).
+The library paints a selected option accent-on-contrast — white text on the accent fill — and blueprint
+restates that as `tc-theme[name=blueprint] .…__option--selected .…__option-label { color: var(--bp-pink-ink) }`.
+Under `multiple` the library deliberately makes the selected row's background **transparent** (the checkbox
+carries the state), and blueprint has no `[multiple]` exception, so the white label and description landed on
+white paper — invisible, selected-but-unreadable options. The override re-points `__option-label` and
+`__option-desc` at `--bs-extended-select-option-color` / `--…-desc-color` for `[multiple]` only, leaving
+single-select's white-on-accent row alone. It matters that the partial is `@use`d from
+`styles/components/_index.scss`: it sat unimported for a while, so the fix existed in the tree and shipped
+nothing — when a style override appears to do nothing, check the index first.
+
 **Degrade, don't crash.** If `multiple` is not in effect — an older `@toolcase/web-components`, a stale Vite
 dep cache, a browser tab left open across an upgrade — the element runs in single mode and emits a bare
 `string`. Assigning that straight to the state and rendering `value={selected.join(',')}` throws
@@ -151,6 +326,41 @@ All built-in `tc-*` strings (validation, pagination, select placeholders) come f
 
 The tc-* library ships Bootstrap-derived themes; the app is wrapped in `<tc-theme name="blueprint" variant="sunset">` in `Router.tsx`, which is the colour source of truth for the console and the landing alike. Recolouring means changing that wrapper or remapping `--bp-*` tokens on a subtree — see `docs/landing-and-waitlist.md` for how the landing does it. `$brand` in `styles/_abstracts.scss` (also set on `AppBrand.tsx`) is the app-owned focus-ring accent. The console is light-only — neither the tc theme nor `styles/` carries a `prefers-color-scheme` branch, so adding dark mode means adding one (and dropping the `#fff` on `.layout-base`). Design tokens live in `_abstracts.scss`: the 4px spacing scale (`$space-1`…`$space-8`), radii, breakpoints, and the theme-derived console tokens `$line` / `$text-muted` / `$surface` / `$accent`. Per-module styles in `styles/modules/`, per-component in `styles/components/`, each with an `_index.scss` manifest. Layout utilities (`container`, `row`/`col-*`/`g-*`, `d-flex`, `gap-*`, `py-*`, `bg-light`) come from the package stylesheet; `styles/_utilities.scss` supplements only what it lacks (`py-md-7`, `fw-*`, `small`, `lead`, `display-*`, `text-uppercase`, `list-unstyled`, `border`, `rounded-3`, `bg-white`, `min-vh-100`, `font-monospace`). There is no app-owned grid sheet — one existed and its `[class^='col-'] { width: 100% }` rule defeated the package's responsive columns. See *Page rhythm* for the console spacing vocabulary.
 
+## The metric grid, restyled (`styles/components/_metric-grid.scss`)
+
+`tc-metric-grid` is the console's readout — it opens the dashboard, the admin overview, live builds, a
+build's detail and a project's admin page. The package renders it as four flat bordered boxes with a
+leading icon and a `1.5rem` value, which is the anonymous stat-tile row every dashboard ships. The app
+overrides it into one **instrument**: a tinted chassis (`--bp-paper-tint-2`) framing white readout cells
+on `1px` seams, values in JetBrains Mono at `clamp(1.9rem, 3.2vw, 2.6rem)` with `tabular-nums` and
+`-0.04em` tracking, labels tracked out to `0.16em`, and each cell's icon demoted to a watermark bled off
+the bottom-right corner at 7 % opacity so the number is what the eye lands on.
+
+The signature is the **drafting scale** along the top edge: minor ticks every 9 px in muted violet, major
+ticks every 45 px in the app accent, drawn as two `repeating-linear-gradient`s on `.tc-metric-grid::before`
+over a bezel band created by `padding-top`. It plots itself left-to-right once on load (`mg-plot`, 620 ms,
+`clip-path: inset()`), and the animation is dropped under `prefers-reduced-motion`. The theme is named
+*blueprint*; this is the one surface that behaves like drafting instrumentation rather than paper.
+
+Two things make this override fiddly, and both are load-bearing:
+
+- **The grid takes two different shapes.** `Dashboard`/`EmailOutbox` set the `items` property and the
+  component generates `div.tc-metric-tile` children; `AdminOverview`, `LiveBuilds`, `LiveBuildDetail`,
+  `ProjectAdminDetail` and `UserProfileAdmin` slot `<tc-metric-tile>` **elements**, each of which wraps its
+  own inner `div.tc-metric-tile`. Styling only the grid's direct children gives the slotted pages a
+  box-in-a-box. The sheet therefore neutralises the `tc-metric-tile` wrapper (`display: block`, no padding,
+  no border) and puts the cell treatment on `.tc-metric-tile` as a descendant, which is the innermost node
+  in both shapes.
+- **Specificity.** The package's blueprint theme styles these at
+  `tc-theme[name=blueprint] .tc-metric-grid > .tc-metric-tile .tc-metric-tile-value` (0,3,1). The override
+  doubles the grid class — `tc-theme[name='blueprint'] .tc-metric-grid.tc-metric-grid` — to clear it. Same
+  trap as the usage panel in [access-and-feature-flags.md](access-and-feature-flags.md).
+
+**Verifying it needs a foreground tab.** The plot-in animation is frame-driven, so in a hidden or
+automated tab (`document.visibilityState === 'hidden'`) the `clip-path` freezes wherever it started and
+the scale renders truncated — it looks exactly like a broken gradient. Bring the tab forward, or set
+`animation: none` before judging the rule.
+
 ## Failure handling: crashes, offline, network retries
 
 Three separate failure modes, three separate mechanisms.
@@ -170,7 +380,9 @@ One testing note: behind the Vite dev proxy a stopped API returns a 5xx *respons
 ## Command palette (⌘K)
 
 `modules/CommandPalette.tsx` wires `tc-command-palette` to a ⌘K / Ctrl+K binding and renders the trigger
-hint in the dashboard navbar (`MainLayout`'s `navbar-right` slot, beside the notification bell). One module
+hint in the dashboard navbar (`MainLayout`'s `navbar-right` slot, beside the usage gauge and the
+notification bell — see the usage panel in
+[access-and-feature-flags.md](access-and-feature-flags.md)). One module
 owns both the hint button and the overlay, so there is no cross-component state to plumb — the palette is
 just local `open` state.
 
@@ -264,7 +476,10 @@ deliberately does not register again — a second call reloads the package's own
 ## Project screens
 
 Each project screen is its own route and page — `/projects/:id/{assets,bundles,builds,configs,members,settings}` —
-not tabs on one detail page. Every page is the same shape: `usePageContext` sets the title and
+not tabs on one detail page. Where a single screen genuinely has several independent forms, those become
+routed sub-tabs rather than sections stacked down the page: Settings is `/settings`, `/settings/categories-and-tags`
+and `/settings/danger` via a `:tab` param and `RouteTabs`, so each form is linkable and the danger zone is
+not something you scroll past. Every page is the same shape: `usePageContext` sets the title and
 description, `AuthGuard secured` wraps it, and `components/ProjectPageShell.tsx` resolves the project
 from the route, syncs `activeProjectId`, and renders — in order — the lock banner, `ProjectHeader`,
 `ProjectPipeline`, then `.console-section` around a single list module (`FileList`, `BundleList`,
@@ -277,6 +492,22 @@ that had both. It now calls `fetchBundles` and `fetchBuilds` on `project.id`, un
 the `*Loaded` flags, because those flags are global and would keep the previous project's numbers after a
 switch. Assets prefer `assets.length` and fall back to `project.assetCount`, since the project row is not
 refetched after an upload.
+
+**Each station reports state, not just a count.** A stage is a card — lucide icon tile (the same `image` /
+`package` / `hammer` glyphs the sidebar uses for those routes, plus `radio` for Live), a mono uppercase
+label, the count as a large tabular-mono number, and one honest detail line derived from data already
+loaded: `N untagged` / `All tagged` for assets (only when the assets slice is loaded — otherwise the line is
+omitted rather than guessed), `N never built` for bundles with `buildCount === 0`, `N builds running` →
+`N failed` → `All passed` for builds, and for Live the actual **build tags** (`release`, `beta`) as teal
+chips, because the tag is what is shipped, not the count. A coral pulse dot appears beside *Builds* only
+while a build is queued or running.
+
+**The connector encodes flow, not decoration.** Between two stations sits a chevron that is teal when the
+downstream stage has content and faint grey when it does not, so a project with assets but no bundles shows
+where the line stops feeding. The strip's current-stage accent is `--tc-app-accent` (coral), matching
+`RouteTabs` and the sidebar rather than the violet `--tc-primary` used for project identity. Stations wrap
+two-up below `$bp-lg` and one-up below `$bp-sm`, dropping the chevrons; the pulse respects
+`prefers-reduced-motion`.
 
 `ProjectPageShell` takes `title`, `subline?(project)`, `action?(project)`, `pipeline?` (default
 `true`) and `children(project)`:
@@ -292,9 +523,9 @@ refetched after an upload.
   following the active tab, Members *Invite*.
 - **`pipeline={false}`** for screens that are not stages of the asset→build flow (Members, Settings).
 
-Because the header owns the primary action, modules must NOT repeat it. A module's own
-`tc-action-header` is for actions scoped to the current selection (save, revert, delete the selected
-config) — never for "new X".
+Because the header owns the primary action, modules must NOT repeat it. A module's own card action is for
+actions scoped to that card's content (compose, add a trigger, revert the selected config) — never for
+"new X" on a screen whose page header already offers it.
 
 The dashboard's onboarding guide opens the project wizard in place for the *Create your first project* step (rather than routing to `/projects` and letting the redirect land on the onboarding screen); the *Upload your first asset* step still routes.
 
@@ -321,3 +552,17 @@ competing with a group that has content.
 Colours in module styles come from the theme tokens in `_abstracts.scss` (`$line`, `$text-muted`,
 `$surface`, `$accent`), which resolve through `var(--tc-*)`. Do not hard-code hex greys in
 `styles/modules/` — a retint then misses them.
+
+**Never pad the host of a `tc-*` element that paints its own card.** `tc-panel` renders
+`div.tc-panel` (the bordered, filled surface) wrapping `div.tc-panel-body` (which already carries the
+inner padding). Padding applied to the `tc-panel` *host* therefore sits OUTSIDE the visible card and
+insets it inside its grid track — the card silently stops lining up with everything else in the column,
+which is how the dashboard's *Recent projects* / *Recent activity* ended up 16 px narrower than the page
+header and the metric grid above them. The same shape applies to `tc-section-card`, `tc-group` and
+`tc-metric-tile`: style the painted inner node, leave the host alone.
+
+The companion trap is that a host class's **layout** declarations are usually inert for the same reason.
+After upgrade the host has exactly one child (the painted div), so `display: flex` + `gap` on it spaces
+nothing — the dashboard panel's `gap: $space-2` was dead from the day it was written, and the panel head
+sat flush against its body. If you want to space slotted content, target the node it actually lands in
+(`.tc-panel-body`), not the element you wrote in JSX.

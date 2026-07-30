@@ -21,9 +21,9 @@ const BundleList: React.FC<Props> = ({ project }) => {
 
     const bundles = useStore((state) => state.bundles)
     const bundlesLoaded = useStore((state) => state.bundlesLoaded)
-    const vocabularies = useStore((state) => state.vocabularies)
+    const categoriesAndTags = useStore((state) => state.categoriesAndTags)
     const fetchBundles = useStore((state) => state.fetchBundles)
-    const fetchVocabularies = useStore((state) => state.fetchVocabularies)
+    const fetchCategoriesAndTags = useStore((state) => state.fetchCategoriesAndTags)
     const deleteBundle = useStore((state) => state.deleteBundle)
     const runBuild = useStore((state) => state.runBuild)
 
@@ -33,8 +33,8 @@ const BundleList: React.FC<Props> = ({ project }) => {
 
     useEffect(() => {
         void fetchBundles(project.id)
-        void fetchVocabularies(project.id)
-    }, [project.id, fetchBundles, fetchVocabularies])
+        void fetchCategoriesAndTags(project.id)
+    }, [project.id, fetchBundles, fetchCategoriesAndTags])
 
     const openWizard = useModalOpen<boolean, { projectId: string; bundle: Bundle | null }>(
         MODAL.BUNDLE_WIZARD,
@@ -64,7 +64,7 @@ const BundleList: React.FC<Props> = ({ project }) => {
     }
 
     const categoryName = (categoryId: string | null): string | undefined =>
-        vocabularies?.categories.find((category) => category.id === categoryId)?.name
+        categoriesAndTags?.categories.find((category) => category.id === categoryId)?.name
 
     if (!bundlesLoaded) {
         return (
@@ -77,6 +77,9 @@ const BundleList: React.FC<Props> = ({ project }) => {
 
     return (
         <>
+            <tc-alert variant="info" className="bundle-list__intro">{b.pageIntro}</tc-alert>
+            <tc-text variant="muted" className="bundle-list__guide">{b.pageGuide}</tc-text>
+
             {bundles.length === 0 ? (
                 <div className="console-empty">
                     <p className="console-empty__title">{b.emptyTitle}</p>
@@ -91,10 +94,11 @@ const BundleList: React.FC<Props> = ({ project }) => {
                     )}
                 </div>
             ) : (
-                <div className="module bundle-list">
+                <div className="module bundle-list bundle-list--grid">
                     {bundles.map((bundle) => (
                         <TcAssetBundle
                             key={bundle.id}
+                            className="bundle-card"
                             name={bundle.name}
                             target={bundle.engine}
                             targetIcon="box-seam"

@@ -110,6 +110,8 @@ export class AssetFileRepository extends BaseRepository<AssetRow, QueryRunner> {
                 patch.categoryId === undefined ? null : patch.categoryId,
                 patch.categoryId === undefined ? false : true,
                 patch.tags ?? null,
+                patch.parentAssetId === undefined ? null : patch.parentAssetId,
+                patch.parentAssetId === undefined ? false : true,
             ])
             changed += result.rowCount ?? 0
         }

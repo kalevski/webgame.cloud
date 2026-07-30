@@ -112,18 +112,6 @@ const WebhooksAdmin: React.FC = () => {
         },
     })
 
-    const header = useTc<HTMLElement>({
-        actions: canWrite ? [{ key: 'new', label: w.create, icon: 'Plus', variant: 'primary' }] : [],
-        onExec: (key: string) => {
-            if (key === 'new') openWebhook(null)
-        },
-    })
-
-    useEffect(() => {
-        const content = header.current?.querySelector('.tc-action-header-content')
-        if (content) content.textContent = w.title
-    })
-
     const onClick = (event: React.MouseEvent<HTMLDivElement>) => {
         const button = (event.target as HTMLElement).closest<HTMLElement>('[data-endpoint]')
         const id = button?.dataset.endpoint
@@ -134,9 +122,14 @@ const WebhooksAdmin: React.FC = () => {
 
     return (
         <div className="module module-webhooks" role="presentation" onClick={onClick}>
-            <tc-action-header ref={header} className="module-webhooks__action-header"></tc-action-header>
-
-            <tc-section-card title={w.title}>
+            <tc-section-card title={w.title} icon="Webhook">
+                <span slot="action" className="section-card-actions">
+                    {canWrite && (
+                        <tc-button variant="primary" onClick={() => openWebhook(null)}>
+                            {w.create}
+                        </tc-button>
+                    )}
+                </span>
                 <tc-stack direction="column" gap="0.85rem">
                     <tc-text variant="muted">{w.intro}</tc-text>
 

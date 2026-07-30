@@ -152,11 +152,13 @@ const RetentionAdmin: React.FC = () => {
     return (
         <div className="module module-retention">
             <tc-section-card title={r.settingsTitle} icon="Timer">
-                {canWrite && (
-                    <tc-button slot="action" variant="secondary" size="sm" outline onClick={() => void runPurge()}>
-                        {r.runNow}
-                    </tc-button>
-                )}
+                <span slot="action" className="section-card-actions">
+                    {canWrite && (
+                        <tc-button variant="secondary" size="sm" outline onClick={() => void runPurge()}>
+                            {r.runNow}
+                        </tc-button>
+                    )}
+                </span>
                 <tc-stack direction="column" gap="0.85rem">
                     <tc-text variant="muted">{r.settingsIntro}</tc-text>
 

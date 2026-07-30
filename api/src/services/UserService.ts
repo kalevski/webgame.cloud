@@ -1,19 +1,38 @@
 import { inject, injectable } from 'tsyringe'
-import type { User, UserRole } from '../contracts/index.js'
+import type { AdminUserProfile, AdminUserProject, User, UserRole } from '../contracts/index.js'
 import { OWNER_ROLE_ID } from '../contracts/index.js'
 import { UserRepository, normalizeEmail } from '../repositories/users/UserRepository.js'
 import { SessionRepository } from '../repositories/users/SessionRepository.js'
 import type { SessionContext } from '../repositories/users/SessionRepository.js'
+import { IdentityRepository } from '../repositories/users/IdentityRepository.js'
+import { ProjectRepository } from '../repositories/projects/ProjectRepository.js'
 import { AuditRepository } from '../repositories/moderation/AuditRepository.js'
 import { AccessPolicyService } from './AccessPolicyService.js'
 import { ConflictError, ForbiddenError, NotFoundError, ValidationError } from '../domain/errors.js'
 import { notify } from '../notify.js'
+import { toUserIdentity } from '../schema/users.js'
+import type { ProjectRow } from '../schema/projects.js'
+
+const PROFILE_ACTIVITY_LIMIT = 20
+
+const toUserProject = (row: ProjectRow, userId: string): AdminUserProject => ({
+    id: row.id,
+    name: row.name,
+    icon: row.icon,
+    color: row.color,
+    owner: row.owner_id === userId,
+    memberCount: Number(row.member_count ?? 0),
+    archived: row.archived_at !== null,
+    createdAt: row.created_at.toISOString(),
+})
 
 @injectable()
 export class UserService {
     constructor(
         @inject(UserRepository) private users: UserRepository,
         @inject(SessionRepository) private sessions: SessionRepository,
+        @inject(IdentityRepository) private identities: IdentityRepository,
+        @inject(ProjectRepository) private projects: ProjectRepository,
         @inject(AccessPolicyService) private access: AccessPolicyService,
         @inject(AuditRepository) private audit: AuditRepository
     ) {}
@@ -24,6 +43,60 @@ export class UserService {
 
     async findById(id: string): Promise<User | null> {
         return this.users.findById(id)
+    }
+
+    async profile(userId: string): Promise<AdminUserProfile> {
+        const user = await this.users.findById(userId)
+        if (!user) throw new NotFoundError('user_not_found', 'user not found', [userId])
+
+        const [roles, permissions, limits, usage, identities, sessions, projects, storageBytes, activity] =
+            await Promise.all([
+                this.access.listRoles(),
+                this.access.permissionsFor(user),
+                this.access.limitsFor(user),
+                this.access.usageFor(user),
+                this.identities.listForUser(user.id),
+                this.sessions.listForUser(user.id),
+                this.projects.listForMember(user.id),
+                this.projects.sumOwnerBytes(user.id),
+                this.audit.list({
+                    actorId: user.id,
+                    action: null,
+                    from: null,
+                    to: null,
+                    q: null,
+                    limit: PROFILE_ACTIVITY_LIMIT,
+                    offset: 0,
+                }),
+            ])
+
+        const lastSeenAt = sessions.reduce<Date | null>(
+            (latest, session) =>
+                latest === null || session.last_seen_at > latest ? session.last_seen_at : latest,
+            null
+        )
+
+        return {
+            user,
+            roleName: roles.find((role) => role.id === user.role)?.name ?? user.role,
+            permissions: [...permissions],
+            limits,
+            usage,
+            identities: identities.map(toUserIdentity),
+            sessionCount: sessions.length,
+            lastSeenAt: lastSeenAt?.toISOString() ?? null,
+            projects: projects.map((row) => toUserProject(row, user.id)),
+            storageBytes,
+            activity: activity.map((row) => ({
+                id: row.id,
+                actorId: row.actor_id,
+                actorName: row.actor_name,
+                action: row.action,
+                targetId: row.target_id,
+                detail: row.detail,
+                createdAt: row.created_at.toISOString(),
+            })),
+        }
     }
 
     async createProvisioned(actor: User, draft: { email: string; name?: string; role?: string }): Promise<User> {

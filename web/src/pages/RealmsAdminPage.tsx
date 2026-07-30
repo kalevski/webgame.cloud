@@ -10,13 +10,20 @@ const RealmsAdminPage: React.FC = () => {
     const { t } = useStrings()
 
     useEffect(() => {
-        setPageTitle(t.realms.title)
-        setPageDescription(t.realms.empty)
-    }, [setPageTitle, setPageDescription, t.realms.title, t.realms.empty])
+        setPageTitle(t.pages.realmsTitle)
+        setPageDescription(t.pages.realmsDescription)
+    }, [setPageTitle, setPageDescription, t.pages.realmsTitle, t.pages.realmsDescription])
 
     return (
         <AuthGuard secured permission="realm.read">
             <section className="console-page">
+                <tc-rich-page-header
+                    title-text={t.pages.realmsTitle}
+                    description={t.pages.realmsDescription}
+                    icon-name="Server"
+                    icon-color="cyan"
+                ></tc-rich-page-header>
+
                 <RealmsAdmin />
             </section>
         </AuthGuard>

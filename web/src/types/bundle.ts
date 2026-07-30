@@ -5,6 +5,6 @@ export type {
     BundlePreview,
     BundleRule,
     PackingAlgorithm,
-} from '@appkit/api/contracts'
+} from '@webgame-cloud/api/contracts'
 
-export { BUNDLE_ENGINES, PACKING_ALGORITHMS } from '@appkit/api/contracts'
+export { BUNDLE_ENGINES, PACKING_ALGORITHMS } from '@webgame-cloud/api/contracts'

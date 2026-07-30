@@ -1,4 +1,4 @@
-# @appkit/migrations
+# @webgame-cloud/migrations
 
 Postgres schema and data migrations for the app starter template, managed with [goose](https://github.com/pressly/goose) (`brew install goose`).
 

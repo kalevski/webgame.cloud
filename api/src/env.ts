@@ -27,7 +27,7 @@ export const WEB_URL = normalizeOrigin(env('WEB_URL', '') || env('CORS_ORIGIN', 
 
 export const API_URL = normalizeOrigin(env('API_URL', ''))
 
-export const WORKSPACE_NAME = env('WORKSPACE_NAME', 'AppKit')
+export const WORKSPACE_NAME = env('WORKSPACE_NAME', 'WebGame Cloud')
 
 export const BUILD_SHA = env('BUILD_SHA', 'dev')
 

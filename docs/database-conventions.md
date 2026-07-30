@@ -42,7 +42,7 @@ exists yet — recovery today is a `psql` update.
 deleted. A delete with dependents must soft-delete them itself, atomically, in one data-modifying
 CTE. Two worked examples:
 
-- `projects/sql/delete-project.sql` — the project and its members, invites, vocabularies, assets, bundles, builds, build files, configs, schemas and config versions.
+- `projects/sql/delete-project.sql` — the project and its members, invites, categories and tags, assets, bundles, builds, build files, configs, schemas and config versions.
 - `account/sql/delete-user.sql` — the account plus its sessions, identities, permission and limit
   overrides, push subscriptions, notifications, reports, memberships, subscription, invoices and
   sales enquiries. It ends in `SELECT count(*)::int AS c FROM deleted_user` because a CTE statement

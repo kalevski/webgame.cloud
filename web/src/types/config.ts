@@ -9,6 +9,6 @@ export type {
     PublicConfig,
     SchemaProperty,
     SchemaPropertyType,
-} from '@appkit/api/contracts'
+} from '@webgame-cloud/api/contracts'
 
-export { SCHEMA_PROPERTY_TYPES } from '@appkit/api/contracts'
+export { SCHEMA_PROPERTY_TYPES } from '@webgame-cloud/api/contracts'

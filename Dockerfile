@@ -4,10 +4,10 @@ COPY package.json package-lock.json tsconfig.base.json ./
 COPY api/package.json api/
 COPY migrations/package.json migrations/
 COPY web/package.json web/
-RUN npm ci -w @appkit/api --include-workspace-root=false
+RUN npm ci -w @webgame-cloud/api --include-workspace-root=false
 COPY api/tsconfig.json api/
 COPY api/src api/src
-RUN npm run build -w @appkit/api
+RUN npm run build -w @webgame-cloud/api
 
 FROM alpine:3.21 AS goose
 ARG TARGETARCH

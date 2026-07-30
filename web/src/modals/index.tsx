@@ -7,7 +7,6 @@ import FiltersModal from './FiltersModal'
 import ManageAccessModal from './ManageAccessModal'
 import ReportModal from './ReportModal'
 import UpgradeModal from './UpgradeModal'
-import CreateProjectModal from './CreateProjectModal'
 import ResolveReportModal from './ResolveReportModal'
 import ConfirmDeleteProjectModal from './ConfirmDeleteProjectModal'
 import ArchiveProjectModal from './ArchiveProjectModal'
@@ -19,10 +18,11 @@ import RemoveMemberModal from './RemoveMemberModal'
 import RealmEditorModal from './RealmEditorModal'
 import RealmTokenModal from './RealmTokenModal'
 import MoveProjectModal from './MoveProjectModal'
-import EditAssetTagsModal from './EditAssetTagsModal'
+import EditAssetModal from './EditAssetModal'
+import AssetChildrenModal from './AssetChildrenModal'
+import ConfirmDeleteAssetModal from './ConfirmDeleteAssetModal'
 import BundleWizardModal from './BundleWizardModal'
 import CreateConfigModal from './CreateConfigModal'
-import SchemaEditorModal from './SchemaEditorModal'
 import ContactSalesModal from './ContactSalesModal'
 import PlanModal from './PlanModal'
 import EnquiryTrailModal from './EnquiryTrailModal'
@@ -66,25 +66,28 @@ export const ModalRender: React.FC = () => {
             <ModalWindow modalKey={MODAL.REPORT_CONTENT} title={t.modal.reportTitle}>
                 <ReportModal />
             </ModalWindow>
-            <ModalWindow modalKey={MODAL.CREATE_PROJECT} title={t.modal.createProjectTitle} staticBackdrop>
-                <CreateProjectModal />
+            <ModalWindow modalKey={MODAL.EDIT_ASSET} title={t.modal.editAssetTitle} size="lg" scrollable>
+                <EditAssetModal />
             </ModalWindow>
-            <ModalWindow modalKey={MODAL.EDIT_ASSET_TAGS} title={t.modal.editAssetTagsTitle} size="sm">
-                <EditAssetTagsModal />
+            <ModalWindow modalKey={MODAL.DELETE_ASSET} title={t.modal.deleteAssetTitle}>
+                <ConfirmDeleteAssetModal />
             </ModalWindow>
-            <ModalWindow modalKey={MODAL.RESOLVE_REPORT} title={t.modal.resolveReportTitle} size="sm">
+            <ModalWindow modalKey={MODAL.ASSET_CHILDREN} title={t.modal.assetChildrenTitle} scrollable>
+                <AssetChildrenModal />
+            </ModalWindow>
+            <ModalWindow modalKey={MODAL.RESOLVE_REPORT} title={t.modal.resolveReportTitle}>
                 <ResolveReportModal />
             </ModalWindow>
-            <ModalWindow modalKey={MODAL.CONFIRM_DELETE_PROJECT} title={t.modal.deleteProjectTitle} size="sm">
+            <ModalWindow modalKey={MODAL.CONFIRM_DELETE_PROJECT} title={t.modal.deleteProjectTitle}>
                 <ConfirmDeleteProjectModal />
             </ModalWindow>
-            <ModalWindow modalKey={MODAL.ARCHIVE_PROJECT} title={t.projects.archive} size="sm">
+            <ModalWindow modalKey={MODAL.ARCHIVE_PROJECT} title={t.projects.archive}>
                 <ArchiveProjectModal />
             </ModalWindow>
             <ModalWindow modalKey={MODAL.TRANSFER_PROJECT} title={t.projects.transfer}>
                 <TransferProjectModal />
             </ModalWindow>
-            <ModalWindow modalKey={MODAL.LEAVE_PROJECT} title={t.projects.leave} size="sm">
+            <ModalWindow modalKey={MODAL.LEAVE_PROJECT} title={t.projects.leave}>
                 <LeaveProjectModal />
             </ModalWindow>
             <ModalWindow modalKey={MODAL.INVITE_MEMBER} title={t.members.inviteTitle}>
@@ -93,7 +96,7 @@ export const ModalRender: React.FC = () => {
             <ModalWindow modalKey={MODAL.EDIT_MEMBER_PERMISSIONS} title={t.members.editPermissions}>
                 <EditMemberPermissionsModal />
             </ModalWindow>
-            <ModalWindow modalKey={MODAL.REMOVE_MEMBER} title={t.members.remove} size="sm">
+            <ModalWindow modalKey={MODAL.REMOVE_MEMBER} title={t.members.remove}>
                 <RemoveMemberModal />
             </ModalWindow>
             <ModalWindow modalKey={MODAL.REALM_EDITOR} title={t.realms.edit}>
@@ -108,16 +111,15 @@ export const ModalRender: React.FC = () => {
             <ModalWindow
                 modalKey={MODAL.BUNDLE_WIZARD}
                 title={(input) => ((input as { bundle?: unknown } | undefined)?.bundle ? t.bundles.edit : t.bundles.create)}
-                size="lg"
+                size="xl"
+                className="modal-wide"
+                scrollable
                 staticBackdrop
             >
                 <BundleWizardModal />
             </ModalWindow>
             <ModalWindow modalKey={MODAL.CREATE_CONFIG} title={t.configs.createConfig}>
                 <CreateConfigModal />
-            </ModalWindow>
-            <ModalWindow modalKey={MODAL.SCHEMA_EDITOR} title={t.configs.createSchema} size="lg">
-                <SchemaEditorModal />
             </ModalWindow>
             <ModalWindow modalKey={MODAL.CONTACT_SALES} title={t.modal.contactSalesTitle}>
                 <ContactSalesModal />
@@ -152,7 +154,7 @@ export const ModalRender: React.FC = () => {
             <ModalWindow modalKey={MODAL.SIGNING_PUBLIC_KEY} title={t.modal.signingPublicKeyTitle} size="lg">
                 <SigningPublicKeyModal />
             </ModalWindow>
-            <ModalWindow modalKey={MODAL.CONFIRM_ROTATE_SIGNING_KEY} title={t.modal.rotateSigningKeyTitle} size="sm">
+            <ModalWindow modalKey={MODAL.CONFIRM_ROTATE_SIGNING_KEY} title={t.modal.rotateSigningKeyTitle}>
                 <ConfirmRotateSigningKeyModal />
             </ModalWindow>
         </>

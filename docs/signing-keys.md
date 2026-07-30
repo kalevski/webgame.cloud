@@ -55,7 +55,7 @@ feature in production.
 
 ```ts
 const { token, kid, expiresAt } = await container.resolve(SigningKeyService)
-    .sign('partner_api', { scope: 'reports:read' }, { audience: 'reporting', subject: 'appkit' })
+    .sign('partner_api', { scope: 'reports:read' }, { audience: 'reporting', subject: 'webgame-cloud' })
 ```
 
 `sign(name, payload, options?)` merges the payload with `iss` (`SIGNING_ISSUER`, falling back to

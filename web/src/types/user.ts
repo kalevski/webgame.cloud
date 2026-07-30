@@ -1,6 +1,8 @@
 export type {
     AccountExport,
     AdminOverview,
+    AdminUserProfile,
+    AdminUserProject,
     AuthConfig,
     AccessPolicy,
     AuthSession,
@@ -23,7 +25,7 @@ export type {
     UserIdentity,
     UserRole,
     UserSession,
-} from '@appkit/api/contracts'
+} from '@webgame-cloud/api/contracts'
 export {
     LIMITABLE_RESOURCES,
     OAUTH_PROVIDERS,
@@ -35,4 +37,4 @@ export {
     ROLE_SLOT_LABELS,
     SEED_ROLES,
     toRoleId,
-} from '@appkit/api/contracts'
+} from '@webgame-cloud/api/contracts'

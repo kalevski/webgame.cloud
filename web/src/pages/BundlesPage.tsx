@@ -28,6 +28,9 @@ const BundlesPage: React.FC = () => {
         <AuthGuard secured>
             <ProjectPageShell
                 title={t.bundles.title}
+                description={t.bundles.pageDescription}
+                iconName="Package"
+                iconColor="cyan"
                 subline={() => (
                     <>
                         <strong>{bundles.length}</strong>

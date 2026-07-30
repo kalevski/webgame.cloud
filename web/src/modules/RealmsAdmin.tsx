@@ -29,18 +29,6 @@ const RealmsAdmin: React.FC = () => {
         if (result && typeof result === 'object' && 'token' in result) showToken(result)
     })
 
-    const header = useTc<HTMLElement>({
-        actions: canWrite ? [{ key: 'new', label: r.add, icon: 'Plus', variant: 'primary' }] : [],
-        onExec: (key: string) => {
-            if (key === 'new') openEditor(undefined)
-        },
-    })
-
-    useEffect(() => {
-        const content = header.current?.querySelector('.tc-action-header-content')
-        if (content) content.textContent = r.title
-    })
-
     const list = useTc<HTMLElement>({
         actions: realms.map((realm) => ({
             key: realm.id,
@@ -59,47 +47,66 @@ const RealmsAdmin: React.FC = () => {
         if (realm) openEditor(realm)
     })
 
+    const maintenance = useTc<HTMLElement>({
+        actions: realms.flatMap((realm) => [
+            {
+                key: `rotate:${realm.id}`,
+                title: `${r.rotateToken} — ${realm.name}`,
+                description: r.rotateHint,
+                buttonLabel: r.rotateToken,
+                icon: 'KeyRound',
+            },
+            {
+                key: `delete:${realm.id}`,
+                title: `${r.deleteTitle} — ${realm.name}`,
+                description: realm.projectCount > 0 ? r.deleteBlocked(realm.projectCount) : r.deleteHint,
+                buttonLabel: r.deleteTitle,
+                icon: 'Trash2',
+                disabled: realm.projectCount > 0,
+            },
+        ]),
+        onactionclick: (key: string) => {
+            const [verb, id] = key.split(':')
+            if (verb === 'delete') {
+                void deleteRealm(id)
+                return
+            }
+            void rotateRealmToken(id).then((issued) => {
+                if (issued) showToken(issued)
+            })
+        },
+    })
+
     return (
         <div className="module module-realms">
-            <tc-action-header ref={header} className="module-realms__action-header"></tc-action-header>
-
-            <tc-section-card title={r.title}>
+            <tc-section-card title={r.title} icon="Server">
+                <span slot="action" className="section-card-actions">
+                    {canWrite && (
+                        <tc-button variant="primary" onClick={() => openEditor(undefined)}>
+                            {r.add}
+                        </tc-button>
+                    )}
+                </span>
                 <tc-stack direction="column" gap="0.85rem">
+                    <tc-text variant="muted">{r.intro}</tc-text>
+
                     {realmsLoaded && realms.length === 0 && (
                         <tc-empty-state icon="server">{r.empty}</tc-empty-state>
                     )}
                     {realms.length > 0 && (
                         <tc-action-row-list ref={list} outline trailing-icon="none"></tc-action-row-list>
                     )}
-                    {canWrite && realms.length > 0 && (
-                        <tc-stack direction="row" gap="0.5rem" wrap>
-                            {realms.map((realm) => (
-                                <tc-button
-                                    key={`rotate-${realm.id}`}
-                                    variant="secondary"
-                                    outline
-                                    onClick={async () => {
-                                        const issued = await rotateRealmToken(realm.id)
-                                        if (issued) showToken(issued)
-                                    }}
-                                >
-                                    {r.rotateToken}: {realm.name}
-                                </tc-button>
-                            ))}
-                            {realms.map((realm) => (
-                                <tc-button
-                                    key={`delete-${realm.id}`}
-                                    variant="danger"
-                                    outline
-                                    onClick={() => void deleteRealm(realm.id)}
-                                >
-                                    {r.deleteTitle}: {realm.name}
-                                </tc-button>
-                            ))}
-                        </tc-stack>
-                    )}
                 </tc-stack>
             </tc-section-card>
+
+            {canWrite && realms.length > 0 && (
+                <tc-section-card title={r.maintenanceTitle} icon="KeyRound" className="module-realms__maintenance">
+                    <tc-stack direction="column" gap="0.85rem">
+                        <tc-text variant="muted">{r.maintenanceIntro}</tc-text>
+                        <tc-danger-zone-actions ref={maintenance}></tc-danger-zone-actions>
+                    </tc-stack>
+                </tc-section-card>
+            )}
         </div>
     )
 }

@@ -30,7 +30,7 @@ export type {
     WebhookDeliveryStatus,
     WebhookEndpoint,
     WebhookEndpointDraft,
-} from '@appkit/api/contracts'
+} from '@webgame-cloud/api/contracts'
 
 export {
     ASSET_SOURCE_TYPE_LABELS,
@@ -47,4 +47,4 @@ export {
     SIGNING_KEYS,
     tableLabel,
     WEBHOOK_DELIVERY_STATUSES,
-} from '@appkit/api/contracts'
+} from '@webgame-cloud/api/contracts'

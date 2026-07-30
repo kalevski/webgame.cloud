@@ -1,4 +1,9 @@
 export type {
+    AdminProject,
+    AdminProjectFilters,
+    AdminProjectPage,
+    AdminProjectSort,
+    AdminProjectState,
     AppType,
     InviteDraft,
     NamedRow,
@@ -6,8 +11,8 @@ export type {
     ProjectDraft,
     ProjectInvite,
     ProjectMember,
-    ProjectVocabularies,
-    VocabulariesDraft,
-} from '@appkit/api/contracts'
+    ProjectCategoriesAndTags,
+    CategoriesAndTagsDraft,
+} from '@webgame-cloud/api/contracts'
 
-export { APP_TYPES } from '@appkit/api/contracts'
+export { ADMIN_PROJECT_SORTS, ADMIN_PROJECT_STATES, APP_TYPES } from '@webgame-cloud/api/contracts'

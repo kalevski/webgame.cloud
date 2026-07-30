@@ -4,9 +4,10 @@
 character. Typing quickly is worse than losing focus: characters land out of order. Typing `audit` into
 `/admin/retention` produced `ua` and then an empty result set.
 
-**Status.** Fixed in `web/src/modules/RetentionAdmin.tsx`. The same pattern is still present in
-`UsersAdmin`, `Moderation`, `EmailOutbox`, `WebhooksAdmin`, `InvoicesAdmin`, `MyInvoices` and
-`EnquiriesAdmin` — see *Where else* below.
+**Status.** Fixed in `web/src/modules/RetentionAdmin.tsx` (client-side filtering) and
+`web/src/modules/ProjectDirectory.tsx` (server-side filtering — see *The server-side variant* below). The
+same pattern is still present in `UsersAdmin`, `Moderation`, `EmailOutbox`, `WebhooksAdmin`,
+`InvoicesAdmin`, `MyInvoices` and `EnquiriesAdmin` — see *Where else* below.
 
 ## Why it happens
 
@@ -97,10 +98,29 @@ Two supporting rules:
 
 - **Debouncing the `setQuery` call** only widens the race. The re-render still lands mid-typing for anyone
   who types continuously; it just fails less often, which makes it harder to reproduce.
-- **Restoring focus yourself in a `useEffect`** fights the component's own restore and still cannot
-  recover characters that were discarded by a rebuild from a stale value.
+- **Restoring focus yourself in a `useEffect`** as a substitute for the fix fights the component's own
+  restore and still cannot recover characters that were discarded by a rebuild from a stale value. (It is
+  still needed *in addition* to the fix for rebuilds triggered asynchronously by a fetch — see *The
+  server-side variant*.)
 - **Making the input a controlled React component** is not possible here: the element owns and re-renders
   its own toolbar markup.
+
+## The server-side variant
+
+Dropping `filterValues` from the `useTc` props is necessary but **not sufficient** when the query drives a
+request. `ProjectDirectory.tsx` needed two more steps, verified by typing across a debounce boundary:
+
+1. **Debounce the fetch** (`SEARCH_DEBOUNCE_MS`, 300 ms) so a burst of keystrokes is one request. Only the
+   text filter is debounced; the selects fire immediately.
+2. **Keep `rows`/`total`/`limit`/`offset`/`loading` out of both the `useTc` props and the JSX**, and assign
+   them in one `useEffect` instead. When the response lands, React re-renders and *any* property assignment
+   rebuilds the toolbar — including the input the user is still typing into. That rebuild happens
+   asynchronously, outside the event, so the component's own focus/caret restore does not cover it. The
+   effect therefore re-focuses the input and puts the caret back at the end when the last filter change came
+   from the text field (a `typing` ref).
+
+Without step 2 the first burst of characters survives and everything typed after the fetch resolves is
+silently dropped — the field looks like it stopped accepting input.
 
 ## Where else this is still present
 

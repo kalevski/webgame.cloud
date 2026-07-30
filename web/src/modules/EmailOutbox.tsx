@@ -106,18 +106,6 @@ const EmailOutbox: React.FC = () => {
         },
     })
 
-    const header = useTc<HTMLElement>({
-        actions: canSend ? [{ key: 'compose', label: e.compose, icon: 'Send', variant: 'primary' }] : [],
-        onExec: (key: string) => {
-            if (key === 'compose') openCompose()
-        },
-    })
-
-    useEffect(() => {
-        const content = header.current?.querySelector('.tc-action-header-content')
-        if (content) content.textContent = e.outboxTitle
-    })
-
     const statTiles = useTc<HTMLElement>({
         items: EMAIL_STATUSES.map((status) => ({
             key: status,
@@ -136,9 +124,14 @@ const EmailOutbox: React.FC = () => {
 
     return (
         <div className="module module-email-outbox" role="presentation" onClick={onClick}>
-            <tc-action-header ref={header} className="module-email__action-header"></tc-action-header>
-
-            <tc-section-card title={e.outboxTitle}>
+            <tc-section-card title={e.outboxTitle} icon="Inbox">
+                <span slot="action" className="section-card-actions">
+                    {canSend && (
+                        <tc-button variant="primary" onClick={() => openCompose()}>
+                            {e.compose}
+                        </tc-button>
+                    )}
+                </span>
                 <tc-stack direction="column" gap="0.85rem">
                     <tc-text variant="muted">{e.outboxIntro}</tc-text>
 

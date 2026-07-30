@@ -1,7 +1,7 @@
 import { StateCreator } from 'zustand'
 import UserService from 'services/UserService'
 import { STRINGS } from 'configs/strings'
-import { AdminOverview, PlatformSettings, User, UserRole } from 'types'
+import { AdminOverview, AdminUserProfile, PlatformSettings, User, UserRole } from 'types'
 import type { AppStore } from './index'
 
 export type UsersSlice = {
@@ -9,7 +9,11 @@ export type UsersSlice = {
     usersLoaded: boolean
     settings: PlatformSettings | null
     overview: AdminOverview | null
+    userProfile: AdminUserProfile | null
+    userProfileLoading: boolean
     fetchUsers: () => Promise<void>
+    fetchUserProfile: (id: string) => Promise<void>
+    clearUserProfile: () => void
     createUser: (draft: { email: string; name?: string; role?: UserRole }) => Promise<User | null>
     updateUser: (id: string, patch: { role?: UserRole; active?: boolean; verified?: boolean }) => Promise<User | null>
     impersonateUser: (id: string) => Promise<void>
@@ -23,6 +27,26 @@ export const createUsersSlice: StateCreator<AppStore, [], [], UsersSlice> = (set
     usersLoaded: false,
     settings: null,
     overview: null,
+    userProfile: null,
+    userProfileLoading: false,
+
+    async fetchUserProfile(id) {
+        set({ userProfileLoading: true })
+        try {
+            set({ userProfile: await UserService.getInstance().fetchProfile(id), userProfileLoading: false })
+        } catch (error) {
+            set({ userProfileLoading: false })
+            get().addAlert({
+                variant: 'danger',
+                message: error instanceof Error ? error.message : STRINGS.common.loadFailed,
+                dismissible: true,
+            })
+        }
+    },
+
+    clearUserProfile() {
+        set({ userProfile: null })
+    },
 
     async fetchUsers() {
         try {

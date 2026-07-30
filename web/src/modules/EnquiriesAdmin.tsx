@@ -112,7 +112,7 @@ const EnquiriesAdmin: React.FC = () => {
 
     return (
         <div className="module module-enquiries" role="presentation" onClick={onClick}>
-            <tc-section-card title={e.title}>
+            <tc-section-card title={e.title} icon="MessagesSquare">
                 <tc-stack direction="column" gap="0.85rem">
                     <tc-text variant="muted">{e.intro}</tc-text>
                     <tc-advanced-table

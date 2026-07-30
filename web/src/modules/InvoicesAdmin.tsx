@@ -130,7 +130,7 @@ const InvoicesAdmin: React.FC = () => {
 
     return (
         <div className="module module-invoices" role="presentation" onClick={onClick}>
-            <tc-section-card title={i.title}>
+            <tc-section-card title={i.title} icon="ReceiptText">
                 <tc-stack direction="column" gap="0.85rem">
                     <tc-text variant="muted">{i.intro}</tc-text>
 

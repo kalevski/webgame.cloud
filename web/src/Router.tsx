@@ -29,6 +29,10 @@ const EnquiriesPage = lazy(() => import('pages/EnquiriesPage'))
 const BillingPage = lazy(() => import('pages/BillingPage'))
 const EmailPage = lazy(() => import('pages/EmailPage'))
 const PublicInvoicePage = lazy(() => import('pages/PublicInvoicePage'))
+const PlatformProjectsPage = lazy(() => import('pages/PlatformProjectsPage'))
+const PlatformUsersPage = lazy(() => import('pages/PlatformUsersPage'))
+const CreateProjectPage = lazy(() => import('pages/CreateProjectPage'))
+const LiveBuildsPage = lazy(() => import('pages/LiveBuildsPage'))
 
 const ScrollRestore = () => {
     const { pathname } = useLocation()
@@ -77,14 +81,23 @@ export const Router = () => {
                                     <Route path="/terms" element={<TermsPage />} />
                                     <Route path="/dmca" element={<DmcaPage />} />
                                     <Route path="/projects" element={<ActiveProjectRedirect />} />
+                                    <Route path="/projects/new" element={<CreateProjectPage />} />
                                     <Route path="/projects/:id" element={<AssetsPage />} />
                                     <Route path="/projects/:id/assets" element={<AssetsPage />} />
                                     <Route path="/projects/:id/bundles" element={<BundlesPage />} />
                                     <Route path="/projects/:id/builds" element={<BuildsPage />} />
+                                    <Route path="/projects/:id/live" element={<LiveBuildsPage />} />
+                                    <Route path="/projects/:id/live/:buildId" element={<LiveBuildsPage />} />
                                     <Route path="/projects/:id/configs" element={<ConfigsPage />} />
                                     <Route path="/projects/:id/members" element={<MembersPage />} />
                                     <Route path="/projects/:id/settings" element={<ProjectSettingsPage />} />
-                                    <Route path="/admin/realms" element={<RealmsAdminPage />} />
+                                    <Route path="/projects/:id/settings/:tab" element={<ProjectSettingsPage />} />
+                                    <Route path="/platform/realms" element={<RealmsAdminPage />} />
+                                    <Route path="/admin/realms" element={<Navigate to="/platform/realms" replace />} />
+                                    <Route path="/platform/projects" element={<PlatformProjectsPage />} />
+                                    <Route path="/platform/projects/:id" element={<PlatformProjectsPage />} />
+                                    <Route path="/platform/users" element={<PlatformUsersPage />} />
+                                    <Route path="/platform/users/:id" element={<PlatformUsersPage />} />
                                     <Route path="/profile" element={<ProfilePage />} />
                                     <Route path="/profile/billing" element={<Navigate to="/billing" replace />} />
                                     <Route path="/profile/:tab" element={<ProfilePage />} />
@@ -102,6 +115,8 @@ export const Router = () => {
 
                                     <Route path="/users" element={<Navigate to="/admin" replace />} />
                                     <Route path="/account" element={<Navigate to="/profile" replace />} />
+                                    <Route path="/invites" element={<Navigate to="/dashboard" replace />} />
+                                    <Route path="/invites/:id" element={<Navigate to="/dashboard" replace />} />
                                     <Route path="*" element={<Navigate to="/" replace />} />
                                 </Routes>
                             </Suspense>

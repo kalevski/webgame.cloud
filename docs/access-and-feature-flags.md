@@ -11,6 +11,7 @@ The authorization core. This is the most consequential system in the template an
 - Admin API: `api/src/routers/accessPolicyRouter.ts` (`/api/roles`, `/api/access-policy`, `/api/users/:id/access`).
 - Web admin UI: `web/src/modules/AccessPolicyAdmin.tsx`, `web/src/modals/ManageAccessModal.tsx`.
 - Web paywall: `web/src/configs/entitlements.ts`, `web/src/hooks/useLock.ts`, `web/src/modals/UpgradeModal.tsx`, `web/src/components/{LockChip,LockedAction,UpgradeNudge}.tsx`.
+- Web usage panel: `web/src/modules/UsageSummary.tsx`, `web/src/styles/modules/_usage.scss`.
 
 ## Model
 
@@ -49,6 +50,10 @@ Two things are applied OUTSIDE the data so no admin-writable row can violate the
 - `owner` resolves to the whole catalog minus `ACCOUNT_SHAPED`, **computed, never stored** — a permission added tomorrow is owner-granted the moment it exists.
 
 Limits resolve the same way (`role_limits` → `user_limit_overrides`). `AccessPolicyService.assertWithinLimit(user, resource)` is the single enforcement point; it throws a `409 limit_reached`.
+
+The screen is two cards: **Roles** (the role list and the selected role's editor, *New role* in the card's
+`action` slot) and **Role bindings** (the slot → role selects plus their save). Both used to paint their own
+bordered box inside the tab; the cards carry that chrome now, so the list is not a box inside a box.
 
 **In the editor, `0` means unlimited.** A role with no `role_limits` row is unlimited, and `tc-module-access` renders a missing quota as `0` — so the *Access & limits* screen shows `0` for "no cap". The save path in `AccessPolicyAdmin` mirrors that: it persists only values `> 0`, so a `0` left in the box is dropped and the resource stays uncapped. A `tc-helper-text` under the editor states the rule.
 
@@ -106,3 +111,47 @@ never surfaced in any payload.
 **Downgrades never destroy or lock data.** When a plan change leaves an account over its new ceiling,
 existing resources are grandfathered: reads, edits and deletes keep working, only creates and uploads
 refuse, and the usage panel shows the overage.
+
+## The usage panel (web)
+
+`modules/UsageSummary.tsx` renders a gauge button in `MainLayout`'s `navbar-right` slot, between the
+command-palette hint and the notification bell, and opens a dropdown built the same way
+`NotificationsBell` is — local `open` state, an outside-click/Escape listener on `document`, and a
+`tc-scroll-area` around the body. It is the read-only counterpart to `assertWithinLimit`: the paywall
+tells a caller it *has* run out, this tells them they are *about* to.
+
+It shows up to two `tc-usage-summary-panel`s:
+
+- **Your account** — `GET /api/account/usage` (`billingRouter.accountUsageEndpoint`, typed
+  `AccountUsage`), which is `AccessPolicyService.usageFor` plus `storageStatus`. Only the `usage` half is
+  read; `storage` is available on the same response for a future storage-specific surface. Cached in
+  `billing.slice` as `accountUsage` / `accountUsageLoaded`.
+- **Project — \<name\>** — `GET /api/projects/:id/usage`, already wired as `projects.slice.projectUsage`
+  keyed by project id. It appears only when a project is active (`activeProjectId`, set by
+  `ProjectSwitcher`), so the panel follows the switcher rather than the current route.
+
+Both are refetched when the dropdown opens, so a build or upload made minutes ago is reflected without a
+page reload.
+
+**Unlimited resources are dropped, not drawn.** `tc-usage-summary-panel` takes a required numeric
+`total`, and a `null` limit has no bar to fill — `toRows` filters those entries out. An account whose
+plan sets no ceilings therefore renders no panel at all, and the module says so
+(`strings.usagePanel.unlimited`) rather than showing an empty box. Storage is the one row with a unit:
+`usageFor` already converts `storage_mb` to whole MB, so the module only supplies the label.
+
+**The 90 % rule** is `USAGE_WARN_RATIO` in `contracts/limits.ts`, shared so the client threshold cannot
+drift from anything the server later enforces at the same boundary. A row at or above it gets
+`warn: true` (the component's own amber styling, which it also applies on its own once `used >= total`);
+any warning row puts a dot on the navbar button and reveals a *See plans* footer that navigates to
+`/billing`. That footer is additionally gated on `useFeature('billing')` — with the product flag off
+there are no plans to send anyone to, so the warning shows without the button.
+
+**Styling it needs two classes, not one.** The package ships
+`tc-theme[name=blueprint] tc-usage-summary-panel` (specificity 0,1,2) setting every
+`--bs-usage-summary-panel-*` hook, and the app renders inside `<tc-theme name="blueprint">`. A single-class
+override (`.module-usage tc-usage-summary-panel`, 0,1,1) loses to it — silently, and only for the
+variables the theme happens to set, which reads as "some of my overrides work". `_usage.scss` uses
+`.module-usage .module-usage__body tc-usage-summary-panel` to clear the bar. This is the specificity
+sibling of the element-scoped variable trap in
+[landing-and-waitlist.md](landing-and-waitlist.md) — the variables are declared on the element itself, so
+setting them on an ancestor never wins either.

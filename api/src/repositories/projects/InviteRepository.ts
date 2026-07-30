@@ -13,6 +13,7 @@ import SELECT_INVITES_FOR_USER from './sql/select-invites-for-user.sql'
 import INSERT_INVITE from './sql/insert-invite.sql'
 import ACCEPT_INVITE from './sql/accept-invite.sql'
 import DELETE_INVITE from './sql/delete-invite.sql'
+import UPDATE_INVITE_PERMISSIONS from './sql/update-invite-permissions.sql'
 
 export type InviteCreateConflict = 'exists'
 
@@ -58,6 +59,18 @@ export class InviteRepository extends BaseRepository<ProjectInviteRow, QueryRunn
                 if ((error as { code?: string }).code === '23505') return err('exists')
                 throw error
             }
+        })
+    }
+
+    async setPermissions(
+        id: string,
+        projectId: string,
+        permissions: ProjectPermission[],
+        trx?: QueryRunner
+    ): Promise<boolean> {
+        return this.time('setPermissions', async () => {
+            const result = await this.run(trx).query(UPDATE_INVITE_PERMISSIONS, [id, projectId, permissions])
+            return (result.rowCount ?? 0) > 0
         })
     }
 

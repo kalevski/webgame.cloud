@@ -4,6 +4,10 @@
             {
                 "files": ["src/helpers/money.ts"],
                 "rules": ["react-doctor/js-hoist-intl"]
+            },
+            {
+                "files": ["src/components/AdvancedTable.tsx"],
+                "rules": ["react-doctor/exhaustive-deps"]
             }
         ]
     }

@@ -2,8 +2,6 @@ import React from 'react'
 import { useNavigate } from 'react-router'
 import useStrings from 'hooks/useStrings'
 import useCan from 'hooks/useCan'
-import { MODAL, useModalOpen } from 'modals'
-import { Project } from 'types'
 
 const ProjectOnboarding: React.FC = () => {
     const { t } = useStrings()
@@ -11,9 +9,6 @@ const ProjectOnboarding: React.FC = () => {
     const navigate = useNavigate()
     const canCreate = useCan('project.create')
 
-    const openWizard = useModalOpen<Project>(MODAL.CREATE_PROJECT, (created) => {
-        if (created) navigate(`/projects/${created.id}/assets`)
-    })
 
     return (
         <div className="module module-project-onboarding">
@@ -21,7 +16,7 @@ const ProjectOnboarding: React.FC = () => {
                 <tc-stack direction="column" gap="0.85rem">
                     <tc-text variant="muted">{p.onboardingIntro}</tc-text>
                     {canCreate ? (
-                        <tc-button variant="primary" onClick={() => openWizard()}>
+                        <tc-button variant="primary" onClick={() => navigate('/projects/new')}>
                             {p.createNew}
                         </tc-button>
                     ) : (

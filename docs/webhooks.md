@@ -34,9 +34,9 @@ Payload is the audit entry — `deliveryId`, `action`, `actorId`, `actorName`, `
 Three headers travel with each POST:
 
 ```
-x-appkit-event: create_project
-x-appkit-timestamp: 1785083541
-x-appkit-signature: sha256=<hex>
+x-webgame-cloud-event: create_project
+x-webgame-cloud-timestamp: 1785083541
+x-webgame-cloud-signature: sha256=<hex>
 ```
 
 The signature is `HMAC-SHA256(secret, "<timestamp>.<body>")`. Receivers should recompute it over the **raw**

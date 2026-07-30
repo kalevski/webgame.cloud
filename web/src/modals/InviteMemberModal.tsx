@@ -25,15 +25,22 @@ const InviteMemberModal: React.FC = () => {
         defaultValue: '',
         onChange: (value: unknown) => setEmail(String(value ?? '')),
     })
-    const permissionCards = useTc<ValueElement>({
-        options: held.map((permission) => ({
-            key: permission,
-            label: PROJECT_PERMISSION_LABELS[permission],
-            description: PROJECT_PERMISSION_HINTS[permission],
-        })),
-        defaultValue: [],
-        onChange: (value: unknown) => setPermissions((value ?? []) as ProjectPermission[]),
-    })
+    const permissionSelect = useTc<ValueElement>(
+        {
+            items: held.map((permission) => ({
+                key: permission,
+                label: PROJECT_PERMISSION_LABELS[permission],
+                description: PROJECT_PERMISSION_HINTS[permission],
+            })),
+            values: permissions,
+        },
+        {
+            'tc-change': (event: Event) =>
+                setPermissions(
+                    ((event as CustomEvent<{ value: string[] }>).detail?.value ?? []) as ProjectPermission[]
+                ),
+        }
+    )
 
     const submit = async () => {
         if (!projectId) return
@@ -47,7 +54,13 @@ const InviteMemberModal: React.FC = () => {
         <>
             <tc-form-input ref={emailInput} type="email" label={m.inviteEmailLabel} required />
             <tc-label>{m.invitePermissionsLabel}</tc-label>
-            <tc-multi-card-select ref={permissionCards} />
+            <tc-extended-select
+                ref={permissionSelect}
+                multiple
+                placeholder={m.readOnlyLabel}
+                search-placeholder={m.permissionSearch}
+                max-height="220"
+            ></tc-extended-select>
             <tc-alert variant="info">{m.inviteReadOnlyHint}</tc-alert>
             <tc-button
                 slot="footer"

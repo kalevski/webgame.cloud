@@ -2,15 +2,17 @@ import React, { useEffect, useRef, useState } from 'react'
 import { useStore } from 'state'
 import useStrings from 'hooks/useStrings'
 import Loading from 'components/Loading'
+import FloatingActionBar from 'components/FloatingActionBar'
 import useCan from 'hooks/useCan'
 import { useTc } from '@toolcase/web-components/react'
 import { EMAIL_PROVIDERS, EmailProvider } from 'types'
 
 type ValueElement = HTMLElement & { value?: string }
 
-const bind = (target: React.MutableRefObject<string>) =>
+const bind = (target: React.MutableRefObject<string>, touch: () => void) =>
     (event: React.FormEvent<ValueElement>) => {
         target.current = String((event.target as ValueElement).value ?? '')
+        touch()
     }
 
 const EmailSettingsPanel: React.FC = () => {
@@ -25,6 +27,10 @@ const EmailSettingsPanel: React.FC = () => {
 
     const [provider, setProvider] = useState<EmailProvider>('log')
     const [secure, setSecure] = useState(false)
+    const [dirty, setDirty] = useState(false)
+    const [saving, setSaving] = useState(false)
+
+    const touch = () => setDirty(true)
 
     const fromName = useRef('')
     const fromEmail = useRef('')
@@ -50,7 +56,10 @@ const EmailSettingsPanel: React.FC = () => {
 
     const providerSelect = useTc<ValueElement>({
         items: EMAIL_PROVIDERS.map((entry) => ({ key: entry, label: providerLabels[entry] })),
-        onChange: (value: string) => setProvider((value || 'log') as EmailProvider),
+        onChange: (value: string) => {
+            setProvider((value || 'log') as EmailProvider)
+            touch()
+        },
     })
 
     useEffect(() => {
@@ -67,6 +76,9 @@ const EmailSettingsPanel: React.FC = () => {
         smtpPort.current = String(config.smtpPort)
         smtpUser.current = config.smtpUser
         batchSize.current = String(config.batchSize)
+        smtpPassword.current = ''
+        mailchimpKey.current = ''
+        setDirty(false)
 
         const frame = requestAnimationFrame(() => {
             if (providerSelect.current) providerSelect.current.value = config.provider
@@ -80,46 +92,40 @@ const EmailSettingsPanel: React.FC = () => {
         return () => cancelAnimationFrame(frame)
     }, [config, providerSelect])
 
-    const header = useTc<HTMLElement>({
-        actions: canWrite
-            ? [
-                { key: 'save', label: e.save, icon: 'Check', variant: 'primary' },
-                { key: 'test', label: e.sendTest, icon: 'Send', variant: 'secondary' },
-            ]
-            : [],
-        onExec: (key: string) => {
-            if (key === 'save') save()
-            if (key === 'test') void sendTestEmail()
-        },
-    })
-
-    useEffect(() => {
-        const content = header.current?.querySelector('.tc-action-header-content')
-        if (content) content.textContent = e.settingsTitle
-    })
-
     if (!config) return <Loading />
 
-    const save = () => {
-        void saveEmailConfig({
-            provider,
-            fromName: fromName.current,
-            fromEmail: fromEmail.current,
-            smtpHost: smtpHost.current,
-            smtpPort: Number(smtpPort.current) || 587,
-            smtpUser: smtpUser.current,
-            smtpSecure: secure,
-            batchSize: Number(batchSize.current) || 25,
-            ...(smtpPassword.current ? { smtpPassword: smtpPassword.current } : {}),
-            ...(mailchimpKey.current ? { mailchimpKey: mailchimpKey.current } : {}),
-        })
+    const save = async () => {
+        if (saving) return
+        setSaving(true)
+        try {
+            await saveEmailConfig({
+                provider,
+                fromName: fromName.current,
+                fromEmail: fromEmail.current,
+                smtpHost: smtpHost.current,
+                smtpPort: Number(smtpPort.current) || 587,
+                smtpUser: smtpUser.current,
+                smtpSecure: secure,
+                batchSize: Number(batchSize.current) || 25,
+                ...(smtpPassword.current ? { smtpPassword: smtpPassword.current } : {}),
+                ...(mailchimpKey.current ? { mailchimpKey: mailchimpKey.current } : {}),
+            })
+            setDirty(false)
+        } finally {
+            setSaving(false)
+        }
     }
 
     return (
         <div className="module module-email-settings">
-            <tc-action-header ref={header} className="module-email__action-header"></tc-action-header>
-
-            <tc-section-card title={e.settingsTitle}>
+            <tc-section-card title={e.settingsTitle} icon="Settings">
+                <span slot="action" className="section-card-actions">
+                    {canWrite && (
+                        <tc-button variant="secondary" outline onClick={() => void sendTestEmail()}>
+                            {e.sendTest}
+                        </tc-button>
+                    )}
+                </span>
                 <tc-stack direction="column" gap="0.85rem">
                     <tc-text variant="muted">{e.settingsIntro}</tc-text>
 
@@ -129,20 +135,20 @@ const EmailSettingsPanel: React.FC = () => {
                     </div>
 
                     <div className="module-email-settings__grid">
-                        <tc-form-input ref={fromNameRef} type="text" label={e.fromNameLabel} onInput={bind(fromName)}></tc-form-input>
-                        <tc-form-input ref={fromEmailRef} type="email" label={e.fromEmailLabel} onInput={bind(fromEmail)}></tc-form-input>
+                        <tc-form-input ref={fromNameRef} type="text" label={e.fromNameLabel} onInput={bind(fromName, touch)}></tc-form-input>
+                        <tc-form-input ref={fromEmailRef} type="email" label={e.fromEmailLabel} onInput={bind(fromEmail, touch)}></tc-form-input>
                     </div>
 
                     {provider === 'smtp' && (
                         <div className="module-email-settings__grid">
-                            <tc-form-input ref={smtpHostRef} type="text" label={e.smtpHostLabel} onInput={bind(smtpHost)}></tc-form-input>
-                            <tc-form-input ref={smtpPortRef} type="number" label={e.smtpPortLabel} onInput={bind(smtpPort)}></tc-form-input>
-                            <tc-form-input ref={smtpUserRef} type="text" label={e.smtpUserLabel} onInput={bind(smtpUser)}></tc-form-input>
+                            <tc-form-input ref={smtpHostRef} type="text" label={e.smtpHostLabel} onInput={bind(smtpHost, touch)}></tc-form-input>
+                            <tc-form-input ref={smtpPortRef} type="number" label={e.smtpPortLabel} onInput={bind(smtpPort, touch)}></tc-form-input>
+                            <tc-form-input ref={smtpUserRef} type="text" label={e.smtpUserLabel} onInput={bind(smtpUser, touch)}></tc-form-input>
                             <tc-form-input
                                 type="password"
                                 label={e.smtpPasswordLabel}
                                 help={config.smtpPasswordSet ? e.secretSet : undefined}
-                                onInput={bind(smtpPassword)}
+                                onInput={bind(smtpPassword, touch)}
                             ></tc-form-input>
                         </div>
                     )}
@@ -151,7 +157,10 @@ const EmailSettingsPanel: React.FC = () => {
                         <tc-switch
                             checked={secure || undefined}
                             label={e.smtpSecureLabel}
-                            onClick={() => setSecure((current) => !current)}
+                            onClick={() => {
+                                setSecure((current) => !current)
+                                touch()
+                            }}
                         ></tc-switch>
                     )}
 
@@ -160,7 +169,7 @@ const EmailSettingsPanel: React.FC = () => {
                             type="password"
                             label={e.mailchimpKeyLabel}
                             help={config.mailchimpKeySet ? e.secretSet : undefined}
-                            onInput={bind(mailchimpKey)}
+                            onInput={bind(mailchimpKey, touch)}
                         ></tc-form-input>
                     )}
 
@@ -169,11 +178,19 @@ const EmailSettingsPanel: React.FC = () => {
                         type="number"
                         label={e.batchSizeLabel}
                         help={e.batchSizeHint}
-                        onInput={bind(batchSize)}
+                        onInput={bind(batchSize, touch)}
                     ></tc-form-input>
 
                 </tc-stack>
             </tc-section-card>
+
+            <FloatingActionBar label={e.unsavedHint} visible={dirty}>
+                {canWrite && (
+                    <tc-button key="save" variant="primary" disabled={saving || undefined} onClick={save}>
+                        {e.save}
+                    </tc-button>
+                )}
+            </FloatingActionBar>
         </div>
     )
 }

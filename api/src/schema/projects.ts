@@ -1,4 +1,5 @@
 import type {
+    AdminProject,
     AppType,
     NamedRow,
     Project,
@@ -14,6 +15,7 @@ export type ProjectRow = {
     name: string
     description: string
     app_type: AppType
+    genre: string
     icon: string
     color: string
     default_category_id: string
@@ -24,6 +26,37 @@ export type ProjectRow = {
     created_at: Date
     updated_at: Date
 }
+
+export type AdminProjectRow = ProjectRow & {
+    owner_name: string
+    owner_email: string
+    realm_name: string | null
+    build_count: string
+    storage_bytes: string
+    lock_count: string
+}
+
+export const toAdminProject = (row: AdminProjectRow): AdminProject => ({
+    id: row.id,
+    name: row.name,
+    description: row.description,
+    appType: row.app_type,
+    icon: row.icon,
+    color: row.color,
+    ownerId: row.owner_id,
+    ownerName: row.owner_name,
+    ownerEmail: row.owner_email,
+    realmId: row.realm_id,
+    realmName: row.realm_name ?? '',
+    memberCount: Number(row.member_count ?? 0),
+    assetCount: Number(row.asset_count ?? 0),
+    buildCount: Number(row.build_count ?? 0),
+    storageBytes: Number(row.storage_bytes ?? 0),
+    archivedAt: row.archived_at?.toISOString() ?? null,
+    locked: Number(row.lock_count ?? 0) > 0,
+    createdAt: row.created_at.toISOString(),
+    updatedAt: row.updated_at.toISOString(),
+})
 
 export type ProjectMemberRow = {
     id: string
@@ -67,6 +100,7 @@ export const toProject = (
     name: row.name,
     description: row.description,
     appType: row.app_type,
+    genre: row.genre,
     icon: row.icon,
     color: row.color,
     defaultCategoryId: row.default_category_id || null,

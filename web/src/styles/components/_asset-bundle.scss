@@ -1,0 +1,146 @@
+@use '../abstracts' as *;
+
+.bundle-card.bundle-card {
+    --ab-line: var(--tc-border, #e3e0f2);
+    --ab-ink: var(--tc-text, #1a1830);
+    --ab-muted: var(--tc-text-muted, #5d5887);
+    --ab-live: #097f74;
+    --ab-live-soft: rgb(10 168 154 / 8%);
+    --ab-stop: var(--tc-danger, #d64545);
+    --ab-accent: var(--tc-app-accent, #ff7e5f);
+    --ab-mono: var(--tc-font-mono, ui-monospace, SFMono-Regular, Menlo, monospace);
+
+    --bs-asset-bundle-border-color: var(--ab-line);
+    --bs-asset-bundle-shadow: none;
+    --bs-asset-bundle-tag-included-color: var(--ab-live);
+    --bs-asset-bundle-tag-included-bg: var(--ab-live-soft);
+    --bs-asset-bundle-tag-included-border: color-mix(in srgb, var(--ab-live) 45%, transparent);
+    --bs-asset-bundle-tag-excluded-color: var(--ab-stop);
+    --bs-asset-bundle-tag-excluded-bg: color-mix(in srgb, var(--ab-stop) 8%, transparent);
+    --bs-asset-bundle-tag-excluded-border: color-mix(in srgb, var(--ab-stop) 40%, transparent);
+    --bs-asset-bundle-count-value-color: var(--ab-ink);
+    --bs-asset-bundle-control-active-bg: var(--ab-accent);
+
+    display: block;
+    height: 100%;
+
+    .tc-asset-bundle {
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+        border-radius: $radius-md;
+        transition: border-color 140ms ease;
+    }
+
+    &:hover .tc-asset-bundle {
+        border-color: color-mix(in srgb, var(--ab-accent) 30%, var(--ab-line));
+    }
+
+    .tc-asset-bundle-body {
+        flex: 1 1 auto;
+    }
+
+    .tc-asset-bundle-advanced {
+        margin-top: auto;
+    }
+
+    .tc-asset-bundle-name {
+        font-size: 0.9375rem;
+        font-weight: 600;
+        letter-spacing: -0.005em;
+        color: var(--ab-ink);
+    }
+
+    .tc-asset-bundle-target-name {
+        font-family: var(--ab-mono);
+        font-size: 0.625rem;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: var(--ab-muted);
+    }
+
+    .tc-asset-bundle-section-title {
+        font-family: var(--ab-mono);
+        font-size: 0.5625rem;
+        letter-spacing: 0.18em;
+        color: var(--ab-muted);
+
+        svg {
+            color: var(--ab-muted);
+            opacity: 0.7;
+        }
+    }
+
+    .tc-asset-bundle-tag {
+        font-family: var(--ab-mono);
+        font-size: 0.625rem;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        border-radius: $radius-sm;
+    }
+
+    .tc-asset-bundle-count {
+        gap: $space-2;
+        border-radius: $radius-sm;
+    }
+
+    .tc-asset-bundle-count-label {
+        font-family: var(--ab-mono);
+        font-size: 0.5625rem;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: var(--ab-muted);
+    }
+
+    .tc-asset-bundle-count-value {
+        font-family: var(--ab-mono);
+        font-size: 0.9375rem;
+        font-weight: 600;
+        font-variant-numeric: tabular-nums;
+        line-height: 1;
+    }
+
+    .tc-asset-bundle-build-tag {
+        border: 1px solid color-mix(in srgb, var(--ab-live) 45%, transparent);
+        border-radius: $radius-sm;
+        background: var(--ab-live-soft);
+
+        font-family: var(--ab-mono);
+        font-size: 0.625rem;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: var(--ab-live);
+    }
+
+    .tc-asset-bundle-advanced-toggle {
+        font-family: var(--ab-mono);
+        font-size: 0.5625rem;
+        letter-spacing: 0.16em;
+        color: var(--ab-muted);
+
+        &:hover {
+            color: var(--ab-accent);
+        }
+    }
+
+    .tc-asset-bundle-opt-label {
+        font-family: var(--ab-mono);
+        font-size: 0.5625rem;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: var(--ab-muted);
+    }
+
+    .tc-asset-bundle-opt-value {
+        font-family: var(--ab-mono);
+        font-variant-numeric: tabular-nums;
+        color: var(--ab-ink);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+
+    .bundle-card .tc-asset-bundle {
+        transition: none;
+    }
+}

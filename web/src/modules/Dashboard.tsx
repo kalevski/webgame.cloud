@@ -5,9 +5,9 @@ import useStrings from 'hooks/useStrings'
 import useAuth from 'hooks/useAuth'
 import { useTc } from '@toolcase/web-components/react'
 import Icon from 'components/icons'
+import ProjectIconTile from 'components/ProjectIconTile'
 import { Project } from 'types'
 import { formatDate } from 'helpers/dates'
-import { MODAL, useModalOpen } from 'modals'
 
 const DUE_SOON_DAYS = 7
 
@@ -24,15 +24,30 @@ const Dashboard: React.FC = () => {
     const unread = useStore((state) => state.notificationsUnread)
     const fetchNotifications = useStore((state) => state.fetchNotifications)
     const readNotification = useStore((state) => state.readNotification)
+    const myInvites = useStore((state) => state.myInvites)
+    const fetchMyInvites = useStore((state) => state.fetchMyInvites)
+    const acceptInvite = useStore((state) => state.acceptInvite)
+    const declineInvite = useStore((state) => state.declineInvite)
 
     useEffect(() => {
         fetchProjects()
         fetchNotifications()
-    }, [fetchProjects, fetchNotifications])
+        void fetchMyInvites()
+    }, [fetchProjects, fetchNotifications, fetchMyInvites])
 
-    const openProjectWizard = useModalOpen<Project>(MODAL.CREATE_PROJECT, (created) => {
-        if (created) navigate(`/projects/${created.id}/assets`)
-    })
+    const [inviteBusy, setInviteBusy] = React.useState<string | null>(null)
+
+    const answerInvite = async (inviteId: string, accept: boolean) => {
+        if (inviteBusy) return
+        setInviteBusy(inviteId)
+        try {
+            const ok = accept ? await acceptInvite(inviteId) : await declineInvite(inviteId)
+            if (ok && accept) navigate('/projects')
+        } finally {
+            setInviteBusy(null)
+        }
+    }
+
 
     const name = user?.name || user?.email || ''
     const hour = new Date().getHours()
@@ -60,7 +75,7 @@ const Dashboard: React.FC = () => {
         steps,
         onstepclick: (_event: CustomEvent, key: string) => {
             if (key === 'profile') navigate('/profile')
-            else if (key === 'project') openProjectWizard()
+            else if (key === 'project') navigate('/projects/new')
             else if (key === 'task') navigate('/projects')
         },
     })
@@ -103,12 +118,7 @@ const Dashboard: React.FC = () => {
 
     const projectRow = (project: Project) => (
         <Link key={project.id} to={`/projects/${project.id}`} className="module-dashboard__row">
-            <span
-                className="module-dashboard__row-icon"
-                style={project.color ? { color: project.color } : undefined}
-            >
-                <Icon name="folder" size={16} />
-            </span>
+            <ProjectIconTile icon={project.icon} color={project.color} size="sm" />
             <span className="module-dashboard__row-text">
                 <span className="module-dashboard__row-title">{project.name}</span>
                 <span className="module-dashboard__row-meta">
@@ -122,15 +132,17 @@ const Dashboard: React.FC = () => {
     return (
         <div className="module module-dashboard">
             {onboarded ? (
-                <header className="module-dashboard__head">
-                    <div>
-                        <h2 className="module-dashboard__greeting">{name ? `${greeting}, ${name}` : greeting}</h2>
-                        <p className="module-dashboard__date">{today}</p>
-                    </div>
-                    <tc-button variant="primary" onClick={() => navigate('/projects')}>
+                <tc-rich-page-header
+                    className="module-dashboard__head"
+                    title-text={name ? `${greeting}, ${name}` : greeting}
+                    sub={today}
+                    icon-name="LayoutDashboard"
+                    icon-color="violet"
+                >
+                    <tc-button slot="actions" variant="primary" onClick={() => navigate('/projects')}>
                         {d.goToProjects}
                     </tc-button>
-                </header>
+                </tc-rich-page-header>
             ) : (
                 <tc-welcome-guide
                     ref={welcome}
@@ -139,6 +151,49 @@ const Dashboard: React.FC = () => {
             )}
 
             <tc-metric-grid ref={metricGrid} columns="4"></tc-metric-grid>
+
+            {myInvites.length > 0 && (
+                <tc-panel bordered className="module-dashboard__panel module-dashboard__invites">
+                    <div className="module-dashboard__panel-head">
+                        <h3 className="module-dashboard__panel-title">{d.invitationsTitle}</h3>
+                    </div>
+                    <div className="module-dashboard__panel-body">
+                        <div className="module-dashboard__rows">
+                            {myInvites.map((invite) => (
+                                <div key={invite.id} className="module-dashboard__row module-dashboard__invite">
+                                    <span className="module-dashboard__row-text">
+                                        <span className="module-dashboard__row-title">{invite.projectName}</span>
+                                        <span className="module-dashboard__row-meta">
+                                            {d.inviteMeta(invite.invitedBy, invite.permissions.length)}
+                                            {' · '}
+                                            {d.inviteExpires(formatDate(invite.expiresAt))}
+                                        </span>
+                                    </span>
+                                    <span className="module-dashboard__invite-actions">
+                                        <tc-button
+                                            variant="secondary"
+                                            size="sm"
+                                            outline
+                                            disabled={inviteBusy === invite.id || undefined}
+                                            onClick={() => void answerInvite(invite.id, false)}
+                                        >
+                                            {d.inviteDecline}
+                                        </tc-button>
+                                        <tc-button
+                                            variant="primary"
+                                            size="sm"
+                                            disabled={inviteBusy === invite.id || undefined}
+                                            onClick={() => void answerInvite(invite.id, true)}
+                                        >
+                                            {d.inviteAccept}
+                                        </tc-button>
+                                    </span>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                </tc-panel>
+            )}
 
             <div className="module-dashboard__columns">
                 <tc-panel bordered className="module-dashboard__panel">

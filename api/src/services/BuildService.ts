@@ -83,14 +83,29 @@ export class BuildService {
         }
 
         if (bundle.build_tag) {
-            const buildTags = await this.projects.listVocabulary('buildTags', project.id)
+            const buildTags = await this.projects.listNames('buildTags', project.id)
             if (!buildTags.some((row) => row.name.toLowerCase() === bundle.build_tag.toLowerCase())) {
                 throw new ValidationError('unknown_build_tag', 'that build tag is gone', [bundle.build_tag])
             }
         }
 
         const configs = await this.configs.resolveForBuildTag(project.id, bundle.build_tag)
-        const snapshot: BuildSnapshot = { bundle: toBundle(bundle), configs }
+        const matched = await this.bundleService.preview(project.id, {
+            categoryId: bundle.category_id,
+            includedTags: bundle.included_tags,
+            excludedTags: bundle.excluded_tags,
+        })
+        const snapshot: BuildSnapshot = {
+            bundle: toBundle(bundle),
+            configs,
+            assets: matched.files.map((file) => ({
+                id: file.id,
+                name: file.name,
+                kind: file.kind,
+                sizeBytes: file.sizeBytes,
+                tags: file.tags,
+            })),
+        }
 
         const created = await this.builds.create({
             projectId: project.id,
@@ -160,7 +175,7 @@ export class BuildService {
             throw new ConflictError('build_not_finished', 'only a passed build can hold a build tag')
         }
         if (tag) {
-            const buildTags = await this.projects.listVocabulary('buildTags', project.id)
+            const buildTags = await this.projects.listNames('buildTags', project.id)
             if (!buildTags.some((entry) => entry.name.toLowerCase() === tag.toLowerCase())) {
                 throw new ValidationError('build_tag_unknown', 'that build tag is not in this project', [tag])
             }

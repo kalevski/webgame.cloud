@@ -22,6 +22,13 @@ const InvoicesPage: React.FC = () => {
     return (
         <AuthGuard secured permission="invoice.read">
             <section className="console-page">
+                <tc-rich-page-header
+                    title-text={t.pages.invoicesTitle}
+                    description={t.pages.invoicesDescription}
+                    icon-name="ReceiptText"
+                    icon-color="emerald"
+                ></tc-rich-page-header>
+
                 <InvoicesAdmin />
             </section>
         </AuthGuard>

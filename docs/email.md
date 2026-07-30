@@ -1,12 +1,12 @@
 # Email delivery
 
-Templates, audit-driven transactional mail, scheduled campaigns and a queue worker — all behind the `email` product flag, **off by default**. With the flag off nothing is exposed and the worker idles; with it on and no provider configured, mail is still queued and "sent" through the `log` provider so the whole path is exercisable in development.
+Templates, audit-driven transactional mail, scheduled campaigns and a queue worker — all behind the `email` product flag, **seeded on**. With the flag off nothing is exposed and the worker idles; with it on and no provider configured, mail is still queued and "sent" through the `log` provider so the whole path is exercisable in development.
 
 ## Key files
 
 - Contracts: `api/src/contracts/email.ts` (`EmailConfig`, `EmailTemplate`, `EmailTrigger`, `EmailMessage`, compose/filter shapes).
 - API: `api/src/domain/email.ts` (the provider port + `log`/`smtp`/`mailchimp` adapters + `renderTemplate`), `api/src/services/EmailService.ts`, `api/src/services/EmailWorker.ts`, `api/src/repositories/email/EmailRepository.ts`, `api/src/routers/emailRouter.ts`.
-- Schema: `email_templates`, `email_triggers`, `email_messages` (`migrations/sql/00001_schema.sql`); two seeded templates + `feature_email=false` and `email_provider=log` (`00002_seed.sql`).
+- Schema: `email_templates`, `email_triggers`, `email_messages` (`migrations/sql/00001_schema.sql`); two seeded templates + `feature_email=true` and `email_provider=log` (`00002_seed.sql`).
 - Web: `web/src/services/EmailService.ts`, `web/src/state/email.slice.ts`, `web/src/modules/{EmailSettingsPanel,EmailOutbox,EmailTemplatesAdmin,EmailTriggersAdmin}.tsx`, `web/src/modals/{EmailTemplateModal,EmailComposeModal}.tsx`, `web/src/pages/EmailPage.tsx`.
 
 Permissions: every route sits behind `requireFeature('email')` + `requireAuth`, then one of five keys — `email.outbox.read` (outbox, templates and triggers reads, plus the audit-action and recipient lookups), `email.send` (compose, retry, cancel), `email.template.write`, `email.trigger.write`, `email.config.write` (provider credentials and the test send). See access-and-feature-flags.md.
@@ -71,7 +71,7 @@ The *Triggers* tab builds its action dropdown from `GET /api/email/audit-actions
 
 `POST /api/email/messages` takes `{ audience, roleId?, userIds?, emails?, templateKey?, subject?, body?, variables?, scheduledAt? }`. Audiences: `self`, `custom` (explicit addresses), `all_users` (every active account), `role` (every active account holding a role), `members` (explicitly selected accounts). Template + overrides compose: pick a template and still override the subject or body. `variables` is merged into the render context on top of the built-ins, so a template's own placeholders can be filled at send time. `scheduledAt` in the future leaves the rows `queued` until the worker's clock catches up.
 
-The **Compose** modal (`EmailComposeModal`, opened from the Outbox action header) drives all of this: pick a template or write a custom subject/body, and every `{{placeholder}}` in the composed text that is not a built-in becomes a *Template fields* input feeding `variables`.
+The **Compose** modal (`EmailComposeModal`, opened from the Outbox card action) drives all of this: pick a template or write a custom subject/body, and every `{{placeholder}}` in the composed text that is not a built-in becomes a *Template fields* input feeding `variables`.
 
 ## Endpoints
 
@@ -87,12 +87,12 @@ All under `requireFeature('email')` + the key listed above for their area, all w
 
 ## Web surface
 
-`/platform/email` (nav group *Platform*, visible with the flag on and `email.outbox.read`) with up to four route tabs — *Delivery* appears only with `email.config.write`, and each tab's header actions and row actions are hidden without the matching write key (read-only viewers get a plain `tc-data-list` instead of the actionable `tc-action-row-list`). Every tab puts its actions in a `tc-action-header` above the section card rather than inside it:
+`/platform/email` (nav group *Platform*, visible with the flag on and `email.outbox.read`) opens with a `tc-rich-page-header` (*Email*, `Mail`/blue) above up to four route tabs — *Delivery* appears only with `email.config.write`, and each tab's card action and row actions are hidden without the matching write key (read-only viewers get a plain `tc-data-list` instead of the actionable `tc-action-row-list`). Each tab's action sits in its section card's `action` slot, so the card title is written once:
 
-- **Outbox** (`/platform/email`) — per-status metric tiles, a `tc-advanced-table` with search/status/template filters and per-row retry / cancel icon buttons. Header action: **Compose**.
-- **Templates** (`/platform/email/templates`) — list plus the editor modal with preview. Header action: **New template**.
-- **Triggers** (`/platform/email/triggers`) — the existing bindings, plus header action **Add trigger** which opens `EmailTriggerModal` ("action → template → send to", with a role select or member multi-select appearing for the `role` / `members` recipient modes).
-- **Delivery** (`/platform/email/settings`) — provider credentials and batch size. Header actions: **Save**, **Send test email**.
+- **Outbox** (`/platform/email`) — per-status metric tiles, a `tc-advanced-table` with search/status/template filters and per-row retry / cancel icon buttons. Card action: **Compose**.
+- **Templates** (`/platform/email/templates`) — list plus the editor modal with preview. Card action: **New template**.
+- **Triggers** (`/platform/email/triggers`) — the existing bindings, plus card action **Add trigger** which opens `EmailTriggerModal` ("action → template → send to", with a role select or member multi-select appearing for the `role` / `members` recipient modes).
+- **Delivery** (`/platform/email/settings`) — provider credentials and batch size. **Send test email** is the card action; **Save** lives in the floating action bar and appears only once a field is touched (`dirty`), matching project settings. Re-seeding from the server clears the flag, and the secret refs reset so a saved password is not re-sent.
 
 The `members` audience in both `EmailComposeModal` and `EmailTriggerModal` is a **`tc-extended-select multiple`** over `GET /api/email/recipients` — searchable by name or address, and the menu stays open so a handful of recipients is one pass rather than one reopen each. See frontend-architecture.md for the rules that come with `multiple`.
 

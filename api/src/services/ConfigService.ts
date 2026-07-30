@@ -146,7 +146,7 @@ export class ConfigService {
         const tag = tagOrDefault === 'default' ? '' : tagOrDefault
 
         if (tag) {
-            const buildTags = await this.projects.listVocabulary('buildTags', project.id)
+            const buildTags = await this.projects.listNames('buildTags', project.id)
             if (!buildTags.some((row) => row.name.toLowerCase() === tag.toLowerCase())) {
                 throw new ValidationError('build_tag_unknown', 'that build tag is not in this project', [tag])
             }

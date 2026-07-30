@@ -1,17 +1,25 @@
 import { inject, injectable } from 'tsyringe'
 import { ok, err, type Result } from '@toolcase/base'
 import type {
+    AdminProject,
+    AdminProjectFilters,
+    AdminProjectPage,
     InviteDraft,
     Project,
     ProjectDraft,
     ProjectInvite,
     ProjectMember,
     ProjectPermission,
-    ProjectVocabularies,
+    ProjectCategoriesAndTags,
     User,
-    VocabulariesDraft,
+    CategoriesAndTagsDraft,
 } from '../contracts/index.js'
-import { PROJECT_PERMISSIONS } from '../contracts/index.js'
+import {
+    ADMIN_PROJECT_SORTS,
+    ADMIN_PROJECT_STATES,
+    APP_TYPES,
+    PROJECT_PERMISSIONS,
+} from '../contracts/index.js'
 import { WEB_URL } from '../env.js'
 import { ProjectRepository } from '../repositories/projects/ProjectRepository.js'
 import { MemberRepository } from '../repositories/projects/MemberRepository.js'
@@ -25,10 +33,12 @@ import { EmailService } from './EmailService.js'
 import { ConflictError, NotFoundError, ValidationError } from '../domain/errors.js'
 import { asProjectPermissions, resolveProjectPermissions } from '../domain/projectAccess.js'
 import { Database } from '../Database.js'
-import { toInvite, toMember, toNamed, toProject } from '../schema/projects.js'
+import { toAdminProject, toInvite, toMember, toNamed, toProject } from '../schema/projects.js'
 import type { ProjectRow } from '../schema/projects.js'
 
 export type InviteConflict = 'exists'
+
+const ADMIN_PROJECT_PAGE_SIZE = 20
 
 const clean = (value: string | undefined, fallback = ''): string => value?.trim() ?? fallback
 
@@ -72,6 +82,30 @@ export class ProjectService {
         return rows.map((row) => this.present(row, user))
     }
 
+    async listAdmin(filters: AdminProjectFilters): Promise<AdminProjectPage> {
+        const query = {
+            state: ADMIN_PROJECT_STATES.includes(filters.state as never) ? filters.state! : 'active',
+            q: clean(filters.q),
+            appType: APP_TYPES.includes(filters.appType as never) ? filters.appType! : '',
+            realmId: clean(filters.realmId),
+            sort: ADMIN_PROJECT_SORTS.includes(filters.sort as never) ? filters.sort! : 'created',
+            direction: filters.direction === 'asc' ? 'asc' : 'desc',
+            limit: Math.min(Math.max(filters.limit ?? ADMIN_PROJECT_PAGE_SIZE, 1), 100),
+            offset: Math.max(filters.offset ?? 0, 0),
+        }
+        const [rows, total] = await Promise.all([
+            this.projects.listAdmin(query),
+            this.projects.countAdmin(query),
+        ])
+        return { projects: rows.map(toAdminProject), total }
+    }
+
+    async getAdmin(id: string): Promise<AdminProject> {
+        const row = await this.projects.findAdminById(id)
+        if (!row) throw new NotFoundError('project_not_found', 'project not found', [id])
+        return toAdminProject(row)
+    }
+
     async get(row: ProjectRow, user: User): Promise<Project> {
         const membership = await this.members.findMembership(row.id, user.id)
         return this.present({ ...row, caller_permissions: membership?.permissions ?? null }, user)
@@ -96,6 +130,7 @@ export class ProjectService {
                 name,
                 description: clean(draft.description),
                 appType: draft.appType ?? 'game',
+                genre: clean(draft.genre),
                 icon: clean(draft.icon, 'Gamepad2') || 'Gamepad2',
                 color: clean(draft.color),
             }, trx)
@@ -103,13 +138,13 @@ export class ProjectService {
             await this.members.add(row.id, user.id, PROJECT_PERMISSIONS, trx)
 
             for (const category of categories) {
-                await this.projects.insertVocabulary('categories', row.id, category, trx)
+                await this.projects.insertNames('categories', row.id, category, trx)
             }
             for (const tag of uniqueNames(draft.tags)) {
-                await this.projects.insertVocabulary('tags', row.id, tag, trx)
+                await this.projects.insertNames('tags', row.id, tag, trx)
             }
             for (const buildTag of uniqueNames(draft.buildTags)) {
-                await this.projects.insertVocabulary('buildTags', row.id, buildTag, trx)
+                await this.projects.insertNames('buildTags', row.id, buildTag, trx)
             }
 
             return row
@@ -127,6 +162,7 @@ export class ProjectService {
             name,
             description: patch.description === undefined ? row.description : clean(patch.description),
             appType: patch.appType ?? row.app_type,
+            genre: patch.genre === undefined ? row.genre : clean(patch.genre),
             icon: patch.icon === undefined ? row.icon : clean(patch.icon, row.icon) || row.icon,
             color: patch.color === undefined ? row.color : clean(patch.color),
             defaultCategoryId: patch.defaultCategoryId === undefined
@@ -168,11 +204,11 @@ export class ProjectService {
         })
     }
 
-    async vocabularies(projectId: string): Promise<ProjectVocabularies> {
+    async categoriesAndTags(projectId: string): Promise<ProjectCategoriesAndTags> {
         const [categories, tags, buildTags] = await Promise.all([
-            this.projects.listVocabulary('categories', projectId),
-            this.projects.listVocabulary('tags', projectId),
-            this.projects.listVocabulary('buildTags', projectId),
+            this.projects.listNames('categories', projectId),
+            this.projects.listNames('tags', projectId),
+            this.projects.listNames('buildTags', projectId),
         ])
         return {
             categories: categories.map(toNamed),
@@ -181,7 +217,7 @@ export class ProjectService {
         }
     }
 
-    async replaceVocabularies(row: ProjectRow, draft: VocabulariesDraft): Promise<ProjectVocabularies> {
+    async replaceCategoriesAndTags(row: ProjectRow, draft: CategoriesAndTagsDraft): Promise<ProjectCategoriesAndTags> {
         const categories = uniqueNames(draft.categories)
         if (categories.length === 0) {
             throw new ValidationError('category_required', 'a project needs at least one category')
@@ -189,7 +225,7 @@ export class ProjectService {
         const tags = uniqueNames(draft.tags)
         const buildTags = uniqueNames(draft.buildTags)
 
-        const current = await this.vocabularies(row.id)
+        const current = await this.categoriesAndTags(row.id)
 
         for (const tag of current.tags) {
             if (tags.some((name) => name.toLowerCase() === tag.name.toLowerCase())) continue
@@ -217,23 +253,24 @@ export class ProjectService {
 
         await this.database.transaction(async (trx) => {
             for (const name of categories) {
-                await this.projects.insertVocabulary('categories', row.id, name, trx)
+                await this.projects.insertNames('categories', row.id, name, trx)
             }
             for (const name of tags) {
-                await this.projects.insertVocabulary('tags', row.id, name, trx)
+                await this.projects.insertNames('tags', row.id, name, trx)
             }
             for (const name of buildTags) {
-                await this.projects.insertVocabulary('buildTags', row.id, name, trx)
+                await this.projects.insertNames('buildTags', row.id, name, trx)
             }
-            await this.projects.pruneVocabulary('categories', row.id, categories, trx)
-            await this.projects.pruneVocabulary('tags', row.id, tags, trx)
-            await this.projects.pruneVocabulary('buildTags', row.id, buildTags, trx)
+            await this.projects.pruneNames('categories', row.id, categories, trx)
+            await this.projects.pruneNames('tags', row.id, tags, trx)
+            await this.projects.pruneNames('buildTags', row.id, buildTags, trx)
 
             if (draft.defaultCategoryId !== undefined) {
                 await this.projects.updateFields(row.id, {
                     name: row.name,
                     description: row.description,
                     appType: row.app_type,
+                    genre: row.genre,
                     icon: row.icon,
                     color: row.color,
                     defaultCategoryId: draft.defaultCategoryId ?? '',
@@ -241,7 +278,7 @@ export class ProjectService {
             }
         })
 
-        return this.vocabularies(row.id)
+        return this.categoriesAndTags(row.id)
     }
 
     async listMembers(projectId: string, ownerId: string): Promise<ProjectMember[]> {
@@ -363,6 +400,26 @@ export class ProjectService {
         return ok(invite)
     }
 
+    async updateInvitePermissions(
+        actor: User,
+        row: ProjectRow,
+        held: ReadonlySet<ProjectPermission>,
+        inviteId: string,
+        next: ProjectPermission[]
+    ): Promise<ProjectInvite> {
+        const invite = await this.invites.findById(inviteId)
+        if (!invite || invite.project_id !== row.id) {
+            throw new NotFoundError('invite_not_found', `unknown invite ${inviteId}`, [inviteId])
+        }
+
+        const permissions = asProjectPermissions(next)
+        this.assertNoEscalation(actor, row, permissions, held)
+
+        await this.invites.setPermissions(inviteId, row.id, permissions)
+        const fresh = await this.invites.findById(inviteId)
+        return toInvite(fresh!)
+    }
+
     async revokeInvite(row: ProjectRow, inviteId: string): Promise<void> {
         const revoked = await this.invites.revoke(inviteId, row.id)
         if (!revoked) throw new NotFoundError('invite_not_found', `unknown invite ${inviteId}`, [inviteId])
@@ -402,6 +459,14 @@ export class ProjectService {
     async declineInvite(user: User, inviteId: string): Promise<void> {
         const invite = await this.invites.findById(inviteId)
         if (!invite) throw new NotFoundError('invite_not_found', `unknown invite ${inviteId}`, [inviteId])
+
+        const addressed = invite.user_id
+            ? invite.user_id === user.id
+            : invite.email.toLowerCase() === user.email.toLowerCase()
+        if (!addressed) {
+            throw new ConflictError('invite_email_mismatch', 'this invitation was sent to another address')
+        }
+
         await this.invites.revoke(inviteId, invite.project_id)
     }
 

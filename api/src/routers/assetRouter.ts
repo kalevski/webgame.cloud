@@ -44,6 +44,7 @@ const patchSchema = {
                     name: { type: 'string', minLength: 1, maxLength: 300 },
                     categoryId: { type: ['string', 'null'], maxLength: 80 },
                     tags: { type: 'array', maxItems: 100, items: { type: 'string', minLength: 1, maxLength: 80 } },
+                    parentAssetId: { type: ['string', 'null'], maxLength: 80 },
                 },
             },
         },

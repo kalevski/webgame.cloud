@@ -78,6 +78,38 @@ Layout is composed from `tc-container` / `tc-row` / `tc-col` rather than raw uti
 its `max-width` does nothing. `styles/_utilities.scss` sets `tc-container { display: block }`; without
 it every section runs to the viewport edge.
 
+## Anchor scrolling
+
+Every in-page jump on this route animates, and every one of them clears the sticky nav. Two rules in
+`styles/modules/_landing.scss` do it, and both are needed because the page has two different kinds of
+jump.
+
+`:root:has(.module-landing) { scroll-behavior: smooth }` is a top-level rule, outside the
+`.module-landing` block, because `scroll-behavior` only has an effect on the scrolling element — here
+`html`. The `:has()` scopes it to the landing route, so the console keeps instant scrolling and its
+`ScrollRestore` (`Router.tsx`) still snaps to the top on navigation instead of gliding. This is what
+makes the **native** jumps smooth: `tc-cool-nav` and `tc-page-footer` render plain `<a href="#…">`
+anchors and `CoolNav`'s click handler does not `preventDefault`, so the browser performs the fragment
+scroll itself and only CSS can influence it. The `scrollTo` helper in `modules/Landing.tsx` (the hero
+actions and the pricing card CTAs) calls `scrollIntoView({ behavior: 'smooth' })` and is already
+explicit.
+
+`section[id] { scroll-margin-top: var(--wg-scroll-offset) }` (4.5rem) is what keeps the target from
+landing underneath `tc-cool-nav.tc-cool-nav--sticky`, which is `position: sticky; top: 0` and measures
+about 67 px at rest and 59 px once `tc-cool-nav-scrolled` tightens its padding. It applies to both kinds
+of jump — `scroll-margin` is honoured by native fragment navigation and by `scrollIntoView` alike — so
+the offset is stated once rather than as a pixel argument at each call site.
+
+The `prefers-reduced-motion: reduce` block in `styles/app.scss` already forces
+`scroll-behavior: auto !important` on `*`, so the smooth rule opts out for those users without any
+extra guard here.
+
+**Verifying it is not possible in a hidden tab.** Smooth scrolling is frame-driven, and a background
+or automated tab (`document.visibilityState === 'hidden'`) runs no `requestAnimationFrame`, so both
+`scrollIntoView({ behavior: 'smooth' })` and a nav-anchor click become silent no-ops — `window.scrollY`
+never moves and it reads as a broken page. Test the offset with `behavior: 'instant'`, or bring the tab
+to the foreground.
+
 ## The allocation rail
 
 The early-access offer is a quota — 250 MB, kept for life — so the panel is built as an allocation,
@@ -202,12 +234,13 @@ cards that each *show* their claim read as instruments. `components/LandingMetri
 adding a key in two places (strings, `LOGOS`) or it falls back to the canvas mark.
 
 **Phaser and PixiJS show real vendored logo files; plain canvas keeps a hand-authored SVG mark.** The
-logos are local PNGs under `web/public/imgs/` (no external requests) mapped by the `LOGOS` record, sized
-in CSS at roughly a third of their native resolution so they stay sharp on high-DPI screens:
+logos are local PNGs under `web/public/imgs/` (no external requests) mapped by the `LOGOS` record. Both
+are stored palette-quantized at exactly twice their CSS box so they stay sharp on high-DPI screens
+without shipping bytes nothing renders:
 
-- **Phaser** — `phaser-planet-small.png` (222×192, palette-quantized), rendered up to 46×42 inside the
+- **Phaser** — `phaser-planet-small.png` (97×84, ~5 KB), rendered up to 46×42 inside the
   soft coral badge chip.
-- **PixiJS** — `pixijs-logo-transparent-light.png` (735×289), the white-on-transparent wordmark. It is
+- **PixiJS** — `pixijs-logo-transparent-light.png` (168×66, ~2 KB), the white-on-transparent wordmark. It is
   invisible on the card's white paper, so the pixi badge alone widens to 108px and fills solid with
   `--engine` teal to give the wordmark a contrasting chip.
 - **Plain canvas** — a framed grid with a polyline that draws itself via `stroke-dasharray` /

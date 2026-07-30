@@ -20,18 +20,6 @@ const EmailTemplatesAdmin: React.FC = () => {
         void fetchEmailTemplates()
     }, [fetchEmailTemplates])
 
-    const header = useTc<HTMLElement>({
-        actions: canWrite ? [{ key: 'new', label: e.newTemplate, icon: 'Plus', variant: 'primary' }] : [],
-        onExec: (key: string) => {
-            if (key === 'new') openTemplate(null)
-        },
-    })
-
-    useEffect(() => {
-        const content = header.current?.querySelector('.tc-action-header-content')
-        if (content) content.textContent = e.templatesTitle
-    })
-
     const readOnlyList = useTc<HTMLElement>({
         items: templates.map((template) => ({
             id: template.key,
@@ -55,9 +43,14 @@ const EmailTemplatesAdmin: React.FC = () => {
 
     return (
         <div className="module module-email-templates">
-            <tc-action-header ref={header} className="module-email__action-header"></tc-action-header>
-
-            <tc-section-card title={e.templatesTitle}>
+            <tc-section-card title={e.templatesTitle} icon="Mail">
+                <span slot="action" className="section-card-actions">
+                    {canWrite && (
+                        <tc-button variant="primary" onClick={() => openTemplate(null)}>
+                            {e.newTemplate}
+                        </tc-button>
+                    )}
+                </span>
                 <tc-stack direction="column" gap="0.85rem">
                     <tc-text variant="muted">{e.templatesIntro}</tc-text>
 

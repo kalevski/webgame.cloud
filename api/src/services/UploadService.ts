@@ -114,8 +114,8 @@ export class UploadService {
 
     async patchMany(project: ProjectRow, patches: AssetPatch[]): Promise<AssetFile[]> {
         const [categories, tags] = await Promise.all([
-            this.projects.listVocabulary('categories', project.id),
-            this.projects.listVocabulary('tags', project.id),
+            this.projects.listNames('categories', project.id),
+            this.projects.listNames('tags', project.id),
         ])
         const categoryIds = new Set(categories.map((row) => row.id))
         const tagNames = new Set(tags.map((row) => row.name.toLowerCase()))
@@ -127,6 +127,17 @@ export class UploadService {
             for (const tag of patch.tags ?? []) {
                 if (!tagNames.has(tag.toLowerCase())) {
                     throw new ValidationError('unknown_tag', 'that tag is not in this project', [tag])
+                }
+            }
+            if (patch.parentAssetId) {
+                if (patch.parentAssetId === patch.id) {
+                    throw new ValidationError('invalid_parent', 'an asset cannot be its own parent', [patch.id])
+                }
+                const parent = await this.assets.findById(patch.parentAssetId)
+                if (!parent || parent.project_id !== project.id) {
+                    throw new ValidationError('invalid_parent', 'that parent is not in this project', [
+                        patch.parentAssetId,
+                    ])
                 }
             }
         }

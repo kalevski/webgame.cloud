@@ -12,6 +12,7 @@ export type ConfigsSlice = {
 
     fetchSchemas: (projectId: string) => Promise<void>
     saveSchema: (projectId: string, draft: ConfigSchemaDraft, schemaId?: string) => Promise<boolean>
+    createSchema: (projectId: string) => Promise<string | null>
     deleteSchema: (projectId: string, schemaId: string) => Promise<boolean>
 
     fetchConfigs: (projectId: string) => Promise<void>
@@ -46,6 +47,23 @@ export const createConfigsSlice: StateCreator<AppStore, [], [], ConfigsSlice> = 
             set({ schemas: await ConfigService.getInstance().listSchemas(projectId) })
         } catch (error) {
             fail(get, error, STRINGS.common.loadFailed)
+        }
+    },
+
+    async createSchema(projectId) {
+        try {
+            const existing = get().schemas.map((schema) => schema.name)
+            let index = existing.length + 1
+            while (existing.includes(STRINGS.configs.generatedSchemaName(index))) index += 1
+            const created = await ConfigService.getInstance().saveSchema(projectId, {
+                name: STRINGS.configs.generatedSchemaName(index),
+                definition: [],
+            })
+            await get().fetchSchemas(projectId)
+            return created?.id ?? null
+        } catch (error) {
+            fail(get, error, STRINGS.common.saveFailed)
+            return null
         }
     },
 

@@ -1,0 +1,60 @@
+@use '../abstracts' as *;
+
+.module-project-directory,
+.module-user-directory {
+    display: flex;
+    flex-direction: column;
+    gap: $space-md;
+}
+
+.module-user-directory__row--inactive {
+    opacity: 0.6;
+}
+
+.module-project-admin-detail,
+.module-user-profile-admin {
+    display: flex;
+    flex-direction: column;
+    gap: $space-md;
+}
+
+.module-project-admin-detail__actions,
+.module-user-profile-admin__actions,
+.module-project-admin-detail__badges,
+.module-user-profile-admin__badges,
+.module-user-profile-admin__row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: $space-sm;
+}
+
+.module-project-admin-detail__facts,
+.module-user-profile-admin__facts {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: $space-sm $space-md;
+    margin: 0;
+
+    @include down($bp-md) {
+        grid-template-columns: minmax(0, 1fr);
+    }
+}
+
+.module-project-admin-detail__fact,
+.module-user-profile-admin__fact {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+    min-width: 0;
+
+    dt {
+        font-size: 0.8rem;
+        opacity: 0.7;
+    }
+
+    dd {
+        margin: 0;
+        overflow-wrap: anywhere;
+    }
+}

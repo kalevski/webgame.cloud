@@ -6,9 +6,6 @@
     gap: $space-md;
 
     &__list {
-        background: #fff;
-        border: 1px solid #e9eaec;
-        border-radius: $radius-md;
         overflow: hidden;
 
         @include down($bp-md) {
@@ -44,10 +41,6 @@
         display: flex;
         flex-direction: column;
         gap: $space-sm;
-        padding: $space-md;
-        background: #fff;
-        border: 1px solid #e9eaec;
-        border-radius: $radius-md;
     }
 
     &__slots {

@@ -27,7 +27,7 @@ export type {
     Subscription,
     SubscriptionPatch,
     SubscriptionStatus,
-} from '@appkit/api/contracts'
+} from '@webgame-cloud/api/contracts'
 export {
     ACTIVE_SUBSCRIPTION_STATUSES,
     BILLING_INTERVALS,
@@ -41,4 +41,4 @@ export {
     PLAN_MODES,
     SALES_FIELD_TYPES,
     SUBSCRIPTION_STATUSES,
-} from '@appkit/api/contracts'
+} from '@webgame-cloud/api/contracts'

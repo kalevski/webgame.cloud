@@ -213,57 +213,41 @@ const UsersAdmin: React.FC = () => {
         }
     }
 
-    const headerActions = useMemo(
-        () => [
-            {
-                key: 'filters',
-                label: activeFilterCount > 0 ? t.filters.buttonWithCount(activeFilterCount) : t.filters.button,
-                icon: 'Filter',
-                variant: 'secondary',
-            },
-            ...(canWriteAccess ? [{ key: 'add', label: t.usersAdmin.addUser, icon: 'Plus', variant: 'primary' }] : []),
-        ],
-        [activeFilterCount, canWriteAccess, t]
-    )
-
-    const actionHeader = useTc<HTMLElement>({
-        actions: headerActions,
-        onExec: (key: string) => {
-            if (key === 'filters') openFiltersModal(filterFields())
-            if (key === 'add') openCreateUserModal()
-        },
-    })
-
-    useEffect(() => {
-        const content = actionHeader.current?.querySelector('.tc-action-header-content')
-        if (content) content.textContent = t.usersAdmin.title
-    })
-
     return (
         <div className="module module-users">
-
-            <tc-action-header ref={actionHeader} className="module-users__action-header"></tc-action-header>
-            <AdvancedTable
-                columns={columns}
-                rows={rows}
-                total={visible.length}
-                offset={pageOffset}
-                limit={PAGE_SIZE}
-                loading={!usersLoaded}
-                filters={filters}
-                filterValues={filterValues}
-                sortableColumns={['name', 'email', 'joined']}
-                sort={sort}
-                stickyFirstColumn
-                stickyLastColumn
-                onFilterChange={(key, value) => {
-                    setFilterValues((current) => ({ ...current, [key]: value }))
-                    setOffset(0)
-                }}
-                onSortChange={setSort}
-                onPageChange={setOffset}
-                onRowAction={handleRowAction}
-            />
+            <tc-section-card title={t.usersAdmin.title} icon="UsersRound">
+                <span slot="action" className="section-card-actions">
+                    <tc-button variant="secondary" outline onClick={() => openFiltersModal(filterFields())}>
+                        {activeFilterCount > 0 ? t.filters.buttonWithCount(activeFilterCount) : t.filters.button}
+                    </tc-button>
+                    {canWriteAccess && (
+                        <tc-button variant="primary" onClick={() => openCreateUserModal()}>
+                            {t.usersAdmin.addUser}
+                        </tc-button>
+                    )}
+                </span>
+                <AdvancedTable
+                    columns={columns}
+                    rows={rows}
+                    total={visible.length}
+                    offset={pageOffset}
+                    limit={PAGE_SIZE}
+                    loading={!usersLoaded}
+                    filters={filters}
+                    filterValues={filterValues}
+                    sortableColumns={['name', 'email', 'joined']}
+                    sort={sort}
+                    stickyFirstColumn
+                    stickyLastColumn
+                    onFilterChange={(key, value) => {
+                        setFilterValues((current) => ({ ...current, [key]: value }))
+                        setOffset(0)
+                    }}
+                    onSortChange={setSort}
+                    onPageChange={setOffset}
+                    onRowAction={handleRowAction}
+                />
+            </tc-section-card>
         </div>
     )
 }

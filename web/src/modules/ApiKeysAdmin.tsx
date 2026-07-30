@@ -50,23 +50,12 @@ const ApiKeysAdmin: React.FC = () => {
         },
     })
 
-    const header = useTc<HTMLElement>({
-        actions: [{ key: 'new', label: k.create, icon: 'Plus', variant: 'primary' }],
-        onExec: (key: string) => {
-            if (key === 'new') openApiKey()
-        },
-    })
-
-    useEffect(() => {
-        const content = header.current?.querySelector('.tc-action-header-content')
-        if (content) content.textContent = k.title
-    })
-
     return (
         <div className="module module-api-keys">
-            <tc-action-header ref={header} className="module-api-keys__action-header"></tc-action-header>
-
-            <tc-section-card title={k.title}>
+            <tc-section-card title={k.title} icon="Key">
+                <tc-button slot="action" variant="primary" onClick={() => openApiKey()}>
+                    {k.create}
+                </tc-button>
                 <tc-stack direction="column" gap="0.85rem">
                     <tc-text variant="muted">{k.intro}</tc-text>
 

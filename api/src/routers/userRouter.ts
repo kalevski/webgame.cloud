@@ -71,6 +71,17 @@ const saveFeatureFlagsEndpoint = async (
 
 const listUsersEndpoint = async () => users().list()
 
+const userProfileEndpoint = async (
+    request: FastifyRequest<{ Params: { userId: string } }>,
+    reply: FastifyReply
+) => {
+    try {
+        return await users().profile(request.params.userId)
+    } catch (error) {
+        return sendError(reply, error)
+    }
+}
+
 const createUserEndpoint = async (
     request: FastifyRequest<{ Body: { email: string; name?: string; role?: string } }>,
     reply: FastifyReply
@@ -142,6 +153,12 @@ export const userRouter: FastifyPluginAsync = async (app) => {
         '/api/users',
         { schema: { body: userCreateSchema }, preHandler: [requirePermission('admin.user.role.write')] },
         createUserEndpoint
+    )
+
+    app.get<{ Params: { userId: string } }>(
+        '/api/users/:userId/profile',
+        { preHandler: [requirePermission('admin.user.read')] },
+        userProfileEndpoint
     )
 
     app.post<{ Params: { userId: string } }>(

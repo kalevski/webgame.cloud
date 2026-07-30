@@ -14,7 +14,7 @@ Goose tracks migrations by **filename** in `goose_db_version`. An in-place edit 
 ```bash
 dropdb starter        # DATABASE_NAME, default "starter"
 npm run migrate       # from repo root: createdb (idempotent) + goose up
-npm run status -w @appkit/migrations   # confirm both applied
+npm run status -w @webgame-cloud/migrations   # confirm both applied
 ```
 
 Skipping the drop is the #1 way schema edits appear to have no effect.
@@ -129,4 +129,4 @@ The seed SQL is an untyped, hand-maintained mirror of typed contracts. The TypeS
 
 ## Other files in migrations/
 
-`goose.sh` builds the DSN from `DATABASE_*` env vars and runs `createdb` before `up` (never drops). `backup.sh` / `restore-test.sh` / `corrupt-drill.sh` are pg_dump backup + restore-drill scripts (`npm run backup|restore-test|corrupt-drill -w @appkit/migrations`); note they still reference cookbook-era table names (`recipes`, `diets`, `ingredients`, dump files named `cookbook-*`) and need updating in a derived project. `source/` holds raw reference data not consumed by goose.
+`goose.sh` builds the DSN from `DATABASE_*` env vars and runs `createdb` before `up` (never drops). `backup.sh` / `restore-test.sh` / `corrupt-drill.sh` are pg_dump backup + restore-drill scripts (`npm run backup|restore-test|corrupt-drill -w @webgame-cloud/migrations`); note they still reference cookbook-era table names (`recipes`, `diets`, `ingredients`, dump files named `cookbook-*`) and need updating in a derived project. `source/` holds raw reference data not consumed by goose.

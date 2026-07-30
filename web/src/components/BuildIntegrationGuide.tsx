@@ -1,6 +1,7 @@
 import React, { useState } from 'react'
-import { TcButton, TcDrawer, TcHeading, TcText } from 'lib/tc'
+import { TcDrawer } from 'lib/tc'
 import useStrings from 'hooks/useStrings'
+import { formatBytes } from 'helpers/format'
 import { Build } from 'types'
 
 type Props = {
@@ -9,8 +10,7 @@ type Props = {
     onClose: () => void
 }
 
-const CopyButton: React.FC<{ text: string }> = ({ text }) => {
-    const { t } = useStrings()
+const CopyButton: React.FC<{ text: string; label: string }> = ({ text, label }) => {
     const [copied, setCopied] = useState(false)
 
     const handle = () => {
@@ -21,31 +21,34 @@ const CopyButton: React.FC<{ text: string }> = ({ text }) => {
     }
 
     return (
-        <TcButton variant="secondary" outline size="small" onClick={handle}>
-            <i className={`bi bi-${copied ? 'check-lg' : 'clipboard'} me-1`} />
-            {copied ? t.builds.copied : t.builds.copy}
-        </TcButton>
+        <tc-icon-button
+            icon={copied ? 'Check' : 'Clipboard'}
+            variant={copied ? 'success' : 'secondary'}
+            size="small"
+            outline
+            label={label}
+            title={label}
+            onClick={handle}
+        ></tc-icon-button>
     )
 }
 
-const IdentifierRow: React.FC<{ label: string; value: string }> = ({ label, value }) => (
-    <div className="d-flex align-items-center justify-content-between gap-2 p-2 bg-body-secondary rounded mb-2">
-        <div className="d-flex flex-column overflow-hidden">
-            <TcText variant="muted" size="small">
-                {label}
-            </TcText>
-            <code className="text-break">{value}</code>
-        </div>
-        <div className="flex-shrink-0">
-            <CopyButton text={value} />
-        </div>
+const IdentifierRow: React.FC<{ label: string; value: string; copyLabel: string }> = ({
+    label,
+    value,
+    copyLabel,
+}) => (
+    <div className="integration-guide__identifier">
+        <span className="integration-guide__identifier-text">
+            <span className="integration-guide__identifier-label">{label}</span>
+            <code>{value}</code>
+        </span>
+        <CopyButton text={value} label={copyLabel} />
     </div>
 )
 
 const makeSnippet = (projectId: string, build: Build): string => {
-    const reference = build.buildTag
-        ? `buildTag=${build.buildTag}`
-        : `buildId=${build.id}`
+    const reference = build.buildTag ? `buildTag=${build.buildTag}` : `buildId=${build.id}`
     return [
         `const manifest = await fetch(`,
         `    '${window.location.origin}/api/public/projects/${projectId}/assets?${reference}'`,
@@ -68,24 +71,41 @@ const BuildIntegrationGuide: React.FC<Props> = ({ build, projectId, onClose }) =
 
     return (
         <TcDrawer open={build !== null} onClose={onClose} side="right" heading={b.integrateTitle}>
-            <div className="d-flex flex-column gap-3 p-1">
-                <TcText variant="muted">{b.integrateIntro}</TcText>
+            <div className="integration-guide">
+                <tc-eyebrow>{b.integrateEyebrow}</tc-eyebrow>
+                <tc-alert variant="info">{b.integrateIntro}</tc-alert>
 
-                <div>
-                    <TcHeading as="h6">{b.identifiers}</TcHeading>
-                    <IdentifierRow label={b.projectIdLabel} value={projectId} />
-                    {buildRef && <IdentifierRow label={buildRefLabel} value={buildRef} />}
-                </div>
+                {build && (
+                    <tc-badge-row
+                        className="integration-guide__meta"
+                        ref={(element: (HTMLElement & { badges?: unknown[] }) | null) => {
+                            if (element) {
+                                element.badges = [
+                                    { label: 'status', value: b.status[build.status] ?? build.status },
+                                    { label: b.sizeLabel, value: formatBytes(build.sizeBytes) },
+                                    ...(build.buildTag ? [{ label: b.tagLabel, value: build.buildTag }] : []),
+                                ]
+                            }
+                        }}
+                    ></tc-badge-row>
+                )}
 
-                <div>
-                    <div className="d-flex align-items-center justify-content-between mb-2">
-                        <TcHeading as="h6">{b.snippetLabel}</TcHeading>
-                        {snippet && <CopyButton text={snippet} />}
+                <tc-panel bordered>
+                    <tc-panel-header icon="Fingerprint">{b.identifiers}</tc-panel-header>
+                    <div className="integration-guide__identifiers">
+                        <IdentifierRow label={b.projectIdLabel} value={projectId} copyLabel={b.copy} />
+                        {buildRef && <IdentifierRow label={buildRefLabel} value={buildRef} copyLabel={b.copy} />}
                     </div>
-                    <pre className="bg-body-secondary rounded p-3 overflow-auto" style={{ fontSize: '0.8rem' }}>
-                        <code>{snippet}</code>
-                    </pre>
-                </div>
+                </tc-panel>
+
+                <tc-code-snippet
+                    className="integration-guide__snippet"
+                    code={snippet}
+                    language="javascript"
+                    title={b.snippetLabel}
+                ></tc-code-snippet>
+
+                <tc-helper-text icon="Info">{b.integrateFooter}</tc-helper-text>
             </div>
         </TcDrawer>
     )

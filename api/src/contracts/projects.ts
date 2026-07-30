@@ -17,6 +17,7 @@ export type Project = {
     name: string
     description: string
     appType: AppType
+    genre: string
 
     icon: string
     color: string
@@ -38,6 +39,7 @@ export type ProjectDraft = {
     name: string
     description?: string
     appType?: AppType
+    genre?: string
     icon?: string
     color?: string
 
@@ -75,13 +77,67 @@ export type InviteDraft = {
     permissions: ProjectPermission[]
 }
 
-export type ProjectVocabularies = {
+export const ADMIN_PROJECT_STATES = ['active', 'archived', 'all'] as const
+
+export type AdminProjectState = typeof ADMIN_PROJECT_STATES[number]
+
+export const ADMIN_PROJECT_SORTS = ['name', 'owner', 'members', 'assets', 'storage', 'created'] as const
+
+export type AdminProjectSort = typeof ADMIN_PROJECT_SORTS[number]
+
+export type AdminProject = {
+    id: string
+    name: string
+    description: string
+    appType: AppType
+
+    icon: string
+    color: string
+
+    ownerId: string
+    ownerName: string
+    ownerEmail: string
+
+    realmId: string | null
+    realmName: string
+
+    memberCount: number
+    assetCount: number
+    buildCount: number
+    storageBytes: number
+
+    archivedAt: string | null
+    locked: boolean
+
+    createdAt: string
+    updatedAt: string
+}
+
+export type AdminProjectFilters = {
+    q?: string
+    appType?: AppType
+    realmId?: string
+    state?: AdminProjectState
+
+    sort?: AdminProjectSort
+    direction?: 'asc' | 'desc'
+
+    limit?: number
+    offset?: number
+}
+
+export type AdminProjectPage = {
+    projects: AdminProject[]
+    total: number
+}
+
+export type ProjectCategoriesAndTags = {
     categories: NamedRow[]
     tags: NamedRow[]
     buildTags: NamedRow[]
 }
 
-export type VocabulariesDraft = {
+export type CategoriesAndTagsDraft = {
     categories: string[]
     tags: string[]
     buildTags: string[]

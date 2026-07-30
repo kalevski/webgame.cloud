@@ -4,7 +4,9 @@ export type {
     BuildFile,
     BuildFileGroup,
     BuildFilters,
+    BuildSnapshot,
+    BuildSnapshotAsset,
     BuildStatus,
-} from '@appkit/api/contracts'
+} from '@webgame-cloud/api/contracts'
 
-export { BUILD_FILE_GROUPS, BUILD_STATUSES } from '@appkit/api/contracts'
+export { BUILD_FILE_GROUPS, BUILD_STATUSES } from '@webgame-cloud/api/contracts'

@@ -3,6 +3,8 @@ import ProjectService from 'services/ProjectService'
 import { STRINGS } from 'configs/strings'
 import { readFromStorage, writeToStorage } from 'helpers/storage'
 import {
+    AdminProject,
+    AdminProjectFilters,
     InviteDraft,
     LimitUsage,
     Project,
@@ -11,8 +13,8 @@ import {
     ProjectLock,
     ProjectMember,
     ProjectPermission,
-    ProjectVocabularies,
-    VocabulariesDraft,
+    ProjectCategoriesAndTags,
+    CategoriesAndTagsDraft,
 } from 'types'
 import type { AppStore } from './index'
 
@@ -27,9 +29,15 @@ export type ProjectsSlice = {
     members: ProjectMember[]
     invites: ProjectInvite[]
     myInvites: ProjectInvite[]
-    vocabularies: ProjectVocabularies | null
+    categoriesAndTags: ProjectCategoriesAndTags | null
     projectUsage: Record<string, LimitUsage[]>
     lock: ProjectLock | null
+
+    adminProjects: AdminProject[]
+    adminProjectsTotal: number
+    adminProjectsLoading: boolean
+    adminProjectFilters: AdminProjectFilters
+    adminProject: AdminProject | null
 
     activeProject: () => Project | null
 
@@ -41,11 +49,12 @@ export type ProjectsSlice = {
     transferProject: (id: string, userId: string) => Promise<boolean>
     deleteProject: (id: string) => Promise<boolean>
 
-    fetchVocabularies: (id: string) => Promise<void>
-    saveVocabularies: (id: string, draft: VocabulariesDraft) => Promise<boolean>
+    fetchCategoriesAndTags: (id: string) => Promise<void>
+    saveCategoriesAndTags: (id: string, draft: CategoriesAndTagsDraft) => Promise<boolean>
 
     fetchMembers: (id: string) => Promise<void>
     updateMemberPermissions: (id: string, memberId: string, permissions: ProjectPermission[]) => Promise<boolean>
+    updateInvitePermissions: (id: string, inviteId: string, permissions: ProjectPermission[]) => Promise<boolean>
     removeMember: (id: string, memberId: string) => Promise<boolean>
     leaveProject: (id: string) => Promise<boolean>
 
@@ -58,6 +67,10 @@ export type ProjectsSlice = {
     declineInvite: (inviteId: string) => Promise<boolean>
 
     fetchProjectUsage: (id: string) => Promise<void>
+
+    fetchAdminProjects: (patch?: Partial<AdminProjectFilters>) => Promise<void>
+    fetchAdminProject: (id: string) => Promise<void>
+    clearAdminProject: () => void
 
     pollLock: (id: string) => void
     stopLockPoll: () => void
@@ -72,6 +85,19 @@ const fail = (get: () => AppStore, error: unknown, fallback: string) =>
         dismissible: true,
     })
 
+export const ADMIN_PROJECT_PAGE_SIZE = 20
+
+const ADMIN_PROJECT_DEFAULTS: AdminProjectFilters = {
+    q: '',
+    appType: undefined,
+    realmId: '',
+    state: 'active',
+    sort: 'created',
+    direction: 'desc',
+    limit: ADMIN_PROJECT_PAGE_SIZE,
+    offset: 0,
+}
+
 export const resolveActiveProject = (projects: Project[], stored: string | null): string | null => {
     if (projects.length === 0) return null
     if (stored && projects.some((project) => project.id === stored)) return stored
@@ -85,9 +111,15 @@ export const createProjectsSlice: StateCreator<AppStore, [], [], ProjectsSlice> 
     members: [],
     invites: [],
     myInvites: [],
-    vocabularies: null,
+    categoriesAndTags: null,
     projectUsage: {},
     lock: null,
+
+    adminProjects: [],
+    adminProjectsTotal: 0,
+    adminProjectsLoading: false,
+    adminProjectFilters: ADMIN_PROJECT_DEFAULTS,
+    adminProject: null,
 
     activeProject() {
         const { projects, activeProjectId } = get()
@@ -96,7 +128,7 @@ export const createProjectsSlice: StateCreator<AppStore, [], [], ProjectsSlice> 
 
     setActiveProject(id) {
         get().stopLockPoll()
-        set({ activeProjectId: id, lock: null, members: [], invites: [], vocabularies: null })
+        set({ activeProjectId: id, lock: null, members: [], invites: [], categoriesAndTags: null })
         writeToStorage(ACTIVE_KEY, id)
     },
 
@@ -172,17 +204,17 @@ export const createProjectsSlice: StateCreator<AppStore, [], [], ProjectsSlice> 
         }
     },
 
-    async fetchVocabularies(id) {
+    async fetchCategoriesAndTags(id) {
         try {
-            set({ vocabularies: await ProjectService.getInstance().vocabularies(id) })
+            set({ categoriesAndTags: await ProjectService.getInstance().categoriesAndTags(id) })
         } catch (error) {
             fail(get, error, STRINGS.common.loadFailed)
         }
     },
 
-    async saveVocabularies(id, draft) {
+    async saveCategoriesAndTags(id, draft) {
         try {
-            set({ vocabularies: await ProjectService.getInstance().saveVocabularies(id, draft) })
+            set({ categoriesAndTags: await ProjectService.getInstance().saveCategoriesAndTags(id, draft) })
             return true
         } catch (error) {
             fail(get, error, STRINGS.projects.saveFailed)
@@ -195,6 +227,17 @@ export const createProjectsSlice: StateCreator<AppStore, [], [], ProjectsSlice> 
             set({ members: await ProjectService.getInstance().members(id) })
         } catch (error) {
             fail(get, error, STRINGS.common.loadFailed)
+        }
+    },
+
+    async updateInvitePermissions(id, inviteId, permissions) {
+        try {
+            const invite = await ProjectService.getInstance().setInvitePermissions(id, inviteId, permissions)
+            set({ invites: get().invites.map((entry) => (entry.id === inviteId ? invite : entry)) })
+            return true
+        } catch (error) {
+            fail(get, error, STRINGS.projects.saveFailed)
+            return false
         }
     },
 
@@ -324,5 +367,33 @@ export const createProjectsSlice: StateCreator<AppStore, [], [], ProjectsSlice> 
     stopLockPoll() {
         if (lockTimer) clearInterval(lockTimer)
         lockTimer = null
+    },
+
+    async fetchAdminProjects(patch = {}) {
+        const filters = { ...get().adminProjectFilters, ...patch }
+        set({ adminProjectFilters: filters, adminProjectsLoading: true })
+        try {
+            const page = await ProjectService.getInstance().listAdmin(filters)
+            set({
+                adminProjects: page.projects,
+                adminProjectsTotal: page.total,
+                adminProjectsLoading: false,
+            })
+        } catch (error) {
+            set({ adminProjectsLoading: false })
+            fail(get, error, STRINGS.common.loadFailed)
+        }
+    },
+
+    async fetchAdminProject(id) {
+        try {
+            set({ adminProject: await ProjectService.getInstance().getAdmin(id) })
+        } catch (error) {
+            fail(get, error, STRINGS.common.loadFailed)
+        }
+    },
+
+    clearAdminProject() {
+        set({ adminProject: null })
     },
 })

@@ -148,18 +148,6 @@ const AccessPolicyAdmin: React.FC = () => {
         () => (canWrite ? [{ key: 'new', label: s.newRole, icon: 'Plus', variant: 'primary' }] : []),
         [s, canWrite]
     )
-    const actionHeader = useTc<HTMLElement>({
-        actions,
-        onExec: (key: string) => {
-            if (key === 'new') setSelectedId(NEW_ROLE)
-        },
-    })
-
-    useEffect(() => {
-        const content = actionHeader.current?.querySelector('.tc-action-header-content')
-        if (content) content.textContent = s.rolesTitle
-    })
-
     const listItems = useMemo(() => {
         const items = roles.map((role) => ({
             key: role.id,
@@ -235,86 +223,94 @@ const AccessPolicyAdmin: React.FC = () => {
 
     return (
         <div className="module module-access">
-            <tc-action-header ref={actionHeader} className="module-access__action-header"></tc-action-header>
-
-            <tc-vertical-item-list ref={roleList} className="module-access__list">
-                <div className="module-access__detail">
-                    {roleData ? (
-                        <>
-                            <tc-module-access ref={moduleAccess}></tc-module-access>
-                            <tc-helper-text className="module-access__limits-hint">{s.limitsHint}</tc-helper-text>
-                            {!isOwner && canWrite && (
-                                <div className="module-access__footer">
-                                    {!isNew && (
-                                        <tc-button variant="danger" outline onClick={removeSelected}>
-                                            {s.delete}
+            <tc-section-card title={s.rolesTitle} icon="Lock">
+                <span slot="action" className="section-card-actions">
+                    {canWrite && (
+                        <tc-button variant="primary" onClick={() => setSelectedId(NEW_ROLE)}>
+                            {s.newRole}
+                        </tc-button>
+                    )}
+                </span>
+                <tc-vertical-item-list ref={roleList} className="module-access__list">
+                    <div className="module-access__detail">
+                        {roleData ? (
+                            <>
+                                <tc-module-access ref={moduleAccess}></tc-module-access>
+                                <tc-helper-text className="module-access__limits-hint">{s.limitsHint}</tc-helper-text>
+                                {!isOwner && canWrite && (
+                                    <div className="module-access__footer">
+                                        {!isNew && (
+                                            <tc-button variant="danger" outline onClick={removeSelected}>
+                                                {s.delete}
+                                            </tc-button>
+                                        )}
+                                        <span className="module-access__spacer" />
+                                        <tc-button
+                                            variant="secondary"
+                                            outline
+                                            onClick={() => setSelectedId(roles[0]?.id ?? null)}
+                                        >
+                                            {t.modal.cancel}
                                         </tc-button>
-                                    )}
-                                    <span className="module-access__spacer" />
-                                    <tc-button
-                                        variant="secondary"
-                                        outline
-                                        onClick={() => setSelectedId(roles[0]?.id ?? null)}
-                                    >
-                                        {t.modal.cancel}
-                                    </tc-button>
 
-                                    <tc-button
-                                        variant={nameValid ? 'primary' : 'secondary'}
-                                        outline={!nameValid || undefined}
-                                        disabled={!nameValid || undefined}
-                                        onClick={submit}
-                                    >
-                                        {s.save}
-                                    </tc-button>
-                                </div>
-                            )}
-                        </>
-                    ) : (
-                        <div className="module-access__detail--empty">
-                            <tc-empty-state icon="shield">{s.pickRole}</tc-empty-state>
+                                        <tc-button
+                                            variant={nameValid ? 'primary' : 'secondary'}
+                                            outline={!nameValid || undefined}
+                                            disabled={!nameValid || undefined}
+                                            onClick={submit}
+                                        >
+                                            {s.save}
+                                        </tc-button>
+                                    </div>
+                                )}
+                            </>
+                        ) : (
+                            <div className="module-access__detail--empty">
+                                <tc-empty-state icon="shield">{s.pickRole}</tc-empty-state>
+                            </div>
+                        )}
+                    </div>
+                </tc-vertical-item-list>
+            </tc-section-card>
+
+            <tc-section-card title={s.bindingsTitle} icon="Waypoints">
+                <div className="module-access__bindings">
+                    <tc-helper-text>{s.bindingsHint}</tc-helper-text>
+                    <div className="module-access__slots">
+                        {ROLE_SLOTS.map((slot: RoleSlot) => (
+                            <div key={slot} className="module-access__slot">
+                                <tc-label>{ROLE_SLOT_LABELS[slot].label}</tc-label>
+                                <SlotBinding
+                                    options={slotOptions(false)}
+                                    value={bindingDraft[slot] ?? ''}
+                                    onChange={(next) => setBindingDraft({ ...bindingDraft, [slot]: next })}
+                                />
+                                <tc-helper-text>{ROLE_SLOT_LABELS[slot].hint}</tc-helper-text>
+                            </div>
+                        ))}
+                        {billingEnabled && adminPlans.map((plan) => (
+                            <div key={`plan-${plan.id}`} className="module-access__slot">
+                                <tc-label>{t.plansAdmin.slotLabel(plan.name)}</tc-label>
+                                <SlotBinding
+                                    options={slotOptions(true)}
+                                    value={planRoleDraft[plan.id] ?? ''}
+                                    onChange={(next) => setPlanRoleDraft({ ...planRoleDraft, [plan.id]: next ?? '' })}
+                                />
+                                <tc-helper-text>
+                                    {t.plansAdmin.slotHint(plan.mode === 'manual' ? t.plansAdmin.modeManual : t.plansAdmin.modeManaged)}
+                                </tc-helper-text>
+                            </div>
+                        ))}
+                    </div>
+                    {canWrite && (
+                        <div className="module-access__footer">
+                            <tc-button variant="primary" onClick={saveSlots}>
+                                {s.save}
+                            </tc-button>
                         </div>
                     )}
                 </div>
-            </tc-vertical-item-list>
-
-            <section className="module-access__bindings">
-                <tc-heading as="h4">{s.bindingsTitle}</tc-heading>
-                <tc-helper-text>{s.bindingsHint}</tc-helper-text>
-                <div className="module-access__slots">
-                    {ROLE_SLOTS.map((slot: RoleSlot) => (
-                        <div key={slot} className="module-access__slot">
-                            <tc-label>{ROLE_SLOT_LABELS[slot].label}</tc-label>
-                            <SlotBinding
-                                options={slotOptions(false)}
-                                value={bindingDraft[slot] ?? ''}
-                                onChange={(next) => setBindingDraft({ ...bindingDraft, [slot]: next })}
-                            />
-                            <tc-helper-text>{ROLE_SLOT_LABELS[slot].hint}</tc-helper-text>
-                        </div>
-                    ))}
-                    {billingEnabled && adminPlans.map((plan) => (
-                        <div key={`plan-${plan.id}`} className="module-access__slot">
-                            <tc-label>{t.plansAdmin.slotLabel(plan.name)}</tc-label>
-                            <SlotBinding
-                                options={slotOptions(true)}
-                                value={planRoleDraft[plan.id] ?? ''}
-                                onChange={(next) => setPlanRoleDraft({ ...planRoleDraft, [plan.id]: next ?? '' })}
-                            />
-                            <tc-helper-text>
-                                {t.plansAdmin.slotHint(plan.mode === 'manual' ? t.plansAdmin.modeManual : t.plansAdmin.modeManaged)}
-                            </tc-helper-text>
-                        </div>
-                    ))}
-                </div>
-                {canWrite && (
-                    <div className="module-access__footer">
-                        <tc-button variant="primary" onClick={saveSlots}>
-                            {s.save}
-                        </tc-button>
-                    </div>
-                )}
-            </section>
+            </tc-section-card>
 
             {billingEnabled && <PlansAdmin />}
         </div>

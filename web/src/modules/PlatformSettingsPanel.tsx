@@ -3,6 +3,7 @@ import { useStore } from 'state'
 import useStrings from 'hooks/useStrings'
 import useCan from 'hooks/useCan'
 import Loading from 'components/Loading'
+import FloatingActionBar from 'components/FloatingActionBar'
 
 type ValueElement = HTMLElement & { value?: string }
 
@@ -16,6 +17,8 @@ const PlatformSettingsPanel: React.FC = () => {
     const canWrite = useCan('admin.settings.write')
 
     const [signupsOpen, setSignupsOpen] = useState(false)
+    const [dirty, setDirty] = useState(false)
+    const [saving, setSaving] = useState(false)
 
     const announcementRef = useRef<ValueElement | null>(null)
     const announcementValue = useRef('')
@@ -34,19 +37,38 @@ const PlatformSettingsPanel: React.FC = () => {
         if (announcementRef.current) announcementRef.current.value = settings.announcement
         salesContactValue.current = settings.salesContact
         if (salesContactRef.current) salesContactRef.current.value = settings.salesContact
+        setDirty(false)
     }, [settings])
 
     if (!settings) return <Loading />
 
+    const handleSave = async () => {
+        if (saving) return
+        setSaving(true)
+        try {
+            await saveSettings({
+                signupsOpen,
+                announcement: announcementValue.current,
+                salesContact: salesContactValue.current,
+            })
+            setDirty(false)
+        } finally {
+            setSaving(false)
+        }
+    }
+
     return (
         <div className="module">
-            <tc-section-card title={s.title}>
+            <tc-section-card title={s.title} icon="Settings">
                 <tc-stack direction="column" gap="1.15rem">
                     <tc-switch
                         checked={signupsOpen || undefined}
                         label={s.signupsOpenLabel}
                         help={s.signupsOpenHint}
-                        onClick={() => setSignupsOpen((current) => !current)}
+                        onClick={() => {
+                            setSignupsOpen((current) => !current)
+                            setDirty(true)
+                        }}
                     ></tc-switch>
 
                     <tc-textarea
@@ -56,6 +78,7 @@ const PlatformSettingsPanel: React.FC = () => {
                         rows="3"
                         onInput={(event: React.FormEvent<ValueElement>) => {
                             announcementValue.current = String((event.target as ValueElement).value ?? '')
+                            setDirty(true)
                         }}
                     ></tc-textarea>
 
@@ -66,25 +89,19 @@ const PlatformSettingsPanel: React.FC = () => {
                         help={s.salesContactHint}
                         onInput={(event: React.FormEvent<ValueElement>) => {
                             salesContactValue.current = String((event.target as ValueElement).value ?? '')
+                            setDirty(true)
                         }}
                     ></tc-form-input>
-
-                    {canWrite && (
-                        <div>
-                            <tc-button
-                                variant="primary"
-                                onClick={() => saveSettings({
-                                    signupsOpen,
-                                    announcement: announcementValue.current,
-                                    salesContact: salesContactValue.current,
-                                })}
-                            >
-                                {s.save}
-                            </tc-button>
-                        </div>
-                    )}
                 </tc-stack>
             </tc-section-card>
+
+            <FloatingActionBar label={s.unsavedHint} visible={dirty}>
+                {canWrite && (
+                    <tc-button key="save" variant="primary" disabled={saving || undefined} onClick={handleSave}>
+                        {s.save}
+                    </tc-button>
+                )}
+            </FloatingActionBar>
         </div>
     )
 }

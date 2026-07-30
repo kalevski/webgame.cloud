@@ -1,5 +1,6 @@
 import { apiFetch } from 'helpers/api'
 import {
+    AccountUsage,
     CheckoutIntent,
     EnquiryActionDraft,
     EnquiryActionResult,
@@ -43,6 +44,10 @@ class BillingService {
             method: 'POST',
             body: JSON.stringify({ planId }),
         })
+    }
+
+    async accountUsage(): Promise<AccountUsage> {
+        return apiFetch<AccountUsage>('/api/account/usage')
     }
 
     async cancel(): Promise<Subscription> {

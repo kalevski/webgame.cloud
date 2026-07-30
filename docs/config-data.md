@@ -31,3 +31,14 @@ a bug.
 `configs.schema_id` is `ON DELETE RESTRICT` — a schema in use cannot be deleted (`schema_in_use`).
 
 Quota: `configs_per_project` counts `configs` rows only. Versions are free, and schemas are unlimited.
+
+
+## Creating a schema
+
+There is no create-schema modal. **New schema** on the configs screen calls `createSchema`, which POSTs a
+schema named `Schema N` — the first N not already taken — with an empty definition, then selects it in the
+editor for renaming and filling in. The schema list is the navigation; the editor is the form.
+
+Composition is unchanged and now signposted in the UI: a property of type `ref` points at another schema in
+the same project (`objectRefList` / `arrayRefList` on `tc-json-schema-def`, bounded by
+`SCHEMA_REF_MAX_DEPTH`), which is how complex shapes are built from reusable ones.

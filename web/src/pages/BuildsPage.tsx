@@ -25,6 +25,9 @@ const BuildsPage: React.FC = () => {
         <AuthGuard secured>
             <ProjectPageShell
                 title={t.builds.title}
+                description={t.builds.pageDescription}
+                iconName="Hammer"
+                iconColor="amber"
                 subline={() => (
                     <>
                         <strong>{passed}</strong>

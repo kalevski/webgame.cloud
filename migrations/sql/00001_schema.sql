@@ -548,6 +548,7 @@ CREATE TABLE projects (
     name                text NOT NULL,
     description         text NOT NULL DEFAULT '',
     app_type            text NOT NULL DEFAULT 'game' CHECK (app_type IN ('game', 'app', 'prototype')),
+    genre               text NOT NULL DEFAULT '',
     icon                text NOT NULL DEFAULT 'Gamepad2',
     color               text NOT NULL DEFAULT '',
     default_category_id text NOT NULL DEFAULT '',

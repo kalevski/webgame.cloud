@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react'
+import React, { useEffect, useMemo, useRef, useState } from 'react'
 import {
     TcActionHeader,
     TcActionHeaderAction,
@@ -40,7 +40,17 @@ const SchemaEditor: React.FC<Props> = ({ project }) => {
         void fetchSchemas(project.id)
     }, [project.id, fetchSchemas])
 
+    const knownCount = useRef(0)
+
     useEffect(() => {
+        if (schemas.length > knownCount.current && knownCount.current > 0) {
+            const newest = [...schemas].sort((a, b) => b.createdAt.localeCompare(a.createdAt))[0]
+            if (newest) {
+                setSelectedId(newest.id)
+                setDraft(null)
+            }
+        }
+        knownCount.current = schemas.length
         if (!selectedId && schemas.length > 0) setSelectedId(schemas[0].id)
     }, [schemas, selectedId])
 
@@ -120,6 +130,7 @@ const SchemaEditor: React.FC<Props> = ({ project }) => {
                                 />
                             </div>
                             <TcDivider label={c.schemaLabel} />
+                            <tc-helper-text icon="Workflow">{c.refHint}</tc-helper-text>
                             <TcJSONSchemaDef
                                 objectRefList={refList}
                                 arrayRefList={refList}

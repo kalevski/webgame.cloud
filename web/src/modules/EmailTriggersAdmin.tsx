@@ -67,25 +67,16 @@ const EmailTriggersAdmin: React.FC = () => {
         },
     })
 
-    const header = useTc<HTMLElement>({
-        actions: canWrite
-            ? [{ key: 'add', label: e.triggerAdd, icon: 'Plus', variant: 'primary' }]
-            : [],
-        onExec: (key: string) => {
-            if (key === 'add') openTrigger()
-        },
-    })
-
-    useEffect(() => {
-        const content = header.current?.querySelector('.tc-action-header-content')
-        if (content) content.textContent = e.triggersTitle
-    })
-
     return (
         <div className="module module-email-triggers">
-            <tc-action-header ref={header} className="module-email__action-header"></tc-action-header>
-
-            <tc-section-card title={e.triggersTitle}>
+            <tc-section-card title={e.triggersTitle} icon="Zap">
+                <span slot="action" className="section-card-actions">
+                    {canWrite && (
+                        <tc-button variant="primary" onClick={() => openTrigger()}>
+                            {e.triggerAdd}
+                        </tc-button>
+                    )}
+                </span>
                 <tc-stack direction="column" gap="0.85rem">
                     <tc-text variant="muted">{e.triggersIntro}</tc-text>
 

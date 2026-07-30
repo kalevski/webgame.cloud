@@ -19,7 +19,7 @@ the `realm_transfer` key; realms authenticate back with a per-realm bearer token
   heartbeat ingest.
 - The `realm.purge` job — the one path that deletes bytes off a realm (D7), enqueued by specs 01, 02
   and 04.
-- `@appkit/realm-stub`, the dev-only workspace that makes the whole protocol exercisable (D11).
+- `@webgame-cloud/realm-stub`, the dev-only workspace that makes the whole protocol exercisable (D11).
 - The `realm_upload` / `realm_transfer` signing keys (issued here, consumed by specs 02 and 04).
 - Realm-authenticated route group `/api/realm/*` (heartbeat, job claim, status/result — the last two
   specced in 04) and `/api/internal/*` (upload finalize — specced in 02).
@@ -30,7 +30,7 @@ the `realm_transfer` key; realms authenticate back with a per-realm bearer token
 ## Non-goals
 
 - The realm itself. This repo specs the platform side only: the worker's compression queue, replay
-  cache, dead-letter store and disk-health reporting live in that separate service. `@appkit/realm-stub`
+  cache, dead-letter store and disk-health reporting live in that separate service. `@webgame-cloud/realm-stub`
   is not that service — it is the smallest thing that answers the protocol so a developer can complete
   an upload → build → result loop locally, and it is never deployed.
 - No byte copying by the API. The platform issues an instruction and repoints; realms transfer between
@@ -95,7 +95,7 @@ Down block order: `project_migrations` before `projects`, `realms` after `projec
 a documented dev token — so a fresh database can create a project without staff setup. The token itself
 is `rlm_dev_local`, written in `.env.example` and `docs/local-development.md`; `RealmService.init()`
 **refuses to boot** when a realm still carries that hash and `NODE_ENV=production`, so the convenience
-cannot escape a laptop. `@appkit/realm-stub` reads the same value.
+cannot escape a laptop. `@webgame-cloud/realm-stub` reads the same value.
 
 `TABLE_LABELS` in `contracts/retention.ts` gains `realms: 'Build realms'` and
 `project_migrations: 'Project migrations'`; `RETENTION_DEFAULTS` gives `project_migrations` 90 days

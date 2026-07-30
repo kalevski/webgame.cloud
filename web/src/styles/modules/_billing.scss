@@ -246,18 +246,8 @@
     overflow: auto;
 }
 
-.module-email__action-header {
-    display: block;
-    margin-bottom: $space-md;
-}
-
 .modal-email-compose__variables {
     display: block;
-}
-
-.module-api-keys__action-header,
-.module-webhooks__action-header {
-    margin-bottom: $space-md;
 }
 
 .module-webhooks__deliveries {

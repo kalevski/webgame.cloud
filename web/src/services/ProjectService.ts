@@ -1,5 +1,8 @@
 import { apiFetch } from 'helpers/api'
 import {
+    AdminProject,
+    AdminProjectFilters,
+    AdminProjectPage,
     InviteDraft,
     LimitUsage,
     Project,
@@ -8,8 +11,8 @@ import {
     ProjectLock,
     ProjectMember,
     ProjectPermission,
-    ProjectVocabularies,
-    VocabulariesDraft,
+    ProjectCategoriesAndTags,
+    CategoriesAndTagsDraft,
 } from 'types'
 
 const base = (id: string) => `/api/projects/${encodeURIComponent(id)}`
@@ -29,6 +32,20 @@ class ProjectService {
 
     async get(id: string): Promise<Project> {
         return apiFetch<Project>(base(id))
+    }
+
+    async listAdmin(filters: AdminProjectFilters): Promise<AdminProjectPage> {
+        const query = new URLSearchParams()
+        for (const [key, value] of Object.entries(filters)) {
+            if (value === undefined || value === null || value === '') continue
+            query.set(key, String(value))
+        }
+        const suffix = query.toString()
+        return apiFetch<AdminProjectPage>(`/api/admin/projects${suffix ? `?${suffix}` : ''}`)
+    }
+
+    async getAdmin(id: string): Promise<AdminProject> {
+        return apiFetch<AdminProject>(`/api/admin/projects/${encodeURIComponent(id)}`)
     }
 
     async create(draft: ProjectDraft): Promise<Project> {
@@ -65,12 +82,12 @@ class ProjectService {
         return apiFetch<ProjectLock>(`${base(id)}/lock`)
     }
 
-    async vocabularies(id: string): Promise<ProjectVocabularies> {
-        return apiFetch<ProjectVocabularies>(`${base(id)}/vocabularies`)
+    async categoriesAndTags(id: string): Promise<ProjectCategoriesAndTags> {
+        return apiFetch<ProjectCategoriesAndTags>(`${base(id)}/categories-and-tags`)
     }
 
-    async saveVocabularies(id: string, draft: VocabulariesDraft): Promise<ProjectVocabularies> {
-        return apiFetch<ProjectVocabularies>(`${base(id)}/vocabularies`, {
+    async saveCategoriesAndTags(id: string, draft: CategoriesAndTagsDraft): Promise<ProjectCategoriesAndTags> {
+        return apiFetch<ProjectCategoriesAndTags>(`${base(id)}/categories-and-tags`, {
             method: 'PUT',
             body: JSON.stringify(draft),
         })
@@ -78,6 +95,17 @@ class ProjectService {
 
     async members(id: string): Promise<ProjectMember[]> {
         return apiFetch<ProjectMember[]>(`${base(id)}/members`)
+    }
+
+    async setInvitePermissions(
+        id: string,
+        inviteId: string,
+        permissions: ProjectPermission[]
+    ): Promise<ProjectInvite> {
+        return apiFetch<ProjectInvite>(`${base(id)}/invites/${encodeURIComponent(inviteId)}`, {
+            method: 'PATCH',
+            body: JSON.stringify({ permissions }),
+        })
     }
 
     async setMemberPermissions(

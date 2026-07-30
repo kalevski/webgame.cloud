@@ -145,9 +145,9 @@ export class WebhookService {
                 method: 'POST',
                 headers: {
                     'content-type': 'application/json',
-                    'x-appkit-event': delivery.action,
-                    'x-appkit-timestamp': timestamp,
-                    'x-appkit-signature': `sha256=${signature}`,
+                    'x-webgame-cloud-event': delivery.action,
+                    'x-webgame-cloud-timestamp': timestamp,
+                    'x-webgame-cloud-signature': `sha256=${signature}`,
                 },
                 body,
                 signal: controller.signal,

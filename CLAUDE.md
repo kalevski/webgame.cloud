@@ -57,7 +57,7 @@ All user-facing copy is **English**, read through `configs/strings.ts` (there is
 the indirection makes translation a single-file change).
 
 npm workspaces monorepo: `api` (Fastify + pg), `web` (Vite + React 19 SPA), `migrations` (goose SQL) and
-`realm-stub` (a dev-only fake realm). Package scope is `@appkit`.
+`realm-stub` (a dev-only fake realm). Package scope is `@webgame-cloud`.
 
 ## Local setup (from zero to running)
 
@@ -96,16 +96,16 @@ npm run typecheck           # tsc --noEmit in every workspace
 
 There is no test suite or lint script — `typecheck` and `build` (which runs `tsc --noEmit` as a gate before bundling) are the only automated checks. Two profilers run on demand through `npx` (Node 24, never added as dependencies): `npx react-doctor web` must report 0 diagnostics (suppressions live in `web/doctor.config.json`), and `npx clinic doctor` profiles the built API bundle under load — see `docs/local-development.md`. **Do not write unit, integration, or e2e tests** — see Code practices.
 
-Migrations (workspace `@appkit/migrations`):
+Migrations (workspace `@webgame-cloud/migrations`):
 
 ```bash
 npm run migrate                        # from root: createdb + apply pending
-npm run down -w @appkit/migrations     # roll back latest
-npm run status -w @appkit/migrations   # applied/pending
-npm run create -w @appkit/migrations --name=add_thing   # scaffold new migration
-npm run backup -w @appkit/migrations         # pg_dump -Fc to a timestamped .dump
-npm run restore-test -w @appkit/migrations   # restore a dump into a scratch DB to prove it
-npm run corrupt-drill -w @appkit/migrations  # restore drill that corrupts a table first
+npm run down -w @webgame-cloud/migrations     # roll back latest
+npm run status -w @webgame-cloud/migrations   # applied/pending
+npm run create -w @webgame-cloud/migrations --name=add_thing   # scaffold new migration
+npm run backup -w @webgame-cloud/migrations         # pg_dump -Fc to a timestamped .dump
+npm run restore-test -w @webgame-cloud/migrations   # restore a dump into a scratch DB to prove it
+npm run corrupt-drill -w @webgame-cloud/migrations  # restore drill that corrupts a table first
 ```
 
 Env vars the API reads (`api/src/env.ts`, defaults in parens): `PORT` (6000), `DATABASE_HOST` (localhost), `DATABASE_PORT` (5432), `DATABASE_USER` (OS user), `DATABASE_PASS` (none), `DATABASE_NAME` (starter), `DATABASE_SSLMODE` (disable), `GOOGLE_CLIENT_ID`/`GOOGLE_CLIENT_SECRET`, `DISCORD_CLIENT_ID`/`DISCORD_CLIENT_SECRET`, `DEV_LOGIN`, `CORS_ORIGIN`, `WEB_URL`, `API_URL`, `WORKSPACE_NAME` (WebGame Cloud), `LOG_LEVEL` (info), `DEBUG`, `REALM_DEV_TOKEN` (rlm_dev_local), `REALM_STUB_PORT` (5100).
@@ -118,7 +118,7 @@ The repo is on **TypeScript 7** (the native Go port), so `tsc` is a platform bin
 
 ### Shared contract (`api/src/contracts/`)
 
-The single source of truth for every cross-cutting type, split into files re-exported from `index.ts` (a barrel). Dependency-free — no server imports — so `web` imports it via the `@appkit/api/contracts` subpath (`api/package.json` `exports` field) without pulling in Fastify/pg. When adding or changing an API shape, edit the matching file here first; both sides key off it.
+The single source of truth for every cross-cutting type, split into files re-exported from `index.ts` (a barrel). Dependency-free — no server imports — so `web` imports it via the `@webgame-cloud/api/contracts` subpath (`api/package.json` `exports` field) without pulling in Fastify/pg. When adding or changing an API shape, edit the matching file here first; both sides key off it.
 
 - `permissions.ts` — `PERMISSIONS` (the capability catalog), `Permission`, `ACCOUNT_SHAPED`, `UserRole`.
 - `roles.ts` — `Role`, `RoleSlot`/`ROLE_SLOTS`, `RoleBindings`, `SEED_ROLES`, `SEED_ROLE_BINDINGS`, `OWNER_ROLE_ID`, `toRoleId`.

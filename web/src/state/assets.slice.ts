@@ -26,6 +26,7 @@ export type AssetsSlice = {
     stageEdit: (patch: AssetPatch) => void
     discardEdits: () => void
     saveEdits: (projectId: string) => Promise<boolean>
+    applyAssetPatches: (projectId: string, patches: AssetPatch[]) => Promise<boolean>
     deleteAsset: (projectId: string, assetId: string) => Promise<boolean>
     clearQueue: () => void
 }
@@ -103,6 +104,18 @@ export const createAssetsSlice: StateCreator<AppStore, [], [], AssetsSlice> = (s
         if (patches.length === 0) return true
         try {
             set({ assets: await AssetService.getInstance().patchMany(projectId, patches), dirty: {} })
+            void get().fetchProjectUsage(projectId)
+            return true
+        } catch (error) {
+            fail(get, error, STRINGS.common.saveFailed)
+            return false
+        }
+    },
+
+    async applyAssetPatches(projectId, patches) {
+        if (patches.length === 0) return true
+        try {
+            set({ assets: await AssetService.getInstance().patchMany(projectId, patches) })
             void get().fetchProjectUsage(projectId)
             return true
         } catch (error) {

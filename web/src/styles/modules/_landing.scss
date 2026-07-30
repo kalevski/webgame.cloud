@@ -45,7 +45,13 @@
     --bp-r-lg: 14px;
     --bp-r-xl: 18px;
 
+    --wg-scroll-offset: 4.5rem;
+
     font-family: Inter, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+
+    section[id] {
+        scroll-margin-top: var(--wg-scroll-offset);
+    }
 
     :is(.btn, button, a.btn) {
         font-family: inherit;
@@ -303,4 +309,8 @@
         text-transform: none;
         letter-spacing: 0;
     }
+}
+
+:root:has(.module-landing) {
+    scroll-behavior: smooth;
 }

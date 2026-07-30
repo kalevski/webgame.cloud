@@ -8,6 +8,6 @@ export type {
     RealmHeartbeat,
     RealmStatus,
     RealmToken,
-} from '@appkit/api/contracts'
+} from '@webgame-cloud/api/contracts'
 
-export { MIGRATION_STATES, REALM_HEALTH, REALM_STATUSES } from '@appkit/api/contracts'
+export { MIGRATION_STATES, REALM_HEALTH, REALM_STATUSES } from '@webgame-cloud/api/contracts'

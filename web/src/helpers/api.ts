@@ -1,4 +1,4 @@
-import { ApiError, parseErrorCause } from '@appkit/api/contracts'
+import { ApiError, parseErrorCause } from '@webgame-cloud/api/contracts'
 import { EVENT } from 'configs/analytics'
 import { STRINGS } from 'configs/strings'
 import { normalizeEndpoint, trackEvent } from 'helpers/analytics'

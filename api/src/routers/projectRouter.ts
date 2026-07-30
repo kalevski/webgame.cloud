@@ -1,11 +1,18 @@
 import type { FastifyPluginAsync, FastifyReply, FastifyRequest } from 'fastify'
 import type {
+    AdminProjectFilters,
     InviteDraft,
     ProjectDraft,
     ProjectPermission,
-    VocabulariesDraft,
+    CategoriesAndTagsDraft,
 } from '../contracts/index.js'
-import { APP_TYPES, PROJECT_PERMISSIONS, encodeErrorCause } from '../contracts/index.js'
+import {
+    ADMIN_PROJECT_SORTS,
+    ADMIN_PROJECT_STATES,
+    APP_TYPES,
+    PROJECT_PERMISSIONS,
+    encodeErrorCause,
+} from '../contracts/index.js'
 import { requireAuth, requirePermission } from '../auth.js'
 import {
     loadProject,
@@ -32,6 +39,7 @@ const projectSchema = {
         name: { type: 'string', minLength: 1, maxLength: 200 },
         description: { type: 'string', maxLength: 4000 },
         appType: { type: 'string', enum: [...APP_TYPES] },
+        genre: { type: 'string', maxLength: 80 },
         icon: { type: 'string', minLength: 1, maxLength: 100 },
         color: { type: 'string', maxLength: 20 },
         categories: { type: 'array', maxItems: 50, items: { type: 'string', minLength: 1, maxLength: 80 } },
@@ -41,7 +49,7 @@ const projectSchema = {
     },
 } as const
 
-const vocabularySchema = {
+const categoriesAndTagsSchema = {
     type: 'object',
     required: ['categories', 'tags', 'buildTags'],
     additionalProperties: false,
@@ -95,9 +103,39 @@ const transferSchema = {
     properties: { userId: { type: 'string', minLength: 1, maxLength: 80 } },
 } as const
 
+const adminProjectQuerySchema = {
+    type: 'object',
+    additionalProperties: false,
+    properties: {
+        q: { type: 'string', maxLength: 200 },
+        appType: { type: 'string', enum: [...APP_TYPES] },
+        realmId: { type: 'string', maxLength: 80 },
+        state: { type: 'string', enum: [...ADMIN_PROJECT_STATES] },
+        sort: { type: 'string', enum: [...ADMIN_PROJECT_SORTS] },
+        direction: { type: 'string', enum: ['asc', 'desc'] },
+        limit: { type: 'integer', minimum: 1, maximum: 100 },
+        offset: { type: 'integer', minimum: 0, maximum: 1000000 },
+    },
+} as const
+
 const listProjectsEndpoint = async (
     request: FastifyRequest<{ Querystring: { archived?: string } }>
 ) => projects().list(request.user!, request.query.archived === 'true')
+
+const listAdminProjectsEndpoint = async (
+    request: FastifyRequest<{ Querystring: AdminProjectFilters }>
+) => projects().listAdmin(request.query)
+
+const getAdminProjectEndpoint = async (
+    request: FastifyRequest<{ Params: { id: string } }>,
+    reply: FastifyReply
+) => {
+    try {
+        return await projects().getAdmin(request.params.id)
+    } catch (error) {
+        return sendError(reply, error)
+    }
+}
 
 const createProjectEndpoint = async (
     request: FastifyRequest<{ Body: ProjectDraft }>,
@@ -177,15 +215,15 @@ const projectUsageEndpoint = async (request: FastifyRequest) =>
 const projectLockEndpoint = async (request: FastifyRequest) =>
     realms().lockOf(request.project!.id)
 
-const listVocabulariesEndpoint = async (request: FastifyRequest) =>
-    projects().vocabularies(request.project!.id)
+const listCategoriesAndTagsEndpoint = async (request: FastifyRequest) =>
+    projects().categoriesAndTags(request.project!.id)
 
-const putVocabulariesEndpoint = async (
-    request: FastifyRequest<{ Body: VocabulariesDraft }>,
+const putCategoriesAndTagsEndpoint = async (
+    request: FastifyRequest<{ Body: CategoriesAndTagsDraft }>,
     reply: FastifyReply
 ) => {
     try {
-        return await projects().replaceVocabularies(request.project!, request.body)
+        return await projects().replaceCategoriesAndTags(request.project!, request.body)
     } catch (error) {
         return sendError(reply, error)
     }
@@ -214,6 +252,31 @@ const patchMemberEndpoint = async (
             request.id
         )
         return member
+    } catch (error) {
+        return sendError(reply, error)
+    }
+}
+
+const patchInviteEndpoint = async (
+    request: FastifyRequest<{ Params: { id: string; inviteId: string }; Body: { permissions: ProjectPermission[] } }>,
+    reply: FastifyReply
+) => {
+    try {
+        const invite = await projects().updateInvitePermissions(
+            request.user!,
+            request.project!,
+            request.projectPermissions,
+            request.params.inviteId,
+            request.body.permissions
+        )
+        void recordAudit(
+            request.user!,
+            'invite.permissions_changed',
+            invite.id,
+            request.project!.id,
+            request.id
+        )
+        return invite
     } catch (error) {
         return sendError(reply, error)
     }
@@ -290,6 +353,21 @@ export const projectRouter: FastifyPluginAsync = async (app) => {
 
     app.get<{ Querystring: { archived?: string } }>('/api/projects', listProjectsEndpoint)
 
+    app.get<{ Querystring: AdminProjectFilters }>(
+        '/api/admin/projects',
+        {
+            schema: { querystring: adminProjectQuerySchema },
+            preHandler: [requirePermission('admin.project.read')],
+        },
+        listAdminProjectsEndpoint
+    )
+
+    app.get<{ Params: { id: string } }>(
+        '/api/admin/projects/:id',
+        { preHandler: [requirePermission('admin.project.read')] },
+        getAdminProjectEndpoint
+    )
+
     app.post<{ Body: ProjectDraft }>(
         '/api/projects',
         { schema: { body: projectSchema }, preHandler: [requirePermission('project.create')] },
@@ -348,18 +426,18 @@ export const projectRouter: FastifyPluginAsync = async (app) => {
     )
 
     app.get<{ Params: { id: string } }>(
-        '/api/projects/:id/vocabularies',
+        '/api/projects/:id/categories-and-tags',
         { preHandler: [loadProject] },
-        listVocabulariesEndpoint
+        listCategoriesAndTagsEndpoint
     )
 
-    app.put<{ Params: { id: string }; Body: VocabulariesDraft }>(
-        '/api/projects/:id/vocabularies',
+    app.put<{ Params: { id: string }; Body: CategoriesAndTagsDraft }>(
+        '/api/projects/:id/categories-and-tags',
         {
-            schema: { body: vocabularySchema },
+            schema: { body: categoriesAndTagsSchema },
             preHandler: [requireProjectPermission('project.settings')],
         },
-        putVocabulariesEndpoint
+        putCategoriesAndTagsEndpoint
     )
 
     app.get<{ Params: { id: string } }>(
@@ -402,6 +480,15 @@ export const projectRouter: FastifyPluginAsync = async (app) => {
             preHandler: [requireProjectPermission('member.manage')],
         },
         createInviteEndpoint
+    )
+
+    app.patch<{ Params: { id: string; inviteId: string }; Body: { permissions: ProjectPermission[] } }>(
+        '/api/projects/:id/invites/:inviteId',
+        {
+            schema: { body: permissionsSchema },
+            preHandler: [requireProjectPermission('member.manage')],
+        },
+        patchInviteEndpoint
     )
 
     app.delete<{ Params: { id: string; inviteId: string } }>(

@@ -23,6 +23,9 @@ const AssetsPage: React.FC = () => {
         <AuthGuard secured>
             <ProjectPageShell
                 title={t.assets.title}
+                description={t.assets.pageDescription}
+                iconName="Image"
+                iconColor="violet"
                 subline={() => (
                     <>
                         <strong>{assets.length}</strong>

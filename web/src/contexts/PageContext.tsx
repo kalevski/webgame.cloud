@@ -10,7 +10,7 @@ const PageContext = createContext({
 })
 
 export const PageProvider: FC<{ children: React.ReactNode }> = ({ children }) => {
-    const [pageTitle, setPageTitle] = useState('AppKit')
+    const [pageTitle, setPageTitle] = useState('WebGame Cloud')
     const [pageDescription, setPageDescription] = useState('')
     const [color, setColor] = useState('#000000')
 

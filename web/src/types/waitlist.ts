@@ -1,3 +1,3 @@
-export type { WaitlistSignup, WaitlistSignupDraft, WaitlistStats } from '@appkit/api/contracts'
+export type { WaitlistSignup, WaitlistSignupDraft, WaitlistStats } from '@webgame-cloud/api/contracts'
 
-export { WAITLIST_CONSENT_VERSION } from '@appkit/api/contracts'
+export { WAITLIST_CONSENT_VERSION } from '@webgame-cloud/api/contracts'

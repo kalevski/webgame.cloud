@@ -1,5 +1,6 @@
 import type { FastifyPluginAsync, FastifyReply, FastifyRequest } from 'fastify'
 import type {
+    AccountUsage,
     CheckoutIntent,
     Coupon,
     CouponDraft,
@@ -481,7 +482,7 @@ const planOverrideSchema = {
     properties: { planId: { type: ['string', 'null'], maxLength: 80 } },
 } as const
 
-const accountUsageEndpoint = async (request: FastifyRequest) => {
+const accountUsageEndpoint = async (request: FastifyRequest): Promise<AccountUsage> => {
     const policy = container.resolve(AccessPolicyService)
     const [usage, storage] = await Promise.all([
         policy.usageFor(request.user!),

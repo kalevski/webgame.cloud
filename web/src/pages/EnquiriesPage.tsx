@@ -22,6 +22,13 @@ const EnquiriesPage: React.FC = () => {
     return (
         <AuthGuard secured permission="enquiry.read">
             <section className="console-page">
+                <tc-rich-page-header
+                    title-text={t.pages.enquiriesTitle}
+                    description={t.pages.enquiriesDescription}
+                    icon-name="MessagesSquare"
+                    icon-color="amber"
+                ></tc-rich-page-header>
+
                 <EnquiriesAdmin />
             </section>
         </AuthGuard>

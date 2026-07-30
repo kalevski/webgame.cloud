@@ -16,6 +16,8 @@ const SidebarMenu: React.FC = () => {
     const emailEnabled = useFeature('email')
     const canReadEmail = useCan('email.outbox.read')
     const canReadRealms = useCan('realm.read')
+    const canReadAdminProjects = useCan('admin.project.read')
+    const canReadUsers = useCan('admin.user.read')
     const activeProjectId = useStore((state) => state.activeProjectId)
 
     const sections = useMemo(() => {
@@ -79,14 +81,6 @@ const SidebarMenu: React.FC = () => {
                     },
                 ]
                 : []),
-            ...(canReadRealms
-                ? [{
-                    key: 'admin/realms',
-                    label: t.nav.realms,
-                    icon: 'server',
-                    active: location.pathname.startsWith('/admin/realms'),
-                }]
-                : []),
         ]
 
         const workspace = { key: 'workspace', title: t.nav.sectionMain, items: workspaceItems }
@@ -106,6 +100,30 @@ const SidebarMenu: React.FC = () => {
         }
 
         const items = [
+            ...(canReadAdminProjects
+                ? [{
+                    key: 'platform/projects',
+                    label: t.nav.platformProjects,
+                    icon: 'folder-kanban',
+                    active: location.pathname.startsWith('/platform/projects'),
+                }]
+                : []),
+            ...(canReadUsers
+                ? [{
+                    key: 'platform/users',
+                    label: t.nav.platformUsers,
+                    icon: 'users',
+                    active: location.pathname.startsWith('/platform/users'),
+                }]
+                : []),
+            ...(canReadRealms
+                ? [{
+                    key: 'platform/realms',
+                    label: t.nav.realms,
+                    icon: 'server',
+                    active: location.pathname.startsWith('/platform/realms'),
+                }]
+                : []),
             ...(billingEnabled && canReadInvoices ? [invoiceItem] : []),
             ...(billingEnabled && canReadEnquiries ? [enquiryItem] : []),
             ...(emailEnabled && canReadEmail
@@ -130,6 +148,8 @@ const SidebarMenu: React.FC = () => {
         location.pathname,
         activeProjectId,
         canReadRealms,
+        canReadAdminProjects,
+        canReadUsers,
         billingEnabled,
         canReadInvoices,
         canReadEnquiries,

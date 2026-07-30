@@ -3,6 +3,7 @@ import type { Permission, UserRole } from './permissions.js'
 import type { LimitUsage, ResolvedLimits } from './limits.js'
 import type { RoleSlot } from './roles.js'
 import type { FeatureFlags } from './features.js'
+import type { AuditEntry } from './notifications.js'
 
 export type { UserRole }
 
@@ -130,6 +131,40 @@ export type PlatformSettings = {
     announcement: string
 
     salesContact: string
+}
+
+export type AdminUserProject = {
+    id: string
+    name: string
+    icon: string
+    color: string
+    owner: boolean
+    memberCount: number
+    archived: boolean
+    createdAt: string
+}
+
+export type AdminUserProfile = {
+    user: User
+
+    roleName: string
+
+    permissions: Permission[]
+
+    limits: ResolvedLimits
+
+    usage: LimitUsage[]
+
+    identities: UserIdentity[]
+
+    sessionCount: number
+    lastSeenAt: string | null
+
+    projects: AdminUserProject[]
+
+    storageBytes: number
+
+    activity: AuditEntry[]
 }
 
 export type AdminOverview = {

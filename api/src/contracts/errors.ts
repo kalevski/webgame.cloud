@@ -127,6 +127,7 @@ export const API_ERROR_CODES = [
     'upload_token_invalid',
     'parent_asset_not_found',
     'unknown_tag',
+    'invalid_parent',
     'unknown_category',
 
     'bundle_not_found',

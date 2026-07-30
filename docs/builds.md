@@ -39,3 +39,10 @@ so a crashed realm cannot leave a permanently spinning row.
 
 Failure notifies the project owner (`build_failed`); success does not — it is visible on the screen the
 user is already watching.
+
+
+## Snapshot contents
+
+`BuildSnapshot` now also stores `assets` — the asset list (`id`, `name`, `kind`, `sizeBytes`, `tags`) that
+matched the bundle rule at trigger time, filled from `BundleService.preview`. It is optional, so builds
+created before the change simply have none. See live-builds.md for the screen that reads it.

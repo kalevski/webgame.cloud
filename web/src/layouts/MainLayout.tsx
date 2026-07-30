@@ -7,6 +7,7 @@ import AlertPanel from 'modules/AlertPanel'
 import OfflineBanner from 'modules/OfflineBanner'
 import UserPanel from 'modules/UserPanel'
 import NotificationsBell from 'modules/NotificationsBell'
+import UsageSummary from 'modules/UsageSummary'
 import CommandPalette from 'modules/CommandPalette'
 
 const MainLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -23,6 +24,7 @@ const MainLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
         <div slot="navbar-left"><PageHeader /></div>
         <div slot="navbar-right" className="layout-main__navbar-right">
             <CommandPalette />
+            <UsageSummary />
             <NotificationsBell />
         </div>
 

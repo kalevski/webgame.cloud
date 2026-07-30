@@ -1,9 +1,8 @@
-import React, { useEffect, useRef, useState } from 'react'
+import React, { useEffect, useMemo, useRef, useState } from 'react'
 import {
     TcActionItem,
     TcBuild,
     TcButton,
-    TcChip,
     TcGroup,
     TcSkeleton,
 } from 'lib/tc'
@@ -12,6 +11,7 @@ import useWhen from 'hooks/useWhen'
 import { useStore } from 'state'
 import { useProjectCan } from 'hooks/useProjectCan'
 import BuildIntegrationGuide from 'components/BuildIntegrationGuide'
+import FilterBar from 'components/FilterBar'
 import { Build, BuildStatus, Project } from 'types'
 
 type Props = {
@@ -24,6 +24,8 @@ type BundleGroup = {
     builds: Build[]
 }
 
+const ALL_STATUSES = '__all__'
+
 const GROUP_LIMIT = 10
 const POLL_MS = 2500
 
@@ -35,10 +37,10 @@ const BuildList: React.FC<Props> = ({ project }) => {
     const builds = useStore((state) => state.builds)
     const buildsLoaded = useStore((state) => state.buildsLoaded)
     const bundles = useStore((state) => state.bundles)
-    const vocabularies = useStore((state) => state.vocabularies)
+    const categoriesAndTags = useStore((state) => state.categoriesAndTags)
     const fetchBuilds = useStore((state) => state.fetchBuilds)
     const fetchBundles = useStore((state) => state.fetchBundles)
-    const fetchVocabularies = useStore((state) => state.fetchVocabularies)
+    const fetchCategoriesAndTags = useStore((state) => state.fetchCategoriesAndTags)
     const runBuild = useStore((state) => state.runBuild)
     const deleteBuild = useStore((state) => state.deleteBuild)
     const setBuildTag = useStore((state) => state.setBuildTag)
@@ -53,8 +55,8 @@ const BuildList: React.FC<Props> = ({ project }) => {
     useEffect(() => {
         void fetchBuilds(project.id)
         void fetchBundles(project.id)
-        void fetchVocabularies(project.id)
-    }, [project.id, fetchBuilds, fetchBundles, fetchVocabularies])
+        void fetchCategoriesAndTags(project.id)
+    }, [project.id, fetchBuilds, fetchBundles, fetchCategoriesAndTags])
 
     const running = builds.some((build) => build.status === 'queued' || build.status === 'running')
 
@@ -83,6 +85,12 @@ const BuildList: React.FC<Props> = ({ project }) => {
 
     const filtered = statusFilter ? builds.filter((build) => build.status === statusFilter) : builds
 
+    const statusCounts = useMemo(() => {
+        const counts = new Map<string, number>()
+        for (const build of builds) counts.set(build.status, (counts.get(build.status) ?? 0) + 1)
+        return counts
+    }, [builds])
+
     const groups = filtered.reduce((all: BundleGroup[], build) => {
         let group = all.find((entry) => entry.id === build.bundleId)
         if (!group) {
@@ -99,7 +107,7 @@ const BuildList: React.FC<Props> = ({ project }) => {
         if (key === 'manage_tag') {
             const next = build.buildTag
                 ? ''
-                : vocabularies?.buildTags[0]?.name ?? ''
+                : categoriesAndTags?.buildTags[0]?.name ?? ''
             void setBuildTag(project.id, build.id, next)
         }
     }
@@ -115,20 +123,30 @@ const BuildList: React.FC<Props> = ({ project }) => {
         <>
             <p className="console-hint">{b.groupedHint}</p>
 
-            <div className="console-filters">
-                <TcChip selected={statusFilter === null} onClick={() => setStatusFilter(null)}>
-                    {b.filterAll}
-                </TcChip>
-                {chips.map((chip) => (
-                    <TcChip
-                        key={chip.key}
-                        selected={statusFilter === chip.key}
-                        onClick={() => setStatusFilter((current) => (current === chip.key ? null : chip.key))}
-                    >
-                        {chip.label}
-                    </TcChip>
-                ))}
-            </div>
+            <FilterBar
+                rows={[
+                    {
+                        key: 'status',
+                        legend: b.filterStatusLabel,
+                        chips: [
+                            { id: ALL_STATUSES, label: b.filterAll, count: builds.length },
+                            ...chips.map((chip) => ({
+                                id: chip.key,
+                                label: chip.label,
+                                count: statusCounts.get(chip.key) ?? 0,
+                            })),
+                        ],
+                        value: statusFilter ?? ALL_STATUSES,
+                        onChange: (id) =>
+                            setStatusFilter(!id || id === ALL_STATUSES ? null : (id as BuildStatus)),
+                    },
+                ]}
+                total={builds.length}
+                matches={filtered.length}
+                unit={builds.length === 1 ? b.buildWord : b.buildsWord}
+                active={statusFilter !== null}
+                onClear={() => setStatusFilter(null)}
+            />
 
             {!buildsLoaded ? (
                 <div className="d-flex flex-column gap-2 mt-2">

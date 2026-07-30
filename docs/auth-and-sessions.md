@@ -49,3 +49,14 @@ External logins live in `user_identities` (`provider` + `subject` PK, one row pe
 ## Consent gate
 
 A brand-new account has `consentedAt === null`. `AuthGuard` renders `ConsentGate` instead of the page until `POST /api/account/consent` stamps it. It is the one client-side signal distinguishing a sign-up from a returning login (used for the `sign_up` vs `login` analytics event).
+
+The gate is a countersign sheet, not a modal-style card: each legal document is its own row with a
+one-line summary, an `Effective <date>` stamp, a *Read* link that opens the public `/privacy` / `/terms`
+page in a new tab (`target="_blank"` + `rel="noopener noreferrer"`, with an "opens in a new tab" aria
+label) so the gate stays where it is, and its own *I have read and accept this* checkbox. *Accept and
+continue* enables only when every row is checked; a mono `N of M accepted` counter (`aria-live`) tracks
+progress. The waitlist principle from landing-and-waitlist.md — an opt-in boolean with no record of what
+was agreed to is not a consent record — is why the rows name each document and its effective date instead
+of one "I accept both documents" checkbox. Document metadata (key, route, effective date) lives in
+`web/src/configs/legal.ts`, shared by the gate and the legal pages; `LegalPrivacy.tsx` / `LegalTerms.tsx`
+read their `updated` date from it, so bumping a document's date is a one-place change.

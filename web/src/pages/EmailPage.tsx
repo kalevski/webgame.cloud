@@ -43,6 +43,13 @@ const EmailPage: React.FC = () => {
         <AuthGuard secured permission="email.outbox.read">
             <section className="console-page">
                 <div className="module module-email">
+                    <tc-rich-page-header
+                        title-text={t.pages.emailTitle}
+                        description={t.pages.emailDescription}
+                        icon-name="Mail"
+                        icon-color="blue"
+                    ></tc-rich-page-header>
+
                     <RouteTabs tabs={tabs} activeId={tab} />
 
                     <div className="module-email__content">

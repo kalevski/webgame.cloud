@@ -43,6 +43,8 @@ export type ProjectLimitUsage = LimitUsage & { projectId: string }
 
 export type StorageVerdict = 'ok' | 'grace' | 'blocked'
 
+export const USAGE_WARN_RATIO = 0.9
+
 export type StorageStatus = {
     usedBytes: number
     limitBytes: number | null
@@ -69,4 +71,9 @@ export type AccessPolicyPayload = AccessPolicy
 
 export type UserAccessPayload = UserAccessOverrides & {
     usage?: LimitUsage[]
+}
+
+export type AccountUsage = {
+    usage: LimitUsage[]
+    storage: StorageStatus
 }

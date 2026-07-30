@@ -1186,7 +1186,8 @@ TcToggleCard.displayName = 'TcToggleCard'
 
 export interface TcFileTag {
 	id: string
-	name: string
+	label: string
+	color?: string
 }
 
 export interface TcFileProps extends TcBaseProps {
@@ -1194,6 +1195,7 @@ export interface TcFileProps extends TcBaseProps {
 	format?: string
 	extension?: string
 	size?: number
+	items?: number
 	tagIds?: string[]
 	tags?: TcFileTag[]
 	menuItems?: TcActionItem[]
@@ -2327,7 +2329,7 @@ export interface TcUsageConfig {
 	warn?: boolean
 }
 export interface TcUsageSummaryPanelProps extends TcBaseProps {
-	heading?: string
+	title?: string
 	usage: TcUsageConfig[]
 }
 export const TcUsageSummaryPanel = createTcComponent<TcUsageSummaryPanelProps>('tc-usage-summary-panel')

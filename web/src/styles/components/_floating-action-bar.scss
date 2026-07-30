@@ -1,0 +1,73 @@
+@use '../abstracts' as *;
+
+.floating-action-bar__anchor {
+    display: block;
+    height: 0;
+}
+
+.floating-action-bar {
+    position: fixed;
+    bottom: $space-4;
+    z-index: 40;
+
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: $space-3;
+    flex-wrap: wrap;
+
+    padding: $space-3 $space-4;
+    border: 1px solid var(--tc-border, #e3e0f2);
+    border-radius: $radius-lg;
+    background: var(--tc-surface, #fff);
+    box-shadow: 0 12px 32px rgba(40, 30, 90, 0.16);
+
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transform: translateY(0.75rem);
+    transition:
+        opacity 180ms ease,
+        transform 180ms ease,
+        visibility 0s linear 180ms;
+
+    &[data-visible='true'] {
+        opacity: 1;
+        visibility: visible;
+        pointer-events: auto;
+        transform: translateY(0);
+        transition:
+            opacity 180ms ease,
+            transform 180ms ease,
+            visibility 0s;
+    }
+
+    &__label {
+        min-width: 0;
+        font-size: 0.8125rem;
+        color: var(--tc-text-muted, #5d5887);
+
+        &:empty {
+            display: none;
+        }
+    }
+
+    &__actions {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: $space-2;
+        margin-left: auto;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .floating-action-bar,
+    .floating-action-bar__anchor {
+        transition: none;
+    }
+
+    .floating-action-bar {
+        transform: none;
+    }
+}

@@ -35,9 +35,18 @@ export type BuildFileDraft = {
     checksum?: string
 }
 
+export type BuildSnapshotAsset = {
+    id: string
+    name: string
+    kind: string
+    sizeBytes: number
+    tags: string[]
+}
+
 export type BuildSnapshot = {
     bundle: Bundle
     configs: Array<{ key: string; versionId: string; buildTag: string }>
+    assets?: BuildSnapshotAsset[]
 }
 
 export type Build = {

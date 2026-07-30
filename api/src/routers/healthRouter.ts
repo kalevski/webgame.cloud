@@ -5,7 +5,7 @@ import { BUILD_SHA } from '../env.js'
 import { STARTED_AT, workerHealth } from '../health.js'
 import type { ReadyReport, VersionInfo } from '../contracts/index.js'
 
-const APP_NAME = '@appkit/api'
+const APP_NAME = '@webgame-cloud/api'
 const APP_VERSION = '0.1.0'
 
 const migrationVersion = async (): Promise<number | null> => {

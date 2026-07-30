@@ -34,7 +34,7 @@ jobs:
         run: npm ci
 
       - name: Build web
-        run: npm run build -w @appkit/web
+        run: npm run build -w @webgame-cloud/web
         env:
           VITE_API_URL: https://api.example.com
 

@@ -6,7 +6,8 @@ under a lock.
 
 ## Registry
 
-`realms` rows are staff-created (`realm.read` / `realm.write`, screen at `/admin/realms`). Each carries a
+`realms` rows are staff-created (`realm.read` / `realm.write`, screen at `/platform/realms` — the nav entry sits
+in the **Platform** section alongside the other staff screens; `/admin/realms` redirects there). Each carries a
 `base_url`, an optional `plan_id` tier, an `exclusive` flag, a `status` (`active`/`draining`/`offline`),
 live `health`, `disk_free_bytes`, `queue_depth` and `last_seen_at`.
 
@@ -18,6 +19,14 @@ silent, and tier-compatible — tier-matched preferred over general, then least-
 candidate → `503 realm_unavailable`, and no project row is written.
 
 Deleting a realm is refused (`realm_in_use`) while any live project points at it.
+
+The screen opens with a `tc-rich-page-header` (*Realms*, `Server`/cyan), then two cards: **Realms** — the
+registry list, one row per realm with *Edit realm*, and *Add realm* in the card's `action` slot — and
+**Realm maintenance**, a `tc-danger-zone-actions` panel carrying the per-realm *Rotate token* and *Delete
+realm* rows with the consequence spelled out in each row's description. Delete is rendered disabled while
+the realm still hosts projects, with `deleteBlocked(count)` as its description, so the API's `realm_in_use`
+refusal is visible before the click rather than after it. The maintenance card renders only with
+`realm.write`.
 
 ## Trust boundary
 
@@ -54,7 +63,7 @@ asset delete and build purge enqueue it; the job queue retries, and deleting an 
 ## Local development
 
 `00002_seed.sql` seeds a `local` realm at `http://127.0.0.1:5100` whose token is `rlm_dev_local`. The
-dev-only `@appkit/realm-stub` workspace answers that protocol — it verifies upload tokens, writes bytes to
+dev-only `@webgame-cloud/realm-stub` workspace answers that protocol — it verifies upload tokens, writes bytes to
 a temp directory, calls finalize, long-polls for builds and returns a canned result. `npm run dev` starts
 it beside the API and web.
 

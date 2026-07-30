@@ -270,7 +270,7 @@ that already have it.
 
 Specs 02, 04 and 05 all verify against a realm that receives `PUT`s, claims builds and posts results,
 and this repo has no test suite — a manual pass against a running stack is the only gate. So a fourth
-npm workspace, `@appkit/realm-stub`, ships **dev-only** and is what `00002_seed.sql`'s `local` realm
+npm workspace, `@webgame-cloud/realm-stub`, ships **dev-only** and is what `00002_seed.sql`'s `local` realm
 row points at (`http://127.0.0.1:5100`): it verifies the `realm_upload` JWT against the published
 public key, writes bytes to a temp directory, calls `/api/internal/uploads/:id/finalize`, long-polls
 `/api/realm/jobs/next`, and returns a canned build result with plausible `build_files`. It is not the

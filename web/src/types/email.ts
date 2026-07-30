@@ -15,10 +15,10 @@ export type {
     EmailTemplateDraft,
     EmailTrigger,
     EmailTriggerDraft,
-} from '@appkit/api/contracts'
+} from '@webgame-cloud/api/contracts'
 export {
     EMAIL_AUDIENCES,
     EMAIL_PROVIDERS,
     EMAIL_RECIPIENT_MODES,
     EMAIL_STATUSES,
-} from '@appkit/api/contracts'
+} from '@webgame-cloud/api/contracts'

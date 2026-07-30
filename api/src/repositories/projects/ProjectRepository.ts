@@ -4,9 +4,14 @@ import type { AppType } from '../../contracts/index.js'
 import { Database, type QueryRunner } from '../../Database.js'
 import { repositoryOptions } from '../../logging.js'
 import { BaseRepository } from '@toolcase/node'
-import type { NamedProjectRow, ProjectRow } from '../../schema/projects.js'
+import type { AdminProjectRow, NamedProjectRow, ProjectRow } from '../../schema/projects.js'
 
 import SELECT_PROJECTS_FOR_USER from './sql/select-projects-for-user.sql'
+import SELECT_PROJECTS_FOR_MEMBER from './sql/select-projects-for-member.sql'
+import SELECT_ADMIN_PROJECTS from './sql/select-admin-projects.sql'
+import SELECT_ADMIN_PROJECT from './sql/select-admin-project.sql'
+import COUNT_ADMIN_PROJECTS from './sql/count-admin-projects.sql'
+import SUM_OWNER_BYTES from './sql/sum-owner-bytes.sql'
 import SELECT_PROJECT from './sql/select-project.sql'
 import SELECT_PROJECT_FOR_USER from './sql/select-project-for-user.sql'
 import INSERT_PROJECT from './sql/insert-project.sql'
@@ -38,25 +43,37 @@ export type ProjectWrite = {
     name: string
     description: string
     appType: AppType
+    genre: string
     icon: string
     color: string
 }
 
-export type VocabularyKind = 'categories' | 'tags' | 'buildTags'
+export type AdminProjectQuery = {
+    state: string
+    q: string
+    appType: string
+    realmId: string
+    sort: string
+    direction: string
+    limit: number
+    offset: number
+}
 
-const SELECT_BY_KIND: Record<VocabularyKind, string> = {
+export type NameKind = 'categories' | 'tags' | 'buildTags'
+
+const SELECT_BY_KIND: Record<NameKind, string> = {
     categories: SELECT_CATEGORIES,
     tags: SELECT_TAGS,
     buildTags: SELECT_BUILD_TAGS,
 }
 
-const INSERT_BY_KIND: Record<VocabularyKind, string> = {
+const INSERT_BY_KIND: Record<NameKind, string> = {
     categories: INSERT_CATEGORIES,
     tags: INSERT_TAGS,
     buildTags: INSERT_BUILD_TAGS,
 }
 
-const DELETE_BY_KIND: Record<VocabularyKind, string> = {
+const DELETE_BY_KIND: Record<NameKind, string> = {
     categories: DELETE_CATEGORIES_MISSING,
     tags: DELETE_TAGS_MISSING,
     buildTags: DELETE_BUILD_TAGS_MISSING,
@@ -73,6 +90,53 @@ export class ProjectRepository extends BaseRepository<ProjectRow, QueryRunner> {
             const { rows } = await this.run(trx).query<ProjectRow>(SELECT_PROJECTS_FOR_USER, [userId, archived])
             return rows
         })
+    }
+
+    async listForMember(userId: string, trx?: QueryRunner): Promise<ProjectRow[]> {
+        return this.time('listForMember', async () => {
+            const { rows } = await this.run(trx).query<ProjectRow>(SELECT_PROJECTS_FOR_MEMBER, [userId])
+            return rows
+        })
+    }
+
+    async listAdmin(query: AdminProjectQuery, trx?: QueryRunner): Promise<AdminProjectRow[]> {
+        return this.time('listAdmin', async () => {
+            const { rows } = await this.run(trx).query<AdminProjectRow>(SELECT_ADMIN_PROJECTS, [
+                query.state,
+                query.q,
+                query.appType,
+                query.realmId,
+                query.sort,
+                query.direction,
+                query.limit,
+                query.offset,
+            ])
+            return rows
+        })
+    }
+
+    async countAdmin(query: AdminProjectQuery, trx?: QueryRunner): Promise<number> {
+        return this.time('countAdmin', async () => {
+            const { rows } = await this.run(trx).query<{ c: number }>(COUNT_ADMIN_PROJECTS, [
+                query.state,
+                query.q,
+                query.appType,
+                query.realmId,
+            ])
+            return rows[0]?.c ?? 0
+        })
+    }
+
+    async findAdminById(id: string, trx?: QueryRunner): Promise<AdminProjectRow | undefined> {
+        return this.time('findAdminById', async () => {
+            const { rows } = await this.run(trx).query<AdminProjectRow>(SELECT_ADMIN_PROJECT, [id])
+            return rows[0]
+        })
+    }
+
+    async sumOwnerBytes(ownerId: string, trx?: QueryRunner): Promise<number> {
+        const { rows } = await this.run(trx).query<{ c: string }>(SUM_OWNER_BYTES, [ownerId])
+        return Number(rows[0]?.c ?? 0)
     }
 
     async findById(id: string, trx?: QueryRunner): Promise<ProjectRow | undefined> {
@@ -98,6 +162,7 @@ export class ProjectRepository extends BaseRepository<ProjectRow, QueryRunner> {
                 write.name,
                 write.description,
                 write.appType,
+                write.genre,
                 write.icon,
                 write.color,
             ])
@@ -112,6 +177,7 @@ export class ProjectRepository extends BaseRepository<ProjectRow, QueryRunner> {
             name: string
             description: string
             appType: AppType
+            genre: string
             icon: string
             color: string
             defaultCategoryId: string
@@ -124,6 +190,7 @@ export class ProjectRepository extends BaseRepository<ProjectRow, QueryRunner> {
                 patch.name,
                 patch.description,
                 patch.appType,
+                patch.genre,
                 patch.icon,
                 patch.color,
                 patch.defaultCategoryId,
@@ -178,13 +245,13 @@ export class ProjectRepository extends BaseRepository<ProjectRow, QueryRunner> {
         return Number(rows[0]?.c ?? 0)
     }
 
-    async listVocabulary(kind: VocabularyKind, projectId: string, trx?: QueryRunner): Promise<NamedProjectRow[]> {
+    async listNames(kind: NameKind, projectId: string, trx?: QueryRunner): Promise<NamedProjectRow[]> {
         const { rows } = await this.run(trx).query<NamedProjectRow>(SELECT_BY_KIND[kind], [projectId])
         return rows
     }
 
-    async insertVocabulary(
-        kind: VocabularyKind,
+    async insertNames(
+        kind: NameKind,
         projectId: string,
         name: string,
         trx?: QueryRunner
@@ -197,8 +264,8 @@ export class ProjectRepository extends BaseRepository<ProjectRow, QueryRunner> {
         return rows[0].id
     }
 
-    async pruneVocabulary(
-        kind: VocabularyKind,
+    async pruneNames(
+        kind: NameKind,
         projectId: string,
         keep: string[],
         trx?: QueryRunner

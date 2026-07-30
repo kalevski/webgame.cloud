@@ -4,6 +4,7 @@ import { useStore } from 'state'
 import useStrings from 'hooks/useStrings'
 import useAuth from 'hooks/useAuth'
 import { useTc } from '@toolcase/web-components/react'
+import FloatingActionBar from 'components/FloatingActionBar'
 import { MODAL, useModalOpen } from 'modals'
 import { EVENT } from 'configs/analytics'
 import { trackEvent } from 'helpers/analytics'
@@ -188,13 +189,15 @@ const AccountSettings: React.FC = () => {
                 <tc-panel bordered className="module-profile__form">
                     <tc-stack direction="column" gap="0.85rem">
                         <tc-form-input ref={nameInput} type="text" label={p.nameLabel}></tc-form-input>
-                        <div>
-                            <tc-button variant="primary" disabled={!dirty || saving || undefined} onClick={handleSave}>
-                                {p.save}
-                            </tc-button>
-                        </div>
+                        <tc-helper-text icon="Info">{p.nameHint}</tc-helper-text>
                     </tc-stack>
                 </tc-panel>
+
+                <FloatingActionBar label={p.unsavedHint} visible={dirty}>
+                    <tc-button key="save" variant="primary" disabled={saving || undefined} onClick={handleSave}>
+                        {p.save}
+                    </tc-button>
+                </FloatingActionBar>
             </div>
 
             <div className="module-profile__account">

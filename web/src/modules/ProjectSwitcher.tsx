@@ -2,10 +2,10 @@ import React, { useEffect, useMemo } from 'react'
 import { useLocation, useNavigate } from 'react-router'
 import useStrings from 'hooks/useStrings'
 import { useTc } from '@toolcase/web-components/react'
+import { DEFAULT_PROJECT_COLOR, DEFAULT_PROJECT_ICON } from 'configs/genres'
+import { iconMaskUrl } from 'helpers/iconMask'
 import { useStore } from 'state'
 import useCan, { useResourceLimits } from 'hooks/useCan'
-import { MODAL, useModalOpen } from 'modals'
-import { Project } from 'types'
 
 const CREATE_KEY = '__create__'
 
@@ -33,9 +33,6 @@ const ProjectSwitcher: React.FC = () => {
         if (!projectsLoaded) void fetchProjects()
     }, [projectsLoaded, fetchProjects])
 
-    const openWizard = useModalOpen<Project>(MODAL.CREATE_PROJECT, (created) => {
-        if (created) navigate(`/projects/${created.id}/assets`)
-    })
 
     const active = useMemo(
         () => projects.find((project) => project.id === activeProjectId) ?? null,
@@ -54,7 +51,7 @@ const ProjectSwitcher: React.FC = () => {
         onChange: (value: string) => {
             if (value === CREATE_KEY) {
                 if (select.current) select.current.value = activeProjectId ?? ''
-                openWizard()
+                navigate('/projects/new')
                 return
             }
             if (!value || value === activeProjectId) return
@@ -75,7 +72,15 @@ const ProjectSwitcher: React.FC = () => {
     return (
         <div
             className="module module-project-switcher"
-            style={active?.color ? ({ '--project-accent': active.color } as React.CSSProperties) : undefined}
+            data-has-project={active ? 'true' : undefined}
+            style={
+                active
+                    ? ({
+                        '--project-accent': active.color || DEFAULT_PROJECT_COLOR,
+                        '--project-icon': iconMaskUrl(active.icon || DEFAULT_PROJECT_ICON),
+                    } as React.CSSProperties)
+                    : undefined
+            }
         >
             <tc-extended-select
                 ref={select}

@@ -3,5 +3,5 @@ export type {
     NotificationKind,
     NotificationsResult,
     PushSubscriptionDraft,
-} from '@appkit/api/contracts'
-export { notificationBadge } from '@appkit/api/contracts'
+} from '@webgame-cloud/api/contracts'
+export { notificationBadge } from '@webgame-cloud/api/contracts'

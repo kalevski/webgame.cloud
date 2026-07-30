@@ -13,7 +13,6 @@ export const MODAL = {
 
     REPORT_CONTENT: 'report-content',
 
-    CREATE_PROJECT: 'create-project',
 
     RESOLVE_REPORT: 'resolve-report',
 
@@ -33,11 +32,12 @@ export const MODAL = {
 
     PLAN_LIMIT: 'plan-limit',
 
-    EDIT_ASSET_TAGS: 'edit-asset-tags',
+    EDIT_ASSET: 'edit-asset',
+    DELETE_ASSET: 'delete-asset',
+    ASSET_CHILDREN: 'asset-children',
 
     BUNDLE_WIZARD: 'bundle-wizard',
     CREATE_CONFIG: 'create-config',
-    SCHEMA_EDITOR: 'schema-editor',
 
     CONTACT_SALES: 'contact-sales',
 

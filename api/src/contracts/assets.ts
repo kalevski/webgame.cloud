@@ -58,6 +58,7 @@ export type AssetPatch = {
     name?: string
     categoryId?: string | null
     tags?: string[]
+    parentAssetId?: string | null
 }
 
 export type FinalizeUpload = {

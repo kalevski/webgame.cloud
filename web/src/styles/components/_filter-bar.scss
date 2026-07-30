@@ -1,0 +1,199 @@
+@use '../abstracts' as *;
+
+.filter-bar {
+    --fb-line: var(--tc-border, #e3e0f2);
+    --fb-gutter: var(--tc-surface-muted, #fbfaff);
+    --fb-muted: var(--tc-text-muted, #5d5887);
+    --fb-ink: var(--tc-text, #1a1830);
+    --fb-accent: var(--tc-app-accent, #ff7e5f);
+    --fb-mono: var(--tc-font-mono, ui-monospace, SFMono-Regular, Menlo, monospace);
+    --fb-legend: 5.5rem;
+
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+
+    border: 1px solid var(--fb-line);
+    border-radius: $radius-md;
+    background: var(--tc-surface, #fff);
+    overflow: hidden;
+
+    @include down($bp-md) {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    &__rows {
+        display: flex;
+        flex-direction: column;
+        min-width: 0;
+    }
+
+    &__row {
+        display: grid;
+        grid-template-columns: var(--fb-legend) minmax(0, 1fr);
+        align-items: center;
+
+        border-bottom: 1px solid var(--fb-line);
+
+        &:last-child {
+            border-bottom: 0;
+        }
+
+        @include down($bp-md) {
+            grid-template-columns: minmax(0, 1fr);
+            align-items: stretch;
+        }
+    }
+
+    &__legend {
+        align-self: stretch;
+        display: flex;
+        align-items: center;
+
+        padding: $space-3;
+        border-right: 1px solid var(--fb-line);
+        background: var(--fb-gutter);
+
+        font-family: var(--fb-mono);
+        font-size: 0.625rem;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+        color: var(--fb-muted);
+
+        @include down($bp-md) {
+            padding: $space-2 $space-3;
+            border-right: 0;
+            border-bottom: 1px solid var(--fb-line);
+        }
+    }
+
+    &__chips {
+        display: flex;
+        align-items: center;
+        gap: $space-2;
+        flex-wrap: wrap;
+        min-width: 0;
+
+        padding: $space-3;
+    }
+
+    &__chip {
+        padding: 0;
+        border: 0;
+        background: none;
+        line-height: 1;
+        cursor: pointer;
+
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            gap: $space-2;
+
+            border: 1px solid transparent;
+            transition: background-color 120ms ease, border-color 120ms ease, color 120ms ease;
+        }
+
+        &[data-active='true'] .badge.text-bg-secondary {
+            background-color: var(--fb-accent) !important;
+            border-color: var(--fb-accent);
+            color: #fff !important;
+        }
+
+        &:hover[data-active='false'] .badge {
+            border-color: var(--fb-accent);
+        }
+    }
+
+    &__chip-count {
+        margin-left: 0.45em;
+        font-variant-numeric: tabular-nums;
+        opacity: 0.6;
+    }
+
+    &__control {
+        min-width: 0;
+        padding: $space-3;
+
+        > * {
+            display: block;
+            width: 100%;
+        }
+    }
+
+    &__readout {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-end;
+        justify-content: center;
+        gap: $space-1;
+
+        padding: $space-3 $space-4;
+        border-left: 1px solid var(--fb-line);
+        background: var(--fb-gutter);
+
+        @include down($bp-md) {
+            flex-direction: row;
+            align-items: center;
+            justify-content: space-between;
+
+            border-left: 0;
+            border-top: 1px solid var(--fb-line);
+        }
+    }
+
+    &__count {
+        display: flex;
+        align-items: baseline;
+        gap: $space-1;
+        margin: 0;
+
+        font-family: var(--fb-mono);
+        font-variant-numeric: tabular-nums;
+        white-space: nowrap;
+    }
+
+    &__matches {
+        font-size: 1.125rem;
+        font-weight: 600;
+        line-height: 1;
+        letter-spacing: -0.01em;
+        color: var(--fb-accent);
+
+        &--all {
+            color: var(--fb-ink);
+        }
+    }
+
+    &__of,
+    &__unit {
+        font-size: 0.625rem;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: var(--fb-muted);
+    }
+
+    &__clear {
+        padding: 0;
+        border: 0;
+        background: none;
+        cursor: pointer;
+
+        font-family: var(--fb-mono);
+        font-size: 0.625rem;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: var(--fb-muted);
+        text-decoration: underline;
+        text-underline-offset: 3px;
+
+        &:hover {
+            color: var(--fb-accent);
+        }
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+
+    .filter-bar__chip .badge {
+        transition: none;
+    }
+}

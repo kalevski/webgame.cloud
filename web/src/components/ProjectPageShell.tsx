@@ -10,12 +10,24 @@ import { Project } from 'types'
 type Props = {
     title: string
     subline?: (project: Project) => React.ReactNode
+    description?: string
+    iconName?: string
+    iconColor?: string
     action?: (project: Project) => React.ReactNode
     pipeline?: boolean
     children: (project: Project) => React.ReactNode
 }
 
-const ProjectPageShell: React.FC<Props> = ({ title, subline, action, pipeline = true, children }) => {
+const ProjectPageShell: React.FC<Props> = ({
+    title,
+    subline,
+    description,
+    iconName,
+    iconColor,
+    action,
+    pipeline = true,
+    children,
+}) => {
     const { id } = useParams()
     const projects = useStore((state) => state.projects)
     const projectsLoaded = useStore((state) => state.projectsLoaded)
@@ -38,7 +50,15 @@ const ProjectPageShell: React.FC<Props> = ({ title, subline, action, pipeline = 
         <section className="project-page">
             <ProjectLockBanner projectId={project.id} />
 
-            <ProjectHeader title={title} subline={subline?.(project)} action={action?.(project)} />
+            <ProjectHeader
+                title={title}
+                subline={subline?.(project)}
+                description={description}
+                action={action?.(project)}
+                project={project}
+                iconName={iconName}
+                iconColor={iconColor}
+            />
 
             {pipeline && <ProjectPipeline project={project} />}
 

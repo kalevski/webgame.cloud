@@ -68,11 +68,21 @@ type ModalWindowProps = {
     modalKey: string
     title: string | ((input: unknown) => string)
     size?: 'sm' | 'lg' | 'xl'
+    className?: string
+    scrollable?: boolean
     staticBackdrop?: boolean
     children: React.ReactNode
 }
 
-export const ModalWindow: FC<ModalWindowProps> = ({ modalKey, title, size, staticBackdrop, children }) => {
+export const ModalWindow: FC<ModalWindowProps> = ({
+    modalKey,
+    title,
+    size,
+    className,
+    scrollable,
+    staticBackdrop,
+    children,
+}) => {
     const { active, close } = useContext(ModalStateContext)
     const isOpen = active?.key === modalKey
     const isOpenRef = useRef(isOpen)
@@ -119,7 +129,9 @@ export const ModalWindow: FC<ModalWindowProps> = ({ modalKey, title, size, stati
         <tc-modal
             ref={modal}
             title={resolvedTitle}
+            className={className}
             size={size}
+            scrollable={scrollable || undefined}
             static-backdrop={staticBackdrop || undefined}
             centered
             lazy

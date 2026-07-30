@@ -1,0 +1,15 @@
+@use '../abstracts' as *;
+
+tc-extended-select[multiple] {
+    .tc-extended-select__option--selected.tc-extended-select__option--selected {
+        color: var(--bs-extended-select-option-color);
+
+        .tc-extended-select__option-label {
+            color: var(--bs-extended-select-option-color);
+        }
+
+        .tc-extended-select__option-desc {
+            color: var(--bs-extended-select-option-desc-color);
+        }
+    }
+}

@@ -80,7 +80,7 @@ INSERT INTO settings (key, value) VALUES ('role_slot_default', 'indie');
 INSERT INTO settings (key, value) VALUES ('signups_open', 'true');
 
 INSERT INTO settings (key, value) VALUES ('feature_billing', 'true');
-INSERT INTO settings (key, value) VALUES ('feature_email', 'false');
+INSERT INTO settings (key, value) VALUES ('feature_email', 'true');
 
 INSERT INTO settings (key, value) VALUES ('email_provider', 'log');
 INSERT INTO settings (key, value) VALUES ('email_from_name', 'WebGame Cloud');

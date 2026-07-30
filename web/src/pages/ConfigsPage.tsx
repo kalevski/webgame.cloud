@@ -24,12 +24,7 @@ const ConfigsPage: React.FC = () => {
     const openCreate = useModalOpen<boolean, string>(MODAL.CREATE_CONFIG, () => {
         if (activeProjectId) void fetchConfigs(activeProjectId)
     })
-    const openSchema = useModalOpen<boolean, { projectId: string; schemaId: string | null }>(
-        MODAL.SCHEMA_EDITOR,
-        () => {
-            if (activeProjectId) void fetchSchemas(activeProjectId)
-        }
-    )
+    const createSchema = useStore((state) => state.createSchema)
 
     useEffect(() => {
         setPageTitle(t.configs.title)
@@ -45,6 +40,9 @@ const ConfigsPage: React.FC = () => {
         <AuthGuard secured>
             <ProjectPageShell
                 title={t.configs.title}
+                description={t.configs.pageDescription}
+                iconName="Sliders"
+                iconColor="pink"
                 subline={() => (
                     <>
                         <strong>{configs.length}</strong>
@@ -60,7 +58,7 @@ const ConfigsPage: React.FC = () => {
                             disabled={activeTab === 'configs' && schemas.length === 0 ? true : undefined}
                             onClick={() => {
                                 if (activeTab === 'configs') openCreate(project.id)
-                                else openSchema({ projectId: project.id, schemaId: null })
+                                else void createSchema(project.id)
                             }}
                         >
                             {activeTab === 'configs' ? t.configs.createConfig : t.configs.createSchema}

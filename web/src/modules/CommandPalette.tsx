@@ -8,9 +8,7 @@ import useFeature from 'hooks/useFeature'
 import { useResourceLimits } from 'hooks/useCan'
 import { useLimitLock } from 'hooks/useLock'
 import { PROJECT_LIMIT_ENTITLEMENT } from 'configs/entitlements'
-import { MODAL, useModalOpen } from 'modals'
 import { useTc } from '@toolcase/web-components/react'
-import { Project } from 'types'
 
 type PaletteItem = {
     id: string
@@ -53,6 +51,9 @@ const CommandPalette: React.FC = () => {
     const canReadInvoices = useCan('invoice.read')
     const canReadEnquiries = useCan('enquiry.read')
     const canReadEmail = useCan('email.outbox.read')
+    const canReadAdminProjects = useCan('admin.project.read')
+    const canReadUsers = useCan('admin.user.read')
+    const canReadRealms = useCan('realm.read')
     const billingEnabled = useFeature('billing')
     const emailEnabled = useFeature('email')
 
@@ -63,7 +64,6 @@ const CommandPalette: React.FC = () => {
     const currentProjectId = projectIdFromPath(pathname)
     const currentProject = projects.find((project) => project.id === currentProjectId) ?? null
 
-    const openCreateProject = useModalOpen<Project>(MODAL.CREATE_PROJECT)
 
     useEffect(() => {
         const onKey = (event: KeyboardEvent) => {
@@ -100,6 +100,23 @@ const CommandPalette: React.FC = () => {
 
         if (emailEnabled && canReadEmail) {
             entries.push({ id: 'nav:/platform/email', label: c.openEmail, group: c.groupGo, icon: 'mail' })
+        }
+
+        if (canReadAdminProjects) {
+            entries.push({
+                id: 'nav:/platform/projects',
+                label: c.openPlatformProjects,
+                group: c.groupGo,
+                icon: 'folder-kanban',
+            })
+        }
+
+        if (canReadUsers) {
+            entries.push({ id: 'nav:/platform/users', label: c.openPlatformUsers, group: c.groupGo, icon: 'users' })
+        }
+
+        if (canReadRealms) {
+            entries.push({ id: 'nav:/platform/realms', label: c.openRealms, group: c.groupGo, icon: 'server' })
         }
 
         if (canReadAdmin) {
@@ -151,6 +168,9 @@ const CommandPalette: React.FC = () => {
         projects,
         currentProject,
         canReadAdmin,
+        canReadAdminProjects,
+        canReadUsers,
+        canReadRealms,
         canModerate,
         canReadInvoices,
         canReadEnquiries,
@@ -176,7 +196,7 @@ const CommandPalette: React.FC = () => {
         }
         if (item.id === 'action:new-project') {
             if (lock.locked || reached) lock.open()
-            else openCreateProject()
+            else navigate('/projects/new')
         }
     }
 

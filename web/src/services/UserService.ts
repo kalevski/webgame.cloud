@@ -1,5 +1,5 @@
 import { apiFetch } from 'helpers/api'
-import { AdminOverview, PlatformSettings, User, UserRole } from 'types'
+import { AdminOverview, AdminUserProfile, PlatformSettings, User, UserRole } from 'types'
 
 class UserService {
     private static instance: UserService
@@ -12,6 +12,10 @@ class UserService {
 
     async fetchUsers(): Promise<User[]> {
         return apiFetch<User[]>('/api/users')
+    }
+
+    async fetchProfile(id: string): Promise<AdminUserProfile> {
+        return apiFetch<AdminUserProfile>(`/api/users/${encodeURIComponent(id)}/profile`)
     }
 
     async createUser(draft: { email: string; name?: string; role?: UserRole }): Promise<User> {

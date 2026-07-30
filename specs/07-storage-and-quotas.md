@@ -259,7 +259,7 @@ Ceilings per plan are the seed table above. Paid entitlement mapping: `PROJECT_L
 ## Verification
 
 1. `npm run typecheck` — the partitioned `Record` types fail loudly if a `count-*.sql` is missing.
-2. `dropdb starter && npm run migrate`; `npm run status -w @appkit/migrations`.
+2. `dropdb starter && npm run migrate`; `npm run status -w @webgame-cloud/migrations`.
 3. `curl -s localhost:6000/api/account/usage -b cookie | jq '.data'` → five resources, `storage_mb`
    with `used` in MB.
 4. Seed a user on `indie`, upload 90 MB, then attempt a 20 MB batch: expect `200` with the

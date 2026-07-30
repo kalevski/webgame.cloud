@@ -48,6 +48,11 @@ type AdvancedTableProps = {
     onRowAction?: (action: string, id: string, value?: string) => void
 }
 
+const useStableValue = <T,>(value: T): T => {
+    const signature = JSON.stringify(value ?? null)
+    return React.useMemo(() => value, [signature])
+}
+
 const AdvancedTable: React.FC<AdvancedTableProps> = ({
     columns,
     rows,
@@ -68,16 +73,16 @@ const AdvancedTable: React.FC<AdvancedTableProps> = ({
 }) => {
     const table = useTc<HTMLElement>(
         {
-            columns,
+            columns: useStableValue(columns),
             rows,
             total,
             offset,
             limit,
             loading,
-            filters,
-            filterValues,
-            sortableColumns,
-            sort,
+            filters: useStableValue(filters),
+            filterValues: useStableValue(filterValues),
+            sortableColumns: useStableValue(sortableColumns),
+            sort: useStableValue(sort),
             onFilterChange: (key: string, value: string) => onFilterChange?.(key, value),
             onSortChange: (next: AdvancedTableSort | null) => onSortChange?.(next),
             onPageChange: (nextOffset: number) => onPageChange?.(nextOffset),

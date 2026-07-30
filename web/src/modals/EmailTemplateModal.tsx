@@ -72,7 +72,7 @@ const EmailTemplateModal: React.FC = () => {
     }
 
     const preview = body
-        .replace(/\{\{\s*workspace\s*\}\}/g, 'AppKit')
+        .replace(/\{\{\s*workspace\s*\}\}/g, 'WebGame Cloud')
         .replace(/\{\{\s*recipientName\s*\}\}/g, 'Ada Lovelace')
         .replace(/\{\{\s*recipientEmail\s*\}\}/g, 'ada@example.com')
         .replace(/\{\{\s*actorName\s*\}\}/g, 'Ada Lovelace')

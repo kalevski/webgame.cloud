@@ -29,10 +29,10 @@ const ConfigEditor: React.FC<Props> = ({ project }) => {
     const configsLoaded = useStore((state) => state.configsLoaded)
     const schemas = useStore((state) => state.schemas)
     const activeVersion = useStore((state) => state.activeVersion)
-    const vocabularies = useStore((state) => state.vocabularies)
+    const categoriesAndTags = useStore((state) => state.categoriesAndTags)
     const fetchConfigs = useStore((state) => state.fetchConfigs)
     const fetchSchemas = useStore((state) => state.fetchSchemas)
-    const fetchVocabularies = useStore((state) => state.fetchVocabularies)
+    const fetchCategoriesAndTags = useStore((state) => state.fetchCategoriesAndTags)
     const fetchVersion = useStore((state) => state.fetchVersion)
     const saveVersion = useStore((state) => state.saveVersion)
     const deleteConfig = useStore((state) => state.deleteConfig)
@@ -47,8 +47,8 @@ const ConfigEditor: React.FC<Props> = ({ project }) => {
     useEffect(() => {
         void fetchConfigs(project.id)
         void fetchSchemas(project.id)
-        void fetchVocabularies(project.id)
-    }, [project.id, fetchConfigs, fetchSchemas, fetchVocabularies])
+        void fetchCategoriesAndTags(project.id)
+    }, [project.id, fetchConfigs, fetchSchemas, fetchCategoriesAndTags])
 
     useEffect(() => {
         if (!selectedId && configs.length > 0) setSelectedId(configs[0].id)
@@ -72,7 +72,7 @@ const ConfigEditor: React.FC<Props> = ({ project }) => {
     }))
 
     const tabItems: TcTabItem[] = useMemo(() => {
-        const tags = vocabularies?.buildTags ?? []
+        const tags = categoriesAndTags?.buildTags ?? []
         return [
             { key: DEFAULT_TAB, label: c.defaultTab },
             ...tags.map((tag) => ({
@@ -82,7 +82,7 @@ const ConfigEditor: React.FC<Props> = ({ project }) => {
                     : tag.name,
             })),
         ]
-    }, [vocabularies, selected, c.defaultTab])
+    }, [categoriesAndTags, selected, c.defaultTab])
 
     const actions: TcActionHeaderAction[] = canWrite
         ? [

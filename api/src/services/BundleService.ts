@@ -42,7 +42,7 @@ export class BundleService {
         const name = draft.name?.trim() ?? ''
         if (!name) throw new ValidationError('bundle_name_required', 'a bundle needs a name')
 
-        await this.assertVocabulary(project.id, draft)
+        await this.assertKnownTags(project.id, draft)
         await this.access.assertWithinProjectLimit(
             { id: project.id, ownerId: project.owner_id },
             'bundles_per_project'
@@ -59,7 +59,7 @@ export class BundleService {
         draft: Partial<BundleDraft>
     ): Promise<Result<Bundle, BundleConflict>> {
         const existing = await this.find(project.id, bundleId)
-        await this.assertVocabulary(project.id, draft)
+        await this.assertKnownTags(project.id, draft)
 
         const merged = {
             name: draft.name?.trim() || existing.name,
@@ -127,10 +127,10 @@ export class BundleService {
         }
     }
 
-    private async assertVocabulary(projectId: string, draft: Partial<BundleDraft>): Promise<void> {
+    private async assertKnownTags(projectId: string, draft: Partial<BundleDraft>): Promise<void> {
         const names = [...(draft.includedTags ?? []), ...(draft.excludedTags ?? [])]
         if (names.length > 0) {
-            const tags = await this.projects.listVocabulary('tags', projectId)
+            const tags = await this.projects.listNames('tags', projectId)
             const known = new Set(tags.map((row) => row.name.toLowerCase()))
             for (const name of names) {
                 if (!known.has(name.toLowerCase())) {
@@ -140,7 +140,7 @@ export class BundleService {
         }
 
         if (draft.buildTag) {
-            const buildTags = await this.projects.listVocabulary('buildTags', projectId)
+            const buildTags = await this.projects.listNames('buildTags', projectId)
             const known = new Set(buildTags.map((row) => row.name.toLowerCase()))
             if (!known.has(draft.buildTag.toLowerCase())) {
                 throw new ValidationError('unknown_build_tag', 'that build tag is not in this project', [draft.buildTag])
@@ -148,7 +148,7 @@ export class BundleService {
         }
 
         if (draft.categoryId) {
-            const categories = await this.projects.listVocabulary('categories', projectId)
+            const categories = await this.projects.listNames('categories', projectId)
             if (!categories.some((row) => row.id === draft.categoryId)) {
                 throw new ConflictError('unknown_category', 'that category is not in this project', [draft.categoryId])
             }

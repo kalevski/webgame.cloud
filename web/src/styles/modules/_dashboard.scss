@@ -6,11 +6,7 @@
     gap: $space-5;
 
     &__head {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: $space-3;
-        flex-wrap: wrap;
+        display: block;
     }
 
     &__greeting {
@@ -39,8 +35,6 @@
     &__panel {
         display: flex;
         flex-direction: column;
-        gap: $space-2;
-        padding: $space-4;
     }
 
     &__panel-head {
@@ -120,5 +114,17 @@
         color: $text-muted;
         font-size: 0.75rem;
         white-space: nowrap;
+    }
+
+    &__invite {
+        cursor: default;
+    }
+
+    &__invite-actions {
+        display: flex;
+        align-items: center;
+        gap: $space-2;
+        margin-left: auto;
+        flex-shrink: 0;
     }
 }
