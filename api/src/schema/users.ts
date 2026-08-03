@@ -1,4 +1,4 @@
-import type { OAuthProvider, User, UserIdentity, UserRole } from '../contracts/index.js'
+import type { OAuthProvider, ServiceAccount, User, UserIdentity, UserKind, UserRole } from '../contracts/index.js'
 
 export type UserRow = {
     id: string
@@ -6,6 +6,7 @@ export type UserRow = {
     name: string
     picture: string
     role: UserRole
+    kind: UserKind
     active: boolean
     verified: boolean
     consented_at: Date | null
@@ -18,9 +19,25 @@ export const toUser = (row: UserRow): User => ({
     name: row.name,
     picture: row.picture,
     role: row.role,
+    kind: row.kind,
     active: row.active,
     verified: row.verified,
     consentedAt: row.consented_at?.toISOString() ?? null,
+    createdAt: row.created_at.toISOString(),
+})
+
+export type ServiceAccountRow = UserRow & {
+    key_count: string
+    last_used_at: Date | null
+}
+
+export const toServiceAccount = (row: ServiceAccountRow): ServiceAccount => ({
+    id: row.id,
+    name: row.name,
+    role: row.role,
+    active: row.active,
+    keyCount: Number(row.key_count),
+    lastUsedAt: row.last_used_at?.toISOString() ?? null,
     createdAt: row.created_at.toISOString(),
 })
 

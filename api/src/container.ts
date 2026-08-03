@@ -31,6 +31,7 @@ import { PlatformRepository } from './repositories/platform/PlatformRepository.j
 import { AuthTokenRepository } from './repositories/auth/AuthTokenRepository.js'
 import { MagicLinkService } from './services/MagicLinkService.js'
 import { ApiKeyService } from './services/ApiKeyService.js'
+import { ServiceAccountService } from './services/ServiceAccountService.js'
 import { SigningKeyService } from './services/SigningKeyService.js'
 import { AccountRepository } from './repositories/account/AccountRepository.js'
 import { AccountService } from './services/AccountService.js'
@@ -63,6 +64,13 @@ import { IdentityRepository } from './repositories/users/IdentityRepository.js'
 import { SessionRepository } from './repositories/users/SessionRepository.js'
 import { AuthService } from './services/AuthService.js'
 import { UserService } from './services/UserService.js'
+import { TicketRepository } from './repositories/tickets/TicketRepository.js'
+import { TicketMessageRepository } from './repositories/tickets/TicketMessageRepository.js'
+import { TicketService } from './services/TicketService.js'
+import { FrameTemplateRepository } from './repositories/designs/FrameTemplateRepository.js'
+import { VideoTemplateRepository } from './repositories/designs/VideoTemplateRepository.js'
+import { DesignRepository } from './repositories/designs/DesignRepository.js'
+import { DesignService } from './services/DesignService.js'
 
 const container = globalContainer.createChildContainer()
 
@@ -143,7 +151,17 @@ container.registerSingleton(PlatformRepository, PlatformRepository)
 container.registerSingleton(AuthTokenRepository, AuthTokenRepository)
 container.registerSingleton(MagicLinkService, MagicLinkService)
 container.registerSingleton(ApiKeyService, ApiKeyService)
+container.registerSingleton(ServiceAccountService, ServiceAccountService)
 
 container.registerSingleton(SigningKeyService, SigningKeyService)
+
+container.registerSingleton(TicketRepository, TicketRepository)
+container.registerSingleton(TicketMessageRepository, TicketMessageRepository)
+container.registerSingleton(TicketService, TicketService)
+
+container.registerSingleton(FrameTemplateRepository, FrameTemplateRepository)
+container.registerSingleton(VideoTemplateRepository, VideoTemplateRepository)
+container.registerSingleton(DesignRepository, DesignRepository)
+container.registerSingleton(DesignService, DesignService)
 
 export default container

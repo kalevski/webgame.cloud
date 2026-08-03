@@ -47,6 +47,9 @@ const DEFAULT_UNLIMITED: ResolvedLimits = Object.fromEntries(
 export const INTERNAL_SOFT_CAPS: Record<LimitableResource, number> = {
     projects: 100,
     storage_mb: 1_048_576,
+    tickets: 1_000,
+    design_templates: 500,
+    designs: 5_000,
     bundles_per_project: 1_000,
     configs_per_project: 10_000,
     members_per_project: 500,

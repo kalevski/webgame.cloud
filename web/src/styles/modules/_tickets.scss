@@ -1,0 +1,314 @@
+@use '../abstracts' as *;
+
+@mixin tk-mono {
+    font-family: var(--tc-font-mono, ui-monospace, SFMono-Regular, Menlo, monospace);
+    font-size: 0.6875rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    font-variant-numeric: tabular-nums;
+}
+
+.module-tickets,
+.module-ticket-queue,
+.module-ticket-thread {
+    --tk-open: #b45309;
+    --tk-in_progress: #{$brand};
+    --tk-waiting_on_user: var(--tc-text-muted, #71717a);
+    --tk-resolved: #097f74;
+    --tk-closed: var(--tc-text-muted, #a1a1aa);
+    --tk-internal: #b45309;
+}
+
+.module-tickets {
+    &__list {
+        display: flex;
+        flex-direction: column;
+        gap: $space-sm;
+    }
+
+    &__empty-hint {
+        max-width: 44ch;
+        margin: 0;
+        color: var(--tc-text-muted);
+        font-size: 0.875rem;
+        line-height: 1.5;
+    }
+}
+
+.ticket-row {
+    --tk-state: var(--tk-closed);
+
+    display: grid;
+    grid-template-columns: 1fr auto;
+    align-items: center;
+    gap: $space-md $space-lg;
+
+    padding: $space-md $space-md $space-md $space-lg;
+    border: 1px solid var(--tc-border-color);
+    border-left: 3px solid var(--tk-state);
+    border-radius: 0 $radius-md $radius-md 0;
+
+    color: inherit;
+    text-decoration: none;
+
+    transition:
+        border-color 160ms ease,
+        background-color 160ms ease,
+        transform 160ms ease;
+
+    &:hover {
+        background: var(--tc-surface-2, transparent);
+        border-left-color: var(--tk-state);
+        transform: translateX(2px);
+    }
+
+    &:focus-visible {
+        outline: 2px solid $focus-ring-color;
+        outline-offset: 2px;
+    }
+
+    @include down($bp-sm) {
+        grid-template-columns: 1fr;
+    }
+
+    &__main {
+        min-width: 0;
+    }
+
+    &__subject {
+        display: block;
+        margin-bottom: $space-2xs;
+
+        font-size: 0.9375rem;
+        font-weight: 600;
+        line-height: 1.35;
+        overflow-wrap: anywhere;
+    }
+
+    &__meta {
+        @include tk-mono;
+
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: $space-2xs $space-sm;
+        color: var(--tc-text-muted);
+    }
+
+    &__side {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-end;
+        gap: $space-2xs;
+        flex-shrink: 0;
+
+        @include down($bp-sm) {
+            align-items: flex-start;
+        }
+    }
+
+    &__age {
+        @include tk-mono;
+
+        color: var(--tc-text-muted);
+    }
+}
+
+.ticket-state {
+    @include tk-mono;
+
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4em;
+    color: var(--tk-state);
+    font-weight: 600;
+
+    &::before {
+        content: '';
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        background: var(--tk-state);
+        flex-shrink: 0;
+    }
+}
+
+.module-ticket-queue {
+    &__summary {
+        display: flex;
+        flex-wrap: wrap;
+        gap: $space-md $space-lg;
+
+        padding-bottom: $space-md;
+        border-bottom: 1px solid var(--tc-border-color);
+    }
+
+    &__count {
+        @include tk-mono;
+
+        display: inline-flex;
+        align-items: baseline;
+        gap: 0.45em;
+        color: var(--tc-text-muted);
+
+        &::before {
+            content: '';
+            align-self: center;
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            background: var(--tk-state);
+            flex-shrink: 0;
+        }
+
+        b {
+            font-weight: 600;
+            font-size: 0.875rem;
+            letter-spacing: 0;
+            color: var(--tc-text);
+        }
+
+        &[data-empty='true'] {
+            opacity: 0.45;
+        }
+    }
+}
+
+.module-ticket-thread {
+    &__summary {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: $space-sm $space-lg;
+    }
+
+    &__opened {
+        @include tk-mono;
+
+        color: var(--tc-text-muted);
+    }
+
+    &__manage {
+        display: flex;
+        align-items: flex-end;
+        gap: $space-lg;
+        flex-wrap: wrap;
+
+        padding-bottom: $space-md;
+        border-bottom: 1px solid var(--tc-border-color);
+    }
+
+    &__assignee {
+        display: flex;
+        align-items: center;
+        gap: $space-sm;
+        flex-wrap: wrap;
+    }
+
+    &__assignee-name {
+        font-size: 0.875rem;
+    }
+
+    &__messages {
+        position: relative;
+        padding-left: $space-lg;
+
+        &::before {
+            content: '';
+            position: absolute;
+            top: 0.4rem;
+            bottom: 0.4rem;
+            left: 3px;
+            width: 1px;
+            background: var(--tc-border-color);
+        }
+    }
+
+    &__reply {
+        padding-top: $space-md;
+        border-top: 1px solid var(--tc-border-color);
+    }
+}
+
+.ticket-message {
+    --tk-state: var(--tk-waiting_on_user);
+
+    position: relative;
+    padding: 0 0 $space-xl;
+
+    &:last-child {
+        padding-bottom: 0;
+    }
+
+    &::before {
+        content: '';
+        position: absolute;
+        top: 0.3rem;
+        left: calc(-1 * #{$space-lg});
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        background: var(--tk-state);
+        box-shadow: 0 0 0 3px var(--tc-surface, #fff);
+    }
+
+    &[data-role='moderator'] {
+        --tk-state: #{$brand};
+    }
+
+    &[data-internal='true'] {
+        --tk-state: var(--tk-internal);
+
+        &::before {
+            background: var(--tc-surface, #fff);
+            box-shadow:
+                0 0 0 3px var(--tc-surface, #fff),
+                inset 0 0 0 2px var(--tk-state);
+        }
+    }
+
+    &__head {
+        @include tk-mono;
+
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 0.45em $space-sm;
+        margin-bottom: $space-xs;
+        color: var(--tc-text-muted);
+    }
+
+    &__author {
+        font-weight: 600;
+    }
+
+    &__role {
+        color: var(--tk-state);
+    }
+
+    &__body {
+        margin: 0;
+        max-width: 68ch;
+
+        white-space: pre-wrap;
+        overflow-wrap: anywhere;
+        line-height: 1.6;
+    }
+
+    &[data-internal='true'] &__body {
+        padding: $space-sm $space-md;
+        border-left: 2px solid var(--tk-state);
+        background: var(--tc-surface-2, transparent);
+        border-radius: 0 $radius-sm $radius-sm 0;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .ticket-row {
+        transition: none;
+
+        &:hover {
+            transform: none;
+        }
+    }
+}

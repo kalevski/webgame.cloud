@@ -17,12 +17,16 @@ import { useModalClose, useModalInput, useModalIsOpen } from './registry'
 
 type ValueElement = HTMLElement & { value?: unknown }
 
+export type ManageAccessTarget = Pick<User, 'id' | 'name' | 'email' | 'role' | 'verified'>
+
 export type ManageAccessInput = {
-    user: User
+    user: ManageAccessTarget
 
     activeOwners: number
 
     clientCount: number
+
+    scope?: 'user' | 'service'
 }
 
 export type ManageAccessResult = {
@@ -103,16 +107,25 @@ const ManageAccessModal: React.FC = () => {
     const isOpen = useModalIsOpen(MODAL.MANAGE_ACCESS)
     const input = useModalInput<ManageAccessInput>(MODAL.MANAGE_ACCESS)
     const user = input?.user
+    const isService = input?.scope === 'service'
 
     const [draft, dispatch] = useReducer(accessReducer, EMPTY_DRAFT)
     const fetchUserAccess = useStore((state) => state.fetchUserAccess)
+    const fetchServiceAccountAccess = useStore((state) => state.fetchServiceAccountAccess)
 
     const roles = useStore((state) => state.roles)
     const accessPolicy = useStore((state) => state.accessPolicy)
     const fetchAccessPolicy = useStore((state) => state.fetchAccessPolicy)
 
+    const roleItems = useMemo(
+        () => roles.flatMap((entry) => (isService && entry.id === OWNER_ROLE_ID
+            ? []
+            : [{ key: entry.id, label: entry.name }])),
+        [roles, isService]
+    )
+
     const roleSelect = useTc<ValueElement>({
-        items: roles.map((entry) => ({ key: entry.id, label: entry.name })),
+        items: roleItems,
         onChange: (next: string) => dispatch({ type: 'setRole', role: next as UserRole }),
     })
 
@@ -203,7 +216,8 @@ const ManageAccessModal: React.FC = () => {
         dispatch({ type: 'reset', role: user.role, verified: user.verified })
 
         let stale = false
-        void fetchUserAccess(user.id).then((payload) => {
+        const load = isService ? fetchServiceAccountAccess : fetchUserAccess
+        void load(user.id).then((payload) => {
             if (!payload || stale) return
             dispatch({
                 type: 'accessLoaded',
@@ -217,7 +231,7 @@ const ManageAccessModal: React.FC = () => {
         return () => {
             stale = true
         }
-    }, [isOpen, user, fetchUserAccess])
+    }, [isOpen, user, isService, fetchUserAccess, fetchServiceAccountAccess])
 
     const promotingToOwner = draft.role === OWNER_ROLE_ID && user?.role !== OWNER_ROLE_ID
     const lastOwner = user?.role === OWNER_ROLE_ID && draft.role !== OWNER_ROLE_ID && (input?.activeOwners ?? 0) <= 1
@@ -236,12 +250,12 @@ const ManageAccessModal: React.FC = () => {
     return (
         <>
             <div className="modal-access">
-                <p className="modal-access__who">{user ? user.name || user.email : ''}</p>
+                <p className="modal-access__who">{user ? user.name || (isService ? '' : user.email) : ''}</p>
 
                 <tc-label>{s.roleLabel}</tc-label>
                 <tc-extended-select ref={roleSelect} placeholder={s.roleLabel}></tc-extended-select>
 
-                {user && (
+                {user && !isService && (
                     <tc-switch
                         checked={draft.verified || undefined}
                         label={s.verifiedLabel}

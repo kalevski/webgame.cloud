@@ -157,6 +157,9 @@ export class AuthService {
         }
 
         const byEmail = await this.users.findByEmail(profile.email)
+        if (byEmail?.kind === 'service') {
+            throw new ConflictError('service_account_login', 'service accounts cannot sign in')
+        }
         let user: User
         if (byEmail) {
             user = (await this.users.touchProfile(byEmail.id, {
@@ -180,6 +183,9 @@ export class AuthService {
 
     async resolveDevUser(email: string, name: string): Promise<User> {
         const existing = await this.users.findByEmail(email)
+        if (existing?.kind === 'service') {
+            throw new ConflictError('service_account_login', 'service accounts cannot sign in')
+        }
         if (existing) {
             const touched = await this.users.touchProfile(existing.id, {
                 name,

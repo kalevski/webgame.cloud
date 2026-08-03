@@ -29,7 +29,7 @@ Keys are grouped by their first dot segment; the admin UI groups the chips by th
 | --- | --- | --- |
 | `project` / `task` | `project.write`, `project.share`, `project.export`, `task.write` | the example feature (`projectRouter`) |
 | `moderation` / `audit` | `moderation.queue.read`, `moderation.report.resolve`, `audit.read` | `/moderation`, the audit log |
-| `admin` | `admin.overview.read`, `admin.user.read`, `admin.user.role.write`, `admin.user.impersonate`, `admin.role.read`, `admin.role.write`, `admin.settings.read`, `admin.settings.write`, `admin.feature.write` | the `/admin/*` tabs: overview, users, *Access & limits* (roles, limits, slots), *Settings* (platform settings, product flags) |
+| `admin` | `admin.overview.read`, `admin.user.read`, `admin.user.role.write`, `admin.user.impersonate`, `admin.role.read`, `admin.role.write`, `admin.settings.read`, `admin.settings.write`, `admin.feature.write`, `admin.service.read`, `admin.service.write` | the `/admin/*` tabs: overview, users, *Access & limits* (roles, limits, slots), *Settings* (platform settings, product flags), *Service accounts* (see service-accounts.md) |
 | `billing` | `billing.plan.read`, `billing.plan.write`, `billing.subscription.read`, `billing.subscription.write` | plan CRUD and reading/setting any account's subscription |
 | `invoice` | `invoice.read`, `invoice.write` | `/platform/invoices` and invoice create / mark-paid / void |
 | `enquiry` | `enquiry.read`, `enquiry.write` | `/platform/enquiries`, its audit trail, and recording actions on an enquiry |
@@ -48,6 +48,10 @@ role's permission set (role_permissions)  →  per-user deltas (user_permissions
 Two things are applied OUTSIDE the data so no admin-writable row can violate them:
 - an inactive account resolves to the empty set;
 - `owner` resolves to the whole catalog minus `ACCOUNT_SHAPED`, **computed, never stored** — a permission added tomorrow is owner-granted the moment it exists.
+
+A service account resolves through this exact path — it is a `users` row with `kind = 'service'`, so its role
+grant and its `user_permissions` deltas are read by the same `resolvePermissions` (see service-accounts.md).
+Only the owner role is barred from it.
 
 Limits resolve the same way (`role_limits` → `user_limit_overrides`). `AccessPolicyService.assertWithinLimit(user, resource)` is the single enforcement point; it throws a `409 limit_reached`.
 

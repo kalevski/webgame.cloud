@@ -28,6 +28,9 @@ One file per feature area. Jump to the focused doc instead of re-reading the cod
 | [pagination.md](pagination.md) | Offset vs cursor (keyset) paging, the `(created_at, id)` total order, and which endpoints support which. |
 | [database-conventions.md](database-conventions.md) | The rules every table obeys — `created_at`/`updated_at`/`deleted_at`, soft delete instead of `DELETE`, partial indexes, revive-on-conflict inserts. |
 | [api-keys.md](api-keys.md) | Bearer tokens for scripts and integrations — scopes intersected with the owner's live permissions. |
+| [service-accounts.md](service-accounts.md) | Machine identities other applications authenticate as — a `kind = 'service'` user row with its own role, per-account permission overrides and API keys. |
+| [tickets.md](tickets.md) | Support tickets — a developer opens one, staff work a shared queue, both sides reply in a thread, behind the `tickets` flag and quota. |
+| [design-studio.md](design-studio.md) | Frame templates, video templates and the designs built from them — a phone-to-desktop editor shell (tool rail, canvas, inspector, timeline), fields bound to a data-source registry, PNG/video export and file storage, behind the `designs` flag. |
 | [signing-keys.md](signing-keys.md) | The other direction — RSA key pairs this workspace signs outbound JWTs with, auto-generated at boot, rotatable from the admin UI. |
 | [webhooks.md](webhooks.md) | Outbound HMAC-signed delivery of audited actions, retried on the job queue. |
 | [platform-hardening.md](platform-hardening.md) | Security headers, CSRF origin guard, rate limits, idempotency keys, health/ready/version and cross-instance cache invalidation. |

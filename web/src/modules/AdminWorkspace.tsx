@@ -10,6 +10,7 @@ import PlatformSettingsPanel from 'modules/PlatformSettingsPanel'
 import FeatureFlagsPanel from 'modules/FeatureFlagsPanel'
 import AccessPolicyAdmin from 'modules/AccessPolicyAdmin'
 import ApiKeysAdmin from 'modules/ApiKeysAdmin'
+import ServiceAccountsAdmin from 'modules/ServiceAccountsAdmin'
 import WebhooksAdmin from 'modules/WebhooksAdmin'
 import FilesAdmin from 'modules/FilesAdmin'
 import RetentionAdmin from 'modules/RetentionAdmin'
@@ -22,6 +23,7 @@ type AdminTab =
     | 'access'
     | 'settings'
     | 'api-keys'
+    | 'service-accounts'
     | 'webhooks'
     | 'files'
     | 'jobs'
@@ -41,6 +43,7 @@ const AdminWorkspace: React.FC = () => {
     const canReadAssetSources = useCan('file.source.read')
     const canReadJobs = useCan('job.read')
     const canReadSigningKeys = useCan('signing.key.read')
+    const canReadServiceAccounts = useCan('admin.service.read')
     const filesEnabled = useFeature('files')
 
     const tabs = [
@@ -50,6 +53,7 @@ const AdminWorkspace: React.FC = () => {
         ...(canReadRoles ? [{ id: 'access', label: t.accessAdmin.tab, icon: 'lock', path: '/admin/access' }] : []),
         ...(canReadSettings ? [{ id: 'settings', label: t.admin.tabSettings, icon: 'settings', path: '/admin/settings' }] : []),
         { id: 'api-keys', label: t.apiKeys.tab, icon: 'key', path: '/admin/api-keys' },
+        ...(canReadServiceAccounts ? [{ id: 'service-accounts', label: t.serviceAccounts.tab, icon: 'bot', path: '/admin/service-accounts' }] : []),
         ...(canReadWebhooks ? [{ id: 'webhooks', label: t.webhooks.tab, icon: 'webhook', path: '/admin/webhooks' }] : []),
         ...(filesEnabled && canReadAssetSources ? [{ id: 'files', label: t.files.tab, icon: 'database', path: '/admin/files' }] : []),
         ...(canReadJobs ? [{ id: 'jobs', label: t.jobs.tab, icon: 'calendar-clock', path: '/admin/jobs' }] : []),
@@ -76,6 +80,7 @@ const AdminWorkspace: React.FC = () => {
                 {tab === 'users' && <UsersAdmin />}
                 {tab === 'access' && <AccessPolicyAdmin />}
                 {tab === 'api-keys' && <ApiKeysAdmin />}
+                {tab === 'service-accounts' && <ServiceAccountsAdmin />}
                 {tab === 'webhooks' && <WebhooksAdmin />}
                 {tab === 'files' && <FilesAdmin />}
                 {tab === 'jobs' && <JobsAdmin />}

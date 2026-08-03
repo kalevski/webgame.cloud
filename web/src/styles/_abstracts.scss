@@ -29,6 +29,12 @@ $bp-lg: 992px;
     }
 }
 
+@mixin up($breakpoint) {
+    @media (min-width: #{$breakpoint}) {
+        @content;
+    }
+}
+
 @mixin coarse-pointer {
     @media (pointer: coarse) {
         @content;

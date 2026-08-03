@@ -33,12 +33,16 @@ import { filesRouter } from './routers/filesRouter.js'
 import { signingRouter } from './routers/signingRouter.js'
 import { authRouter } from './routers/authRouter.js'
 import { userRouter } from './routers/userRouter.js'
+import { serviceAccountRouter } from './routers/serviceAccountRouter.js'
+import { ticketRouter } from './routers/ticketRouter.js'
+import { designRouter } from './routers/designRouter.js'
 
 const ROUTE_PLUGINS = [
     healthRouter,
     authRouter,
     accountRouter,
     userRouter,
+    serviceAccountRouter,
     accessPolicyRouter,
     notificationRouter,
     moderationRouter,
@@ -51,6 +55,8 @@ const ROUTE_PLUGINS = [
     buildRouter,
     configRouter,
     translationRouter,
+    ticketRouter,
+    designRouter,
     publicGameRouter,
     publicWaitlistRouter,
     waitlistRouter,

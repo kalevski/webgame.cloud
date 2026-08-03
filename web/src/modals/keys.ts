@@ -9,6 +9,12 @@ export const MODAL = {
 
     CREATE_USER: 'create-user',
 
+    CREATE_SERVICE_ACCOUNT: 'create-service-account',
+
+    CREATE_TICKET: 'create-ticket',
+
+    PICK_TEMPLATE: 'pick-template',
+
     IMPERSONATE_USER: 'impersonate-user',
 
     REPORT_CONTENT: 'report-content',

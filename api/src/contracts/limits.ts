@@ -4,6 +4,9 @@ import type { RoleBindings } from './roles.js'
 export const ACCOUNT_LIMITED = [
     'projects',
     'storage_mb',
+    'tickets',
+    'design_templates',
+    'designs',
 ] as const
 
 export const PROJECT_LIMITED = [
@@ -21,6 +24,9 @@ export type LimitableResource = typeof LIMITABLE_RESOURCES[number]
 export const RESOURCE_LABELS: Record<LimitableResource, string> = {
     projects: 'Projects',
     storage_mb: 'Storage',
+    tickets: 'Open tickets',
+    design_templates: 'Design templates',
+    designs: 'Designs',
     bundles_per_project: 'Bundles per project',
     configs_per_project: 'Configs per project',
     members_per_project: 'Members per project',

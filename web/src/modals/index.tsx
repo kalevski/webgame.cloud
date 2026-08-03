@@ -3,6 +3,9 @@ import useStrings from 'hooks/useStrings'
 import ConfirmDeleteAccountModal from './ConfirmDeleteAccountModal'
 import ConfirmImpersonateModal from './ConfirmImpersonateModal'
 import CreateUserModal from './CreateUserModal'
+import CreateServiceAccountModal from './CreateServiceAccountModal'
+import CreateTicketModal from './CreateTicketModal'
+import PickTemplateModal from './PickTemplateModal'
 import FiltersModal from './FiltersModal'
 import ManageAccessModal from './ManageAccessModal'
 import ReportModal from './ReportModal'
@@ -55,6 +58,15 @@ export const ModalRender: React.FC = () => {
             </ModalWindow>
             <ModalWindow modalKey={MODAL.CREATE_USER} title={t.modal.createUserTitle}>
                 <CreateUserModal />
+            </ModalWindow>
+            <ModalWindow modalKey={MODAL.CREATE_SERVICE_ACCOUNT} title={t.modal.createServiceAccountTitle}>
+                <CreateServiceAccountModal />
+            </ModalWindow>
+            <ModalWindow modalKey={MODAL.CREATE_TICKET} title={t.modal.createTicketTitle}>
+                <CreateTicketModal />
+            </ModalWindow>
+            <ModalWindow modalKey={MODAL.PICK_TEMPLATE} title={t.modal.pickTemplateTitle}>
+                <PickTemplateModal />
             </ModalWindow>
             <ModalWindow modalKey={MODAL.MANAGE_ACCESS} title={t.modal.manageAccessTitle}>
                 <ManageAccessModal />

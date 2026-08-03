@@ -13,7 +13,7 @@
         "@fontsource/playfair-display": "^5.2.8",
         "@fontsource/source-sans-3": "^5.2.9",
         "@toolcase/base": "^5.0.0",
-        "@toolcase/web-components": "^5.0.17",
+        "@toolcase/web-components": "^5.0.21",
         "@webgame-cloud/api": "*",
         "lucide-static": "^1.24.0",
         "react": "^19.1.0",

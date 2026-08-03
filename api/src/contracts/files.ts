@@ -44,12 +44,14 @@ export type AssetSourceDraft = {
 export const ASSET_TYPES = [
 
     'profile_picture',
+    'design_export',
 ] as const
 
 export type AssetType = typeof ASSET_TYPES[number]
 
 export const ASSET_TYPE_LABELS: Record<AssetType, string> = {
     profile_picture: 'Profile pictures',
+    design_export: 'Design exports',
 }
 
 export type AssetTypeBindings = Record<AssetType, string | null>

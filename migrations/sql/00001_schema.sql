@@ -29,6 +29,7 @@ CREATE TABLE users (
     picture      text NOT NULL DEFAULT '',
 
     role         text NOT NULL REFERENCES roles(id) ON UPDATE CASCADE ON DELETE RESTRICT,
+    kind         text NOT NULL DEFAULT 'human' CHECK (kind IN ('human', 'service')),
     active       boolean NOT NULL DEFAULT true,
 
     verified     boolean NOT NULL DEFAULT false,
@@ -44,6 +45,8 @@ CREATE TABLE users (
 CREATE UNIQUE INDEX users_email_lower_idx ON users (lower(email)) WHERE deleted_at IS NULL;
 
 CREATE INDEX users_role_active_idx ON users (role, active) WHERE deleted_at IS NULL;
+
+CREATE INDEX users_kind_idx ON users (kind, created_at DESC) WHERE deleted_at IS NULL;
 
 CREATE TABLE user_identities (
     user_id    text NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -142,7 +145,8 @@ CREATE INDEX audit_log_actor_idx ON audit_log (actor_id) WHERE deleted_at IS NUL
 CREATE TABLE notifications (
     id         text PRIMARY KEY,
     user_id    text NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    kind       text NOT NULL CHECK (kind IN ('welcome', 'system', 'project_invite', 'project_moved', 'build_failed')),
+    kind       text NOT NULL CHECK (kind IN ('welcome', 'system', 'project_invite', 'project_moved', 'build_failed',
+                                              'ticket_reply', 'ticket_status')),
     title      text NOT NULL,
     link       text NOT NULL DEFAULT '',
     read_at    timestamptz,
@@ -823,6 +827,96 @@ CREATE TABLE project_translations (
 CREATE UNIQUE INDEX project_translations_project_idx ON project_translations (project_id)
     WHERE deleted_at IS NULL;
 
+CREATE TABLE tickets (
+    id              text PRIMARY KEY,
+    owner_id        text NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    assignee_id     text REFERENCES users(id) ON DELETE SET NULL,
+    subject         text NOT NULL,
+    status          text NOT NULL DEFAULT 'open'
+                    CHECK (status IN ('open', 'in_progress', 'waiting_on_user', 'resolved', 'closed')),
+    last_message_at timestamptz NOT NULL DEFAULT now(),
+    created_at      timestamptz NOT NULL DEFAULT now(),
+    updated_at      timestamptz NOT NULL DEFAULT now(),
+    deleted_at      timestamptz
+);
+CREATE INDEX tickets_owner_idx ON tickets (owner_id) WHERE deleted_at IS NULL;
+CREATE INDEX tickets_assignee_idx ON tickets (assignee_id) WHERE deleted_at IS NULL;
+CREATE INDEX tickets_status_idx ON tickets (status, last_message_at DESC) WHERE deleted_at IS NULL;
+
+CREATE TABLE ticket_messages (
+    id         text PRIMARY KEY,
+    ticket_id  text NOT NULL REFERENCES tickets(id) ON DELETE CASCADE,
+    author_id  text REFERENCES users(id) ON DELETE SET NULL,
+    body       text NOT NULL,
+    internal   boolean NOT NULL DEFAULT false,
+    created_at timestamptz NOT NULL DEFAULT now(),
+    updated_at timestamptz NOT NULL DEFAULT now(),
+    deleted_at timestamptz
+);
+CREATE INDEX ticket_messages_ticket_idx ON ticket_messages (ticket_id, created_at) WHERE deleted_at IS NULL;
+
+CREATE TABLE frame_templates (
+    id          text PRIMARY KEY,
+    owner_id    text NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    name        text NOT NULL,
+    description text NOT NULL DEFAULT '',
+    format      text NOT NULL DEFAULT 'story' CHECK (format IN ('post', 'portrait', 'story', 'wide', 'pin')),
+    background  text NOT NULL DEFAULT '#ffffff',
+    layers      jsonb NOT NULL DEFAULT '[]'::jsonb,
+    fields      jsonb NOT NULL DEFAULT '[]'::jsonb,
+    created_at  timestamptz NOT NULL DEFAULT now(),
+    updated_at  timestamptz NOT NULL DEFAULT now(),
+    deleted_at  timestamptz
+);
+CREATE INDEX frame_templates_owner_idx ON frame_templates (owner_id) WHERE deleted_at IS NULL;
+CREATE UNIQUE INDEX frame_templates_name_idx ON frame_templates (owner_id, lower(name)) WHERE deleted_at IS NULL;
+
+CREATE TABLE video_templates (
+    id          text PRIMARY KEY,
+    owner_id    text NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    name        text NOT NULL,
+    description text NOT NULL DEFAULT '',
+    format      text NOT NULL DEFAULT 'story' CHECK (format IN ('post', 'portrait', 'story', 'wide', 'pin')),
+    created_at  timestamptz NOT NULL DEFAULT now(),
+    updated_at  timestamptz NOT NULL DEFAULT now(),
+    deleted_at  timestamptz
+);
+CREATE INDEX video_templates_owner_idx ON video_templates (owner_id) WHERE deleted_at IS NULL;
+CREATE UNIQUE INDEX video_templates_name_idx ON video_templates (owner_id, lower(name)) WHERE deleted_at IS NULL;
+
+CREATE TABLE video_template_frames (
+    id                text PRIMARY KEY,
+    video_template_id text NOT NULL REFERENCES video_templates(id) ON DELETE CASCADE,
+    frame_template_id text NOT NULL REFERENCES frame_templates(id) ON DELETE CASCADE,
+    position          integer NOT NULL DEFAULT 0,
+    duration_ms       integer NOT NULL DEFAULT 3000 CHECK (duration_ms BETWEEN 500 AND 15000),
+    transition        text NOT NULL DEFAULT 'fade'
+                      CHECK (transition IN ('cut', 'fade', 'slide', 'slideUp', 'wipe', 'zoom', 'iris', 'blinds', 'flip')),
+    field_values      jsonb NOT NULL DEFAULT '{}'::jsonb,
+    created_at        timestamptz NOT NULL DEFAULT now(),
+    updated_at        timestamptz NOT NULL DEFAULT now(),
+    deleted_at        timestamptz
+);
+CREATE INDEX video_template_frames_video_idx ON video_template_frames (video_template_id, position) WHERE deleted_at IS NULL;
+CREATE INDEX video_template_frames_frame_idx ON video_template_frames (frame_template_id) WHERE deleted_at IS NULL;
+
+CREATE TABLE designs (
+    id                text PRIMARY KEY,
+    owner_id          text NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    name              text NOT NULL,
+    kind              text NOT NULL DEFAULT 'frame' CHECK (kind IN ('frame', 'video')),
+    frame_template_id text REFERENCES frame_templates(id) ON DELETE SET NULL,
+    video_template_id text REFERENCES video_templates(id) ON DELETE SET NULL,
+    entries           jsonb NOT NULL DEFAULT '[]'::jsonb,
+    file_id           text REFERENCES files(id) ON DELETE SET NULL,
+    created_at        timestamptz NOT NULL DEFAULT now(),
+    updated_at        timestamptz NOT NULL DEFAULT now(),
+    deleted_at        timestamptz
+);
+CREATE INDEX designs_owner_idx ON designs (owner_id, updated_at DESC) WHERE deleted_at IS NULL;
+CREATE INDEX designs_frame_idx ON designs (frame_template_id) WHERE deleted_at IS NULL;
+CREATE INDEX designs_video_idx ON designs (video_template_id) WHERE deleted_at IS NULL;
+
 CREATE TABLE waitlist_signups (
     id               text PRIMARY KEY,
     email            text NOT NULL,
@@ -842,6 +936,12 @@ CREATE INDEX waitlist_signups_created_idx ON waitlist_signups (created_at DESC, 
 
 -- +goose Down
 DROP TABLE waitlist_signups;
+DROP TABLE designs;
+DROP TABLE video_template_frames;
+DROP TABLE video_templates;
+DROP TABLE frame_templates;
+DROP TABLE ticket_messages;
+DROP TABLE tickets;
 DROP TABLE project_translations;
 DROP TABLE config_versions;
 DROP TABLE configs;

@@ -42,12 +42,21 @@ export type UserSession = {
     expiresAt: string
 }
 
+export const USER_KINDS = [
+    'human',
+    'service',
+] as const
+
+export type UserKind = typeof USER_KINDS[number]
+
 export type User = {
     id: string
     email: string
     name: string
     picture: string
     role: UserRole
+
+    kind: UserKind
 
     active: boolean
 
@@ -123,6 +132,28 @@ export type ApiKeyIssued = {
     key: ApiKey
 
     token: string
+}
+
+export type ServiceAccount = {
+    id: string
+
+    name: string
+
+    role: UserRole
+
+    active: boolean
+
+    keyCount: number
+
+    lastUsedAt: string | null
+
+    createdAt: string
+}
+
+export type ServiceAccountDraft = {
+    name: string
+
+    role?: UserRole
 }
 
 export type PlatformSettings = {

@@ -1,5 +1,5 @@
 import type { FastifyPluginAsync, FastifyReply, FastifyRequest } from 'fastify'
-import type { AuthConfig, AuthSession, OAuthProvider } from '../contracts/index.js'
+import type { AuthConfig, AuthSession, OAuthProvider, User } from '../contracts/index.js'
 import { OAUTH_PROVIDERS } from '../contracts/index.js'
 import { clearSessionCookie, readCookie, readSessionId, requireAuth, sessionContext, setSessionCookie } from '../auth.js'
 import { emailKey, rateLimit } from '../http/rateLimit.js'
@@ -157,7 +157,12 @@ const oauthCallbackEndpoint = async (
         return reply.redirect(`${WEB_URL}/profile?linked=${provider}`)
     }
 
-    const user = await auth().resolveOAuthUser(provider, profile)
+    let user: User
+    try {
+        user = await auth().resolveOAuthUser(provider, profile)
+    } catch (error) {
+        return fail(error instanceof ConflictError ? error.code : 'sign_in_failed')
+    }
     if (!user.active) return fail('deactivated')
     setSessionCookie(reply, await auth().createSession(user.id, sessionContext(request)))
     void recordAudit(user, 'sign_in', user.id, provider)
@@ -170,11 +175,15 @@ const devLoginEndpoint = async (
 ) => {
     if (!DEV_LOGIN) return sendError(reply, new NotFoundError('dev_login_disabled'))
     const email = request.body.email.trim().toLowerCase()
-    const user = await auth().resolveDevUser(email, request.body.name?.trim() || email.split('@')[0])
-    if (!user.active) return sendError(reply, new ForbiddenError('account_deactivated'))
-    setSessionCookie(reply, await auth().createSession(user.id, sessionContext(request)))
-    void recordAudit(user, 'sign_in', user.id, 'dev')
-    return user
+    try {
+        const user = await auth().resolveDevUser(email, request.body.name?.trim() || email.split('@')[0])
+        if (!user.active) return sendError(reply, new ForbiddenError('account_deactivated'))
+        setSessionCookie(reply, await auth().createSession(user.id, sessionContext(request)))
+        void recordAudit(user, 'sign_in', user.id, 'dev')
+        return user
+    } catch (error) {
+        return sendError(reply, error)
+    }
 }
 
 const magicLinkRequestEndpoint = async (

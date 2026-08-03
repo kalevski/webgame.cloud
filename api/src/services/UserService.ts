@@ -119,7 +119,9 @@ export class UserService {
         context: SessionContext
     ): Promise<{ target: User; sessionId: string }> {
         const target = await this.users.findById(targetId)
-        if (!target) throw new NotFoundError('user_not_found', 'user not found', [targetId])
+        if (!target || target.kind === 'service') {
+            throw new NotFoundError('user_not_found', 'user not found', [targetId])
+        }
         if (target.id === actor.id) throw new ValidationError('self_impersonation', 'cannot impersonate yourself')
 
         if (!target.active) throw new ConflictError('account_deactivated', 'account is deactivated')
@@ -141,7 +143,9 @@ export class UserService {
     ): Promise<User> {
         if (userId === actor.id) throw new ValidationError('self_role_change', 'cannot edit your own access')
         const target = await this.users.findById(userId)
-        if (!target) throw new NotFoundError('user_not_found', 'user not found', [userId])
+        if (!target || target.kind === 'service') {
+            throw new NotFoundError('user_not_found', 'user not found', [userId])
+        }
 
         const nextRole = patch.role ?? target.role
         if (patch.role) {

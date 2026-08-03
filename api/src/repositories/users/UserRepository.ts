@@ -1,15 +1,18 @@
 import { randomUUID } from 'node:crypto'
 import { inject, injectable } from 'tsyringe'
-import type { User, UserRole } from '../../contracts/index.js'
+import type { ServiceAccount, User, UserRole } from '../../contracts/index.js'
 import { OWNER_ROLE_ID } from '../../contracts/index.js'
 import { Database } from '../../Database.js'
-import { toUser, type UserRow } from '../../schema/users.js'
+import { toServiceAccount, toUser, type ServiceAccountRow, type UserRow } from '../../schema/users.js'
 
 import COUNT_ACTIVE_OWNERS from './sql/count-active-owners.sql'
 import COUNT_USERS from './sql/count-users.sql'
+import DELETE_SERVICE_ACCOUNT from './sql/delete-service-account.sql'
+import FIND_SERVICE_ACCOUNT from './sql/find-service-account.sql'
 import FIND_USER_BY_EMAIL from './sql/find-user-by-email.sql'
 import FIND_USER_BY_ID from './sql/find-user-by-id.sql'
 import INSERT_USER from './sql/insert-user.sql'
+import LIST_SERVICE_ACCOUNTS from './sql/list-service-accounts.sql'
 import LIST_USERS from './sql/list-users.sql'
 import RECORD_CONSENT from './sql/record-consent.sql'
 import TOUCH_LAST_SEEN from './sql/touch-last-seen.sql'
@@ -39,9 +42,32 @@ export class UserRepository {
         role: UserRole
     }): Promise<User> {
         const { rows } = await this.database.pool.query<UserRow>(INSERT_USER, [
-            randomUUID(), normalizeEmail(draft.email), draft.name, draft.picture, draft.role,
+            randomUUID(), normalizeEmail(draft.email), draft.name, draft.picture, draft.role, 'human',
         ])
         return toUser(rows[0])
+    }
+
+    async createServiceAccount(draft: { name: string; role: UserRole }): Promise<User> {
+        const id = randomUUID()
+        const { rows } = await this.database.pool.query<UserRow>(INSERT_USER, [
+            id, `${id}@service.local`, draft.name, '', draft.role, 'service',
+        ])
+        return toUser(rows[0])
+    }
+
+    async listServiceAccounts(): Promise<ServiceAccount[]> {
+        const { rows } = await this.database.pool.query<ServiceAccountRow>(LIST_SERVICE_ACCOUNTS)
+        return rows.map(toServiceAccount)
+    }
+
+    async findServiceAccount(id: string): Promise<ServiceAccount | null> {
+        const { rows } = await this.database.pool.query<ServiceAccountRow>(FIND_SERVICE_ACCOUNT, [id])
+        return rows[0] ? toServiceAccount(rows[0]) : null
+    }
+
+    async deleteServiceAccount(id: string): Promise<boolean> {
+        const { rows } = await this.database.pool.query<{ c: number }>(DELETE_SERVICE_ACCOUNT, [id])
+        return rows[0].c > 0
     }
 
     async createWithAutoRole(draft: {
@@ -59,7 +85,7 @@ export class UserRepository {
             const count = await trx.query<{ count: string }>(COUNT_USERS)
             const role: UserRole = Number(count.rows[0].count) === 0 ? OWNER_ROLE_ID : draft.defaultRoleId
             const { rows } = await trx.query<UserRow>(INSERT_USER, [
-                randomUUID(), normalizeEmail(draft.email), draft.name, draft.picture, role,
+                randomUUID(), normalizeEmail(draft.email), draft.name, draft.picture, role, 'human',
             ])
             return toUser(rows[0])
         })

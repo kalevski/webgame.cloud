@@ -37,6 +37,9 @@ const ToolsFontsPage = lazy(() => import('pages/ToolsFontsPage'))
 const ToolsNormalMapsPage = lazy(() => import('pages/ToolsNormalMapsPage'))
 const ToolsPhysicsPage = lazy(() => import('pages/ToolsPhysicsPage'))
 const ToolsTranslationsPage = lazy(() => import('pages/ToolsTranslationsPage'))
+const TicketQueuePage = lazy(() => import('pages/TicketQueuePage'))
+const TicketDetailPage = lazy(() => import('pages/TicketDetailPage'))
+const StudioPage = lazy(() => import('pages/StudioPage'))
 
 const ScrollRestore = () => {
     const { pathname } = useLocation()
@@ -124,6 +127,11 @@ export const Router = () => {
                                     <Route path="/invoice/:token" element={<PublicInvoicePage />} />
                                     <Route path="/moderation" element={<ModerationPage />} />
                                     <Route path="/moderation/:tab" element={<ModerationPage />} />
+                                    <Route path="/tickets" element={<Navigate to="/profile/tickets" replace />} />
+                                    <Route path="/tickets/:id" element={<TicketDetailPage />} />
+                                    <Route path="/platform/tickets" element={<TicketQueuePage />} />
+                                    <Route path="/studio" element={<StudioPage />} />
+                                    <Route path="/studio/:tab" element={<StudioPage />} />
 
                                     <Route path="/users" element={<Navigate to="/admin" replace />} />
                                     <Route path="/account" element={<Navigate to="/profile" replace />} />

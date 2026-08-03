@@ -23,6 +23,9 @@ Opaque cookie-session auth (not JWT). The session id is a random token stored in
 - **Dev login** (`DEV_LOGIN=true`, never in prod — auto-disabled when any OAuth provider is configured): `POST /api/auth/dev` with an email — email-only, for local development.
 - **Magic link** (behind the `magic_link` product flag, which itself requires `email` — `FEATURE_FLAG_REQUIRES` in `contracts/features.ts`): `POST /api/auth/magic-link` mails a one-time link through the configured `EmailPort`; `GET /api/auth/magic-link/:token` consumes it and opens a session. Tokens live in `login_tokens`, are **stored as a SHA-256 hash** (the plaintext exists only in the mail), expire after 15 minutes, are single-use (`consumed_at`), and both routes are rate limited — 5 requests per 15 min per IP+email, 20 consumptions per 15 min (platform-hardening.md). Sign-in resolves through the same `AuthService` path as SSO, so the first account created is still the `owner`. The dependency is real, not cosmetic: with `email` off there is no way to deliver the link, so the flag resolves to `false` and the login panel hides the field.
 
+Every path above refuses a `kind = 'service'` row with `service_account_login`: a service account
+authenticates only with a bearer key (service-accounts.md), never with a session.
+
 ## Sign-out
 
 `POST /api/auth/logout` deletes the session row and clears the cookie. The web side (`auth.slice.ts` `logout`) drops the `has-session` hint and does a full page load to `/` — the **landing page**, not `/login`. Account deletion ends the same way. Routing rules are in frontend-architecture.md.

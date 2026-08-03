@@ -112,3 +112,6 @@ No image processing, no signed upload URLs, no per-type size/mime allow-lists, n
 table. Multipart parsing is `@fastify/multipart` with a flat 20MB request cap
 (`UPLOAD_MAX_BYTES` in `filesRouter.ts`) — tighten it, or add per-type limits, in a derived project that
 needs them.
+
+The `design_export` asset type is written by the design studio when a design is saved to file storage —
+see `design-studio.md`.

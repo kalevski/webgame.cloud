@@ -5,17 +5,21 @@ import { selectedKeys, toKeyList } from 'helpers/select'
 import { useTc } from '@toolcase/web-components/react'
 import { ApiKeyIssued, PERMISSIONS, Permission } from 'types'
 import { MODAL } from './keys'
-import { useModalClose, useModalIsOpen } from './registry'
+import { useModalClose, useModalInput, useModalIsOpen } from './registry'
 
 type ValueElement = HTMLElement & { value?: string }
+
+export type ApiKeyModalInput = { serviceAccountId: string }
 
 const ApiKeyModal: React.FC = () => {
     const closeModal = useModalClose()
     const isOpen = useModalIsOpen(MODAL.API_KEY)
+    const input = useModalInput<ApiKeyModalInput>(MODAL.API_KEY)
     const { t } = useStrings()
     const k = t.apiKeys
 
     const createApiKey = useStore((state) => state.createApiKey)
+    const createServiceKey = useStore((state) => state.createServiceKey)
 
     const [hasName, setHasName] = useState(false)
     const [scopes, setScopes] = useState<string[]>([])
@@ -71,11 +75,14 @@ const ApiKeyModal: React.FC = () => {
         if (!valid || saving) return
         setSaving(true)
         try {
-            const result = await createApiKey({
+            const draft = {
                 name: name.current.trim(),
                 scopes,
                 expiresAt: expiresAt.current ? new Date(expiresAt.current).toISOString() : null,
-            })
+            }
+            const result = input?.serviceAccountId
+                ? await createServiceKey(input.serviceAccountId, draft)
+                : await createApiKey(draft)
             if (result) setIssued(result)
         } finally {
             setSaving(false)

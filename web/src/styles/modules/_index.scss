@@ -27,6 +27,8 @@
 @use 'retention';
 @use 'realms';
 @use 'signing-keys';
+@use 'tickets';
+@use 'studio';
 @use 'jobs';
 @use 'crash';
 @use 'command';

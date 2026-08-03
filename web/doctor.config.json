@@ -58,6 +58,14 @@
             {
                 "files": ["src/modals/BundleWizardModal.tsx", "src/modals/RealmEditorModal.tsx"],
                 "rules": ["react-doctor/prefer-useReducer"]
+            },
+            {
+                "files": [
+                    "src/modules/FrameTemplateEditor.tsx",
+                    "src/modules/VideoTemplateEditor.tsx",
+                    "src/modules/DesignEditor.tsx"
+                ],
+                "rules": ["react-doctor/no-derived-useState"]
             }
         ]
     }

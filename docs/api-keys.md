@@ -18,6 +18,10 @@ again; the admin screen makes that explicit and offers a copy button.
 Keys belong to the account that created them (`/api/account/…`, not an admin route). `GET` lists them with
 `lastUsedAt`, `expiresAt` and scopes; `DELETE /api/account/api-keys/:keyId` revokes.
 
+A key can also be owned by a **service account** — a machine identity that cannot sign in, issued from
+`/api/service-accounts/:id/keys` by an admin instead of from a person's own account. Everything below is
+unchanged for those keys; only the owner differs. See [service-accounts.md](service-accounts.md).
+
 ## Authenticating
 
 `registerAuth` checks `Authorization: Bearer …` **before** the session cookie. A resolved key populates
@@ -35,9 +39,11 @@ Two properties are worth stating explicitly, because they are what makes keys sa
 `ApiKeyService.resolve` also refuses keys belonging to a deactivated account, and touches `last_used_at`
 fire-and-forget so listing a key shows whether it is actually in use.
 
-`ApiKeyModal` picks scopes through a **`tc-extended-select multiple`** over the whole `PERMISSIONS` catalog —
-searchable, and the menu stays open so a key can be narrowed to several permissions in one pass. It is a
-controlled field (`value={scopes.join(',')}`), so reopening the modal resets it with `setScopes([])`. See
+`ApiKeyModal` serves both surfaces: with no input it creates a key for the signed-in account, with
+`{ serviceAccountId }` (`ApiKeyModalInput`) it creates one for that service account instead. It picks scopes
+through a **`tc-extended-select multiple`** over the whole `PERMISSIONS` catalog — searchable, and the menu
+stays open so a key can be narrowed to several permissions in one pass. It is a controlled field
+(`value={scopes.join(',')}`), so reopening the modal resets it with `setScopes([])`. See
 frontend-architecture.md.
 
 ## What is deliberately missing

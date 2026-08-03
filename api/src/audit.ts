@@ -13,6 +13,7 @@ const SYSTEM_ACTOR: User = {
     name: 'System',
     picture: '',
     role: 'system',
+    kind: 'human',
     active: true,
     verified: true,
     consentedAt: null,

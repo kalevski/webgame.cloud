@@ -1,1 +1,1 @@
-SELECT count(*) FROM users WHERE deleted_at IS NULL
+SELECT count(*) FROM users WHERE kind = 'human' AND deleted_at IS NULL

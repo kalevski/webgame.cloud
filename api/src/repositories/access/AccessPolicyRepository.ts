@@ -33,6 +33,9 @@ import INSERT_USER_LIMIT from './sql/insert-user-limit.sql'
 
 import COUNT_PROJECTS from './sql/count-projects.sql'
 import SUM_STORAGE_BYTES from './sql/sum-storage-bytes.sql'
+import COUNT_TICKETS from './sql/count-tickets.sql'
+import COUNT_DESIGN_TEMPLATES from './sql/count-design-templates.sql'
+import COUNT_DESIGNS from './sql/count-designs.sql'
 import COUNT_BUNDLES from './sql/count-bundles.sql'
 import COUNT_CONFIGS from './sql/count-configs.sql'
 import COUNT_MEMBERS from './sql/count-members.sql'
@@ -40,6 +43,9 @@ import COUNT_MEMBERS from './sql/count-members.sql'
 const COUNT_SQL: Record<AccountLimitedResource, string> = {
     projects: COUNT_PROJECTS,
     storage_mb: SUM_STORAGE_BYTES,
+    tickets: COUNT_TICKETS,
+    design_templates: COUNT_DESIGN_TEMPLATES,
+    designs: COUNT_DESIGNS,
 }
 
 const PROJECT_COUNT_SQL: Record<ProjectLimitedResource, string> = {

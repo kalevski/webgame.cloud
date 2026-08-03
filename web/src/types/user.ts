@@ -21,8 +21,11 @@ export type {
     UserAccessPayload,
     PlatformSettings,
     OAuthProvider,
+    ServiceAccount,
+    ServiceAccountDraft,
     User,
     UserIdentity,
+    UserKind,
     UserRole,
     UserSession,
 } from '@webgame-cloud/api/contracts'

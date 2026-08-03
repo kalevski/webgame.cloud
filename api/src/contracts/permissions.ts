@@ -6,11 +6,19 @@ export const PERMISSIONS = [
     'admin.project.read',      'admin.project.move',
     'waitlist.read',
 
+    'ticket.create',           // open a support / bug ticket
+    'ticket.queue.read',       // see and answer every open ticket as a moderator
+    'ticket.queue.write',      // change a ticket's state or assign it
+
+    'design.template.read',    // open the design studio and read its templates
+    'design.template.write',   // create / edit / delete frame and video templates, and render designs from them
+
     'moderation.queue.read',   'moderation.report.resolve', 'audit.read',
 
     'admin.overview.read',     'admin.user.read',           'admin.user.role.write',
     'admin.user.impersonate',  'admin.role.read',           'admin.role.write',
     'admin.settings.read',     'admin.settings.write',      'admin.feature.write',
+    'admin.service.read',      'admin.service.write',
 
     'billing.plan.read',       'billing.plan.write',
     'billing.subscription.read', 'billing.subscription.write',

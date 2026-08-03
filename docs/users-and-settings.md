@@ -16,6 +16,8 @@
 
 Per-account access (permission/limit overrides) is written through `ManageAccessModal` → `PUT /api/users/:id/access` (see access-and-feature-flags.md), not here.
 
+The directory is humans only: every route above filters `kind = 'human'` and answers 404 for a service account (`user_not_found`, from `UserService.impersonate`/`update`). Machine identities live in their own tab under `/api/service-accounts` — see service-accounts.md.
+
 ## Self-serve account (`accountRouter.ts`)
 
 `POST /api/account/consent`, `PUT /api/account/name` (the only field a user writes on their own row), `GET /api/account/export` (every row they own, as JSON — including linked identities), `DELETE /api/account`, `GET /api/account/identities` + `DELETE /api/account/identities/:provider` (connected OAuth logins — see the auth doc's *Linked identities* section for the rules), `GET /api/account/sessions` + `DELETE /api/account/sessions/:id` (active devices — see the auth doc's *Active devices* section). `AccountService.deleteAccount` refuses while the caller holds the owner role, and while the account owns any live project (`owns_projects`) — transfer those first. The delete is soft: one statement marks the account and everything hanging off it (sessions, identities, overrides, push subscriptions, notifications, reports, memberships, subscription, invoices, enquiries) as deleted, the session stops resolving, and the email becomes free to register again — see database-conventions.md.
