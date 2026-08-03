@@ -17,8 +17,10 @@ import EditMemberPermissionsModal from './EditMemberPermissionsModal'
 import RemoveMemberModal from './RemoveMemberModal'
 import RealmEditorModal from './RealmEditorModal'
 import RealmTokenModal from './RealmTokenModal'
+import ConfirmDeleteRealmModal from './ConfirmDeleteRealmModal'
+import RealmRegionModal from './RealmRegionModal'
+import ConfirmDeleteRealmRegionModal from './ConfirmDeleteRealmRegionModal'
 import MoveProjectModal from './MoveProjectModal'
-import EditAssetModal from './EditAssetModal'
 import AssetChildrenModal from './AssetChildrenModal'
 import ConfirmDeleteAssetModal from './ConfirmDeleteAssetModal'
 import BundleWizardModal from './BundleWizardModal'
@@ -66,9 +68,6 @@ export const ModalRender: React.FC = () => {
             <ModalWindow modalKey={MODAL.REPORT_CONTENT} title={t.modal.reportTitle}>
                 <ReportModal />
             </ModalWindow>
-            <ModalWindow modalKey={MODAL.EDIT_ASSET} title={t.modal.editAssetTitle} size="lg" scrollable>
-                <EditAssetModal />
-            </ModalWindow>
             <ModalWindow modalKey={MODAL.DELETE_ASSET} title={t.modal.deleteAssetTitle}>
                 <ConfirmDeleteAssetModal />
             </ModalWindow>
@@ -99,11 +98,28 @@ export const ModalRender: React.FC = () => {
             <ModalWindow modalKey={MODAL.REMOVE_MEMBER} title={t.members.remove}>
                 <RemoveMemberModal />
             </ModalWindow>
-            <ModalWindow modalKey={MODAL.REALM_EDITOR} title={t.realms.edit}>
+            <ModalWindow
+                modalKey={MODAL.REALM_EDITOR}
+                title={(input) => (input ? t.realms.edit : t.realms.addTitle)}
+                size="lg"
+                scrollable
+            >
                 <RealmEditorModal />
             </ModalWindow>
-            <ModalWindow modalKey={MODAL.REALM_TOKEN} title={t.realms.tokenTitle}>
+            <ModalWindow modalKey={MODAL.REALM_TOKEN} title={t.realms.rotateTitle}>
                 <RealmTokenModal />
+            </ModalWindow>
+            <ModalWindow modalKey={MODAL.DELETE_REALM} title={t.realms.deleteTitle}>
+                <ConfirmDeleteRealmModal />
+            </ModalWindow>
+            <ModalWindow
+                modalKey={MODAL.REALM_REGION}
+                title={(input) => (input ? t.realms.regionEditTitle : t.realms.regionAddTitle)}
+            >
+                <RealmRegionModal />
+            </ModalWindow>
+            <ModalWindow modalKey={MODAL.DELETE_REALM_REGION} title={t.realms.regionDelete}>
+                <ConfirmDeleteRealmRegionModal />
             </ModalWindow>
             <ModalWindow modalKey={MODAL.MOVE_PROJECT} title={t.realms.moveTitle}>
                 <MoveProjectModal />

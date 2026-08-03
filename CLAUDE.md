@@ -108,7 +108,7 @@ npm run restore-test -w @webgame-cloud/migrations   # restore a dump into a scra
 npm run corrupt-drill -w @webgame-cloud/migrations  # restore drill that corrupts a table first
 ```
 
-Env vars the API reads (`api/src/env.ts`, defaults in parens): `PORT` (6000), `DATABASE_HOST` (localhost), `DATABASE_PORT` (5432), `DATABASE_USER` (OS user), `DATABASE_PASS` (none), `DATABASE_NAME` (starter), `DATABASE_SSLMODE` (disable), `GOOGLE_CLIENT_ID`/`GOOGLE_CLIENT_SECRET`, `DISCORD_CLIENT_ID`/`DISCORD_CLIENT_SECRET`, `DEV_LOGIN`, `CORS_ORIGIN`, `WEB_URL`, `API_URL`, `WORKSPACE_NAME` (WebGame Cloud), `LOG_LEVEL` (info), `DEBUG`, `REALM_DEV_TOKEN` (rlm_dev_local), `REALM_STUB_PORT` (5100).
+Env vars the API reads (`api/src/env.ts`, defaults in parens): `PORT` (6000), `DATABASE_HOST` (localhost), `DATABASE_PORT` (5432), `DATABASE_USER` (OS user), `DATABASE_PASS` (none), `DATABASE_NAME` (starter), `DATABASE_SSLMODE` (disable), `GOOGLE_CLIENT_ID`/`GOOGLE_CLIENT_SECRET`, `DISCORD_CLIENT_ID`/`DISCORD_CLIENT_SECRET`, `DEV_LOGIN`, `CORS_ORIGIN`, `WEB_URL`, `API_URL`, `WORKSPACE_NAME` (WebGame Cloud), `LOG_LEVEL` (info), `DEBUG`, `REALM_DEV_TOKEN` (the token of a hand-registered realm — nothing is seeded), `REALM_STUB_PORT` (5100).
 
 ### TypeScript 7
 
@@ -161,7 +161,7 @@ Follows the `react-spa-app` skill: pages → modules → components/services/sta
 
 ### Migrations (`migrations/`)
 
-Goose-managed SQL: `00001_schema.sql` (platform tables plus the console group — realms, projects, members, invites, vocabularies, assets, bundles, builds, configs, waitlist) and `00002_seed.sql` (roles, permissions, limits, plans, the local realm and the `project-invitation` email template — mirroring `SEED_ROLES`/`SEED_ROLE_BINDINGS`). `goose.sh` builds the DSN from `DATABASE_*` and runs `createdb` before `up`.
+Goose-managed SQL: `00001_schema.sql` (platform tables plus the console group — realm regions, realms, projects, members, invites, vocabularies, assets, bundles, builds, configs, waitlist) and `00002_seed.sql` (roles, permissions, limits, plans and the `project-invitation` email template — no realm is seeded, register one by hand at `/platform/realms` — mirroring `SEED_ROLES`/`SEED_ROLE_BINDINGS`). `goose.sh` builds the DSN from `DATABASE_*` and runs `createdb` before `up`.
 
 **Every table carries `created_at`, `updated_at` and `deleted_at` (soft delete) — no exceptions, join and log tables included.** Nothing is hard-deleted: a delete is `UPDATE … SET deleted_at = now(), updated_at = now()`, every read filters `deleted_at IS NULL` (including inside joins and subquery counts), every index is partial on that predicate, and inserts against a natural key revive the row with `ON CONFLICT … DO UPDATE SET deleted_at = NULL`. Because FK `ON DELETE CASCADE` never fires, a delete soft-deletes its children in the same data-modifying CTE (`delete-project.sql`, `delete-user.sql`). Full rule in the `migration-patterns` skill.
 

@@ -66,6 +66,9 @@ const isGlobalAttr = (key: string): boolean =>
 	key.startsWith('aria-') ||
 	key.startsWith('data-')
 
+const isSlotted = (child: ReturnType<typeof React.Children.toArray>[number]): boolean =>
+	React.isValidElement(child) && (child.props as { slot?: string }).slot !== undefined
+
 /**
  * Build a React component for a `tc-*` custom element.
  *
@@ -156,10 +159,9 @@ export function createTcComponent<Props extends TcBaseProps, Element extends HTM
 
 		useIsomorphicLayoutEffect(() => {
 			const node = elementRef.current
-			if (!node) return
-			for (const [event, handler] of listeners) node.addEventListener(event, handler)
+			if (node) for (const [event, handler] of listeners) node.addEventListener(event, handler)
 			return () => {
-				for (const [event, handler] of listeners) node.removeEventListener(event, handler)
+				if (node) for (const [event, handler] of listeners) node.removeEventListener(event, handler)
 			}
 		})
 
@@ -173,8 +175,6 @@ export function createTcComponent<Props extends TcBaseProps, Element extends HTM
 		// discover them in their immediate light DOM — so only unslotted
 		// content rides in the div.
 		const childArray = React.Children.toArray(props.children)
-		const isSlotted = (child: ReturnType<typeof React.Children.toArray>[number]): boolean =>
-			React.isValidElement(child) && (child.props as { slot?: string }).slot !== undefined
 		const slotted = childArray.filter(isSlotted)
 		const unslotted = childArray.filter(child => !isSlotted(child))
 		return React.createElement(
@@ -1190,6 +1190,12 @@ export interface TcFileTag {
 	color?: string
 }
 
+export interface TcFileCategoryItem {
+	key: string
+	label: string
+	description?: string
+}
+
 export interface TcFileProps extends TcBaseProps {
 	name?: string
 	format?: string
@@ -1198,16 +1204,25 @@ export interface TcFileProps extends TcBaseProps {
 	items?: number
 	tagIds?: string[]
 	tags?: TcFileTag[]
+	editableTags?: boolean
+	category?: string
+	categoryPlaceholder?: string
+	categories?: TcFileCategoryItem[]
 	menuItems?: TcActionItem[]
 	readonly?: boolean
 	loading?: boolean
+	actionIcon?: string
+	actionLabel?: string
 	onNameChange?: (name: string) => void
 	onTagsChange?: (tagIds: string[]) => void
+	onCategoryChange?: (category: string) => void
 	onMenuItemClick?: (key: string) => void
+	onAction?: () => void
 }
-// `onTagsChange` is NOT an event on the wc element — it is a callback
-// property (`onTagsChange: ((tagIds: string[]) => void) | null`), so it flows
-// through the wrapper's property-assignment path untouched.
+// `onTagsChange`, `onCategoryChange` and `onAction` are NOT events on the wc
+// element — they are callback properties (`onTagsChange: ((tagIds: string[])
+// => void) | null`), so they flow through the wrapper's property-assignment
+// path untouched.
 const TcFileBase = createTcComponent<
 	Omit<TcFileProps, 'onNameChange' | 'onMenuItemClick'> & {
 		onTcNameChange?: (event: Event) => void
@@ -1451,15 +1466,11 @@ export const TcFormWizard: React.FC<TcFormWizardProps> = ({
 
 	const activeIndexRef = React.useRef(0)
 	const canNextRef = React.useRef<boolean[]>([])
-	canNextRef.current = steps.map(step => step.props.canNext ?? true)
+	const canNext = steps.map(step => step.props.canNext ?? true)
+	React.useInsertionEffect(() => {
+		canNextRef.current = canNext
+	})
 
-	const wizardRef = React.useRef<HTMLElement | null>(null)
-	const setWizardRef = React.useCallback((node: HTMLElement | null) => {
-		if (wizardRef.current) wizardRef.current.removeEventListener('click', onGateClick, true)
-		wizardRef.current = node
-		if (node) node.addEventListener('click', onGateClick, true)
-		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [])
 	const onGateClick = React.useCallback((event: Event) => {
 		const target = event.target as HTMLElement | null
 		if (!target?.closest('.tc-form-wizard-next')) return
@@ -1468,6 +1479,14 @@ export const TcFormWizard: React.FC<TcFormWizardProps> = ({
 			event.stopImmediatePropagation()
 		}
 	}, [])
+	const wizardRef = React.useRef<HTMLElement | null>(null)
+	React.useEffect(() => {
+		const node = wizardRef.current
+		if (node) node.addEventListener('click', onGateClick, true)
+		return () => {
+			if (node) node.removeEventListener('click', onGateClick, true)
+		}
+	}, [onGateClick])
 
 	const meta = steps.map(step => ({ id: step.props.stepKey, label: step.props.label }))
 
@@ -1475,7 +1494,7 @@ export const TcFormWizard: React.FC<TcFormWizardProps> = ({
 		TcFormWizardBase,
 		{
 			...rest,
-			ref: setWizardRef,
+			ref: wizardRef,
 			steps: meta,
 			completeIcon,
 			onTcStepChange: (event: Event) => {
@@ -1825,11 +1844,6 @@ export function useTcNodeEditor(options: UseTcNodeEditorOptions): UseTcNodeEdito
 	const graph = React.useMemo(() => parseGraph(options.value), [options.value])
 	const selectedNode = graph.nodes.find(node => node.id === selectedId) ?? null
 
-	// Drop a selection that no longer resolves to a node (e.g. after `removeNode`).
-	React.useEffect(() => {
-		if (selectedId !== null && !selectedNode) setSelectedId(null)
-	}, [selectedId, selectedNode])
-
 	const select = React.useCallback((id: string | null) => {
 		setSelectedId(id)
 		ref.current?.select(id)
@@ -1849,7 +1863,9 @@ export function useTcNodeEditor(options: UseTcNodeEditorOptions): UseTcNodeEdito
 	return {
 		graph,
 		actions,
-		selection: { id: selectedId, node: selectedNode, select },
+		// A selection that no longer resolves to a node (e.g. after `removeNode`)
+		// reads as empty instead of being cleared through an effect.
+		selection: { id: selectedNode ? selectedId : null, node: selectedNode, select },
 		view: {
 			ref,
 			value: options.value,
@@ -2555,7 +2571,9 @@ export function useTcModalOpen<Result = void, Input = void>(
 	onResolve?: (result: Result | undefined) => void
 ): (input?: Input) => void {
 	const onResolveRef = React.useRef(onResolve)
-	onResolveRef.current = onResolve
+	React.useInsertionEffect(() => {
+		onResolveRef.current = onResolve
+	})
 	return React.useCallback(
 		(input?: Input) => {
 			openModal(key, input, result => onResolveRef.current?.(result as Result | undefined))

@@ -1,12 +1,33 @@
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http'
 import { createHash } from 'node:crypto'
-import { mkdir, rm, writeFile } from 'node:fs/promises'
+import { readFileSync } from 'node:fs'
+import { mkdir, readFile, rm, writeFile } from 'node:fs/promises'
 import { dirname, join } from 'node:path'
 import { tmpdir } from 'node:os'
+import { fileURLToPath } from 'node:url'
+
+const loadEnvFile = (path: string): void => {
+    let content = ''
+    try {
+        content = readFileSync(path, 'utf8')
+    } catch {
+        return
+    }
+    for (const line of content.split('\n')) {
+        const match = /^\s*([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.*?)\s*$/.exec(line)
+        if (!match) continue
+        const [, key, raw] = match
+        if (process.env[key] !== undefined) continue
+        process.env[key] = raw.replace(/^(['"])(.*)\1$/, '$2')
+    }
+}
+
+loadEnvFile(join(dirname(fileURLToPath(import.meta.url)), '..', '..', '.env'))
 
 const PORT = Number(process.env.REALM_STUB_PORT ?? 5100)
 const API_URL = process.env.API_URL ?? 'http://127.0.0.1:6000'
 const TOKEN = process.env.REALM_DEV_TOKEN ?? 'rlm_dev_local'
+console.log({ TOKEN })
 const ROOT = join(tmpdir(), 'webgame-realm-stub')
 
 const log = (message: string, detail: unknown = '') =>
@@ -96,6 +117,40 @@ const handleUpload = async (
     send(response, 200, { assetId, checksum, storagePath })
 }
 
+const handleServe = async (
+    url: URL,
+    response: ServerResponse,
+    assetId: string
+): Promise<void> => {
+    const token = url.searchParams.get('token') ?? ''
+    if (!token) return send(response, 401, { error: 'missing download token' })
+
+    const claims = decodeClaims(token)
+    const expires = Number(claims.exp ?? 0)
+    if (claims.sub !== assetId || (expires > 0 && expires * 1000 < Date.now())) {
+        return send(response, 401, { error: 'invalid download token' })
+    }
+
+    const storagePath = String(claims.storagePath ?? '')
+    if (!storagePath) return send(response, 404, { error: 'not found' })
+
+    let bytes: Buffer
+    try {
+        bytes = await readFile(join(ROOT, storagePath))
+    } catch {
+        return send(response, 404, { error: 'not found' })
+    }
+
+    response.writeHead(200, {
+        ...CORS_HEADERS,
+        'content-type': String(claims.mime ?? 'application/octet-stream'),
+        'content-length': bytes.length,
+        'cache-control': 'private, max-age=300',
+    })
+    response.end(bytes)
+    log('served file', { assetId, bytes: bytes.length })
+}
+
 const handlePurge = async (request: IncomingMessage, response: ServerResponse): Promise<void> => {
     const body = JSON.parse((await readBody(request)).toString('utf8') || '{}') as { paths?: string[] }
     for (const path of body.paths ?? []) {
@@ -120,11 +175,13 @@ const handleTransfer = async (
 const server = createServer((request, response) => {
     const url = new URL(request.url ?? '/', `http://127.0.0.1:${PORT}`)
     const upload = /^\/uploads\/([^/]+)$/.exec(url.pathname)
+    const file = /^\/files\/([^/]+)$/.exec(url.pathname)
     const transfer = /^\/transfer\/(export|import|verify|purge)$/.exec(url.pathname)
 
     const run = async () => {
         if (request.method === 'OPTIONS') return send(response, 204)
         if (request.method === 'PUT' && upload) return handleUpload(request, response, upload[1])
+        if (request.method === 'GET' && file) return handleServe(url, response, file[1])
         if (request.method === 'POST' && url.pathname === '/purge') return handlePurge(request, response)
         if (request.method === 'POST' && transfer) return handleTransfer(request, response, transfer[1])
         if (request.method === 'GET' && url.pathname === '/health') return send(response, 200, { ok: true })
@@ -141,7 +198,10 @@ const heartbeat = async (): Promise<void> => {
     await callApi('/api/realm/heartbeat', {
         health: 'healthy',
         diskFreeBytes: 10 * 1024 * 1024 * 1024,
-        queueDepth: 0,
+        queueDepth: Math.floor(Math.random() * 3),
+        cpuUsage: 5 + Math.floor(Math.random() * 30),
+        memoryUsedBytes: Math.floor((1.5 + Math.random()) * 1024 * 1024 * 1024),
+        memoryTotalBytes: 8 * 1024 * 1024 * 1024,
     }).catch(() => undefined)
 }
 

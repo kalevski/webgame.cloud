@@ -13,6 +13,7 @@ import {
 import useStrings from 'hooks/useStrings'
 import { useStore } from 'state'
 import { useProjectCan } from 'hooks/useProjectCan'
+import FloatingActionBar from 'components/FloatingActionBar'
 import { Project } from 'types'
 
 type Props = {
@@ -50,18 +51,13 @@ const ConfigEditor: React.FC<Props> = ({ project }) => {
         void fetchCategoriesAndTags(project.id)
     }, [project.id, fetchConfigs, fetchSchemas, fetchCategoriesAndTags])
 
-    useEffect(() => {
-        if (!selectedId && configs.length > 0) setSelectedId(configs[0].id)
-    }, [configs, selectedId])
+    const effectiveId = selectedId ?? configs[0]?.id ?? null
 
     useEffect(() => {
-        if (selectedId) {
-            setDraft(null)
-            void fetchVersion(project.id, selectedId, activeTab)
-        }
-    }, [project.id, selectedId, activeTab, fetchVersion])
+        if (effectiveId) void fetchVersion(project.id, effectiveId, activeTab)
+    }, [project.id, effectiveId, activeTab, fetchVersion])
 
-    const selected = configs.find((config) => config.id === selectedId) ?? null
+    const selected = configs.find((config) => config.id === effectiveId) ?? null
     const schema = schemas.find((entry) => entry.id === selected?.schemaId) ?? null
 
     const items: TcVerticalItemListItem[] = configs.map((config) => ({
@@ -86,7 +82,6 @@ const ConfigEditor: React.FC<Props> = ({ project }) => {
 
     const actions: TcActionHeaderAction[] = canWrite
         ? [
-            ...(draft ? [{ key: 'save', label: c.save, icon: 'save' }] : []),
             ...(selected?.stale ? [{ key: 'refresh', label: c.updateSchema, icon: 'arrow-repeat' }] : []),
             ...(selected ? [{ key: 'delete', label: c.delete, icon: 'trash' }] : []),
         ]
@@ -98,10 +93,12 @@ const ConfigEditor: React.FC<Props> = ({ project }) => {
             const removed = await deleteConfig(project.id, selected.id)
             if (removed) setSelectedId(null)
         }
-        if (key === 'save' && selected && draft) {
-            const saved = await saveVersion(project.id, selected.id, activeTab, draft)
-            if (saved) setDraft(null)
-        }
+    }
+
+    const saveDraft = async () => {
+        if (!selected || !draft) return
+        const saved = await saveVersion(project.id, selected.id, activeTab, draft)
+        if (saved) setDraft(null)
     }
 
     return (
@@ -117,7 +114,7 @@ const ConfigEditor: React.FC<Props> = ({ project }) => {
             ) : (
                 <TcVerticalItemList
                     items={items}
-                    activeKey={selectedId ?? undefined}
+                    activeKey={effectiveId ?? undefined}
                     onSelect={(key) => {
                         setSelectedId(key)
                         setActiveTab(DEFAULT_TAB)
@@ -130,7 +127,10 @@ const ConfigEditor: React.FC<Props> = ({ project }) => {
                                 <TcTabSections
                                     activeKey={activeTab}
                                     items={tabItems}
-                                    onChange={setActiveTab}
+                                    onChange={(key) => {
+                                        setActiveTab(key)
+                                        setDraft(null)
+                                    }}
                                 />
                                 <TcJSONEditor
                                     key={`${selected.id}-${activeTab}-${draft === null ? 'saved' : 'dirty'}`}
@@ -144,6 +144,15 @@ const ConfigEditor: React.FC<Props> = ({ project }) => {
                     </div>
                 </TcVerticalItemList>
             )}
+
+            <FloatingActionBar label={c.unsavedHint} visible={canWrite && draft !== null}>
+                <tc-button key="discard" variant="secondary" outline onClick={() => setDraft(null)}>
+                    {c.discard}
+                </tc-button>
+                <tc-button key="save" variant="primary" onClick={() => void saveDraft()}>
+                    {c.save}
+                </tc-button>
+            </FloatingActionBar>
         </div>
     )
 }

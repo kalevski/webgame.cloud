@@ -15,9 +15,12 @@ const LeaveProjectModal: React.FC = () => {
     const submit = async () => {
         if (!project) return
         setSaving(true)
-        const done = await leaveProject(project.id)
-        setSaving(false)
-        if (done) closeModal(true)
+        try {
+            const done = await leaveProject(project.id)
+            if (done) closeModal(true)
+        } finally {
+            setSaving(false)
+        }
     }
 
     return (

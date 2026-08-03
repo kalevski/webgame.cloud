@@ -3,12 +3,13 @@ import { useNavigate } from 'react-router'
 import { useStore } from 'state'
 import useStrings from 'hooks/useStrings'
 import AdvancedTable, { AdvancedTableSort } from 'components/AdvancedTable'
-import { escapeHtml } from 'helpers/html'
-import { formatDate } from 'helpers/dates'
+import { PersonColumnKey, personColumns, personRow } from 'helpers/platformTables'
 import { clampOffset } from 'helpers/paging'
 import { User } from 'types'
 
 const PAGE_SIZE = 20
+
+const COLUMN_KEYS: PersonColumnKey[] = ['name', 'email', 'role', 'status', 'joined', 'actions']
 
 const UserDirectory: React.FC = () => {
     const { t } = useStrings()
@@ -61,34 +62,27 @@ const UserDirectory: React.FC = () => {
     const page = visible.slice(pageOffset, pageOffset + PAGE_SIZE)
 
     const rows = page
-        .map((user) => {
-            const status = `<tc-badge variant="${user.active ? 'success' : 'danger'}">${escapeHtml(
-                user.active ? u.active : u.inactive
-            )}</tc-badge>`
-            return [
-                `<tr${user.active ? '' : ' class="module-user-directory__row--inactive"'}>`,
-                `<td><strong>${escapeHtml(user.name || '—')}</strong></td>`,
-                `<td>${escapeHtml(user.email)}</td>`,
-                `<td><tc-badge variant="primary">${escapeHtml(roleName(user.role))}</tc-badge></td>`,
-                `<td>${status}</td>`,
-                `<td>${escapeHtml(formatDate(user.createdAt))}</td>`,
-                '<td style="text-align:right"><span class="table-actions">',
-                `<tc-icon-button icon="ArrowRight" variant="primary" size="small" outline data-action="open" data-id="${escapeHtml(user.id)}" label="${escapeHtml(u.open)}" title="${escapeHtml(u.open)}"></tc-icon-button>`,
-                '</span></td>',
-                '</tr>',
-            ].join('')
-        })
+        .map((user) =>
+            personRow(
+                {
+                    id: user.id,
+                    name: user.name,
+                    email: user.email,
+                    verified: user.verified,
+                    active: user.active,
+                    roleName: roleName(user.role),
+                    joinedAt: user.createdAt,
+                },
+                t.usersAdmin,
+                t.projectsAdmin,
+                COLUMN_KEYS,
+                u.open
+            )
+        )
         .join('')
 
     const columns = useMemo(
-        () => [
-            { key: 'name', label: t.usersAdmin.colName, minWidth: '12rem' },
-            { key: 'email', label: t.usersAdmin.colEmail, minWidth: '16rem' },
-            { key: 'role', label: t.usersAdmin.colAccess, minWidth: '9rem' },
-            { key: 'status', label: t.usersAdmin.colStatus },
-            { key: 'joined', label: t.usersAdmin.colJoined, hideBelow: 'sm' as const },
-            { key: 'actions', label: '', align: 'right' as const, minWidth: '4rem' },
-        ],
+        () => personColumns(t.usersAdmin, t.projectsAdmin, COLUMN_KEYS),
         [t]
     )
 
@@ -123,38 +117,30 @@ const UserDirectory: React.FC = () => {
 
     return (
         <div className="module module-user-directory">
-            <tc-section-card title={u.directoryTitle}>
-                <tc-stack direction="column" gap="0.85rem">
-                    <tc-text variant="muted">{u.subtitle}</tc-text>
+            <AdvancedTable
+                columns={columns}
+                rows={rows}
+                total={visible.length}
+                offset={pageOffset}
+                limit={PAGE_SIZE}
+                loading={!usersLoaded}
+                filters={filters}
+                filterValues={filterValues}
+                sortableColumns={['name', 'email', 'joined']}
+                sort={sort}
+                stickyLastColumn
+                onFilterChange={(key, value) => {
+                    setFilterValues((current) => ({ ...current, [key]: value }))
+                    setOffset(0)
+                }}
+                onSortChange={setSort}
+                onPageChange={setOffset}
+                onRowAction={(action, id) => {
+                    if (action === 'open') navigate(`/platform/users/${id}`)
+                }}
+            />
 
-                    <AdvancedTable
-                        columns={columns}
-                        rows={rows}
-                        total={visible.length}
-                        offset={pageOffset}
-                        limit={PAGE_SIZE}
-                        loading={!usersLoaded}
-                        filters={filters}
-                        filterValues={filterValues}
-                        sortableColumns={['name', 'email', 'joined']}
-                        sort={sort}
-                        stickyLastColumn
-                        onFilterChange={(key, value) => {
-                            setFilterValues((current) => ({ ...current, [key]: value }))
-                            setOffset(0)
-                        }}
-                        onSortChange={setSort}
-                        onPageChange={setOffset}
-                        onRowAction={(action, id) => {
-                            if (action === 'open') navigate(`/platform/users/${id}`)
-                        }}
-                    />
-
-                    {usersLoaded && visible.length === 0 && (
-                        <tc-empty-state icon="users">{u.empty}</tc-empty-state>
-                    )}
-                </tc-stack>
-            </tc-section-card>
+            {usersLoaded && visible.length === 0 && <tc-empty-state icon="users">{u.empty}</tc-empty-state>}
         </div>
     )
 }

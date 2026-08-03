@@ -32,9 +32,12 @@ const CreateConfigModal: React.FC = () => {
     const submit = async () => {
         if (!projectId) return
         setSaving(true)
-        const done = await createConfig(projectId, { key: key.trim(), schemaId })
-        setSaving(false)
-        if (done) closeModal(true)
+        try {
+            const done = await createConfig(projectId, { key: key.trim(), schemaId })
+            if (done) closeModal(true)
+        } finally {
+            setSaving(false)
+        }
     }
 
     return (

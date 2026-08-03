@@ -47,6 +47,7 @@ class UploadService {
         options: {
             batchBytes?: number
             categoryId?: string
+            tags?: string[]
             kind?: AssetKind
             parentAssetId?: string
             onProgress?: (loaded: number, total: number) => void
@@ -58,6 +59,7 @@ class UploadService {
             mime: file.type || 'application/octet-stream',
             batchBytes: options.batchBytes,
             categoryId: options.categoryId,
+            tags: options.tags,
             kind: options.kind,
             parentAssetId: options.parentAssetId,
         })

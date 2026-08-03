@@ -29,6 +29,7 @@ export type AssetWrite = {
     extension: string
     mime: string
     sizeBytes: number
+    tags?: string[]
 }
 
 export type AssetQuery = {
@@ -74,6 +75,7 @@ export class AssetFileRepository extends BaseRepository<AssetRow, QueryRunner> {
                     write.extension,
                     write.mime,
                     write.sizeBytes,
+                    write.tags ?? [],
                     randomUUID(),
                 ])
                 const created = await this.findById(rows[0].id, trx)

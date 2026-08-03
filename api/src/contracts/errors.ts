@@ -119,6 +119,9 @@ export const API_ERROR_CODES = [
     'realm_in_use',
     'realm_unavailable',
     'realm_offline',
+    'realm_region_not_found',
+    'realm_region_name_exists',
+    'realm_region_in_use',
     'migration_in_progress',
 
     'asset_type_unsupported',
@@ -126,6 +129,8 @@ export const API_ERROR_CODES = [
     'upload_not_pending',
     'upload_token_invalid',
     'parent_asset_not_found',
+    'parent_asset_required',
+    'asset_not_ready',
     'unknown_tag',
     'invalid_parent',
     'unknown_category',
@@ -140,6 +145,8 @@ export const API_ERROR_CODES = [
     'build_not_finished',
     'build_tag_unknown',
     'build_already_claimed',
+
+    'translations_invalid',
 
     'schema_not_found',
     'schema_name_exists',

@@ -110,17 +110,6 @@
 
 .asset-list > tc-file {
     display: block;
-
-    --bs-file-border-color: var(--tc-border, #e3e0f2);
-
-    .tc-file {
-        border-radius: $radius-md;
-        transition: border-color 120ms ease;
-    }
-
-    &:hover .tc-file {
-        border-color: color-mix(in srgb, var(--tc-app-accent, #ff7e5f) 35%, var(--tc-border, #e3e0f2));
-    }
 }
 
 .asset-children {
@@ -133,12 +122,64 @@
         flex-direction: column;
         gap: $space-2;
     }
+
+    &__row {
+        display: flex;
+        align-items: center;
+        gap: $space-2;
+
+        tc-file {
+            display: block;
+            flex: 1;
+            min-width: 0;
+        }
+    }
+
+    &__foot {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: $space-3;
+        flex-wrap: wrap;
+        padding-top: $space-2;
+    }
+
+    &__count {
+        font-family: var(--tc-font-mono, ui-monospace, monospace);
+        font-size: 0.6875rem;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        font-variant-numeric: tabular-nums;
+        color: var(--tc-text-muted, #5d5887);
+    }
 }
 
 .asset-list {
     display: flex;
     flex-direction: column;
     gap: $space-2;
+
+    &__row {
+        display: flex;
+        align-items: center;
+        gap: $space-2;
+
+        tc-file {
+            display: block;
+            flex: 1;
+            min-width: 0;
+        }
+
+        .tc-file-items {
+            cursor: pointer;
+            text-decoration: underline dotted;
+            text-underline-offset: 2px;
+
+            &:hover {
+                color: var(--tc-app-accent, #ff7e5f);
+            }
+        }
+    }
 
     &__foot {
         display: flex;

@@ -1,4 +1,4 @@
-import type { Project } from './projects.js'
+import type { AdminProject, Project } from './projects.js'
 import type { Permission, UserRole } from './permissions.js'
 import type { LimitUsage, ResolvedLimits } from './limits.js'
 import type { RoleSlot } from './roles.js'
@@ -133,16 +133,7 @@ export type PlatformSettings = {
     salesContact: string
 }
 
-export type AdminUserProject = {
-    id: string
-    name: string
-    icon: string
-    color: string
-    owner: boolean
-    memberCount: number
-    archived: boolean
-    createdAt: string
-}
+export type AdminUserProject = AdminProject
 
 export type AdminUserProfile = {
     user: User

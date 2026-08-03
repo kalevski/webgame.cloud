@@ -237,11 +237,11 @@ const RetentionAdmin: React.FC = () => {
                     <tc-text variant="muted">{r.intro}</tc-text>
 
                     <div className="module-retention__summary">
-                        <tc-badge variant="secondary">{r.enabledCount(enabled)}</tc-badge>
+                        <tc-badge variant="secondary" text={r.enabledCount(enabled)}></tc-badge>
                         {totalDue > 0 ? (
-                            <tc-badge variant="warning">{r.dueNow(totalDue)}</tc-badge>
+                            <tc-badge variant="warning" text={r.dueNow(totalDue)}></tc-badge>
                         ) : (
-                            <tc-badge variant="success">{r.allClear}</tc-badge>
+                            <tc-badge variant="success" text={r.allClear}></tc-badge>
                         )}
                     </div>
 

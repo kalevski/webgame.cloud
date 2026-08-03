@@ -1,6 +1,7 @@
 export type {
     AdminProject,
     AdminProjectFilters,
+    AdminProjectMember,
     AdminProjectPage,
     AdminProjectSort,
     AdminProjectState,

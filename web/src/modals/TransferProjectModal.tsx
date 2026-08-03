@@ -20,9 +20,9 @@ const TransferProjectModal: React.FC = () => {
     const [saving, setSaving] = useState(false)
 
     const picker = useTc<ValueElement>({
-        items: members
-            .filter((member) => !member.isOwner)
-            .map((member) => ({ key: member.userId, label: member.name || member.email })),
+        items: members.flatMap((member) =>
+            member.isOwner ? [] : [{ key: member.userId, label: member.name || member.email }]
+        ),
         onChange: (value: unknown) => setUserId(String(value ?? '')),
     })
     const confirmInput = useTc<ValueElement>({
@@ -35,9 +35,12 @@ const TransferProjectModal: React.FC = () => {
     const submit = async () => {
         if (!project || !userId) return
         setSaving(true)
-        const done = await transferProject(project.id, userId)
-        setSaving(false)
-        if (done) closeModal(true)
+        try {
+            const done = await transferProject(project.id, userId)
+            if (done) closeModal(true)
+        } finally {
+            setSaving(false)
+        }
     }
 
     return (

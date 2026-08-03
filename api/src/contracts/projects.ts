@@ -131,6 +131,26 @@ export type AdminProjectPage = {
     total: number
 }
 
+export type AdminProjectMember = {
+    id: string
+    userId: string
+
+    name: string
+    email: string
+    avatarUrl: string
+
+    verified: boolean
+    active: boolean
+
+    roleId: string
+    roleName: string
+
+    permissions: ProjectPermission[]
+    isOwner: boolean
+
+    joinedAt: string
+}
+
 export type ProjectCategoriesAndTags = {
     categories: NamedRow[]
     tags: NamedRow[]

@@ -52,9 +52,9 @@ export const createConfigsSlice: StateCreator<AppStore, [], [], ConfigsSlice> = 
 
     async createSchema(projectId) {
         try {
-            const existing = get().schemas.map((schema) => schema.name)
-            let index = existing.length + 1
-            while (existing.includes(STRINGS.configs.generatedSchemaName(index))) index += 1
+            const existing = new Set(get().schemas.map((schema) => schema.name))
+            let index = existing.size + 1
+            while (existing.has(STRINGS.configs.generatedSchemaName(index))) index += 1
             const created = await ConfigService.getInstance().saveSchema(projectId, {
                 name: STRINGS.configs.generatedSchemaName(index),
                 definition: [],

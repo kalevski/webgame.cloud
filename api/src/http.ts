@@ -23,6 +23,7 @@ import { internalRouter } from './routers/internalRouter.js'
 import { bundleRouter } from './routers/bundleRouter.js'
 import { buildRouter } from './routers/buildRouter.js'
 import { configRouter } from './routers/configRouter.js'
+import { translationRouter } from './routers/translationRouter.js'
 import { publicGameRouter } from './routers/publicGameRouter.js'
 import { publicWaitlistRouter, waitlistRouter } from './routers/waitlistRouter.js'
 import { billingRouter, publicBillingRouter } from './routers/billingRouter.js'
@@ -49,6 +50,7 @@ const ROUTE_PLUGINS = [
     bundleRouter,
     buildRouter,
     configRouter,
+    translationRouter,
     publicGameRouter,
     publicWaitlistRouter,
     waitlistRouter,

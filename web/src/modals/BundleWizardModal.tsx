@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react'
+import React, { useEffect, useMemo, useRef, useState } from 'react'
 import useStrings from 'hooks/useStrings'
 import { useTc } from '@toolcase/web-components/react'
 import { useStore } from 'state'
@@ -52,8 +52,8 @@ const BundleWizardModal: React.FC = () => {
     const [categoryId, setCategoryId] = useState('')
     const [included, setIncluded] = useState<string[]>([])
     const [excluded, setExcluded] = useState<string[]>([])
-    const [buildTag, setBuildTag] = useState('')
-    const [algorithm, setAlgorithm] = useState<PackingAlgorithm>('max-rects')
+    const buildTag = useRef('')
+    const algorithm = useRef<PackingAlgorithm>('max-rects')
     const [saving, setSaving] = useState(false)
 
     useEffect(() => {
@@ -64,8 +64,8 @@ const BundleWizardModal: React.FC = () => {
         setCategoryId(existing?.categoryId ?? '')
         setIncluded(existing?.includedTags ?? [])
         setExcluded(existing?.excludedTags ?? [])
-        setBuildTag(existing?.buildTag ?? '')
-        setAlgorithm(existing?.algorithm ?? 'max-rects')
+        buildTag.current = existing?.buildTag ?? ''
+        algorithm.current = existing?.algorithm ?? 'max-rects'
     }, [isOpen, existing])
 
     const engineOptions: ChoiceCardOption[] = [
@@ -121,11 +121,15 @@ const BundleWizardModal: React.FC = () => {
             { key: '', label: b.noBuildTag },
             ...(categoriesAndTags?.buildTags ?? []).map((tag) => ({ key: tag.name, label: tag.name })),
         ],
-        onChange: (value: unknown) => setBuildTag(String(value ?? '')),
+        onChange: (value: unknown) => {
+            buildTag.current = String(value ?? '')
+        },
     })
     const algorithmSelect = useTc<ValueElement>({
         items: ALGORITHM_ITEMS,
-        onChange: (value: unknown) => setAlgorithm(String(value ?? 'max-rects') as PackingAlgorithm),
+        onChange: (value: unknown) => {
+            algorithm.current = String(value ?? 'max-rects') as PackingAlgorithm
+        },
     })
     const stepper = useTc<ValueElement>({
         steps: [
@@ -140,8 +144,8 @@ const BundleWizardModal: React.FC = () => {
         const frame = requestAnimationFrame(() => {
             if (nameInput.current) nameInput.current.value = name
             if (categorySelect.current) categorySelect.current.value = categoryId
-            if (buildTagSelect.current) buildTagSelect.current.value = buildTag
-            if (algorithmSelect.current) algorithmSelect.current.value = algorithm
+            if (buildTagSelect.current) buildTagSelect.current.value = buildTag.current
+            if (algorithmSelect.current) algorithmSelect.current.value = algorithm.current
             if (includedSelect.current) includedSelect.current.values = included
             if (excludedSelect.current) excludedSelect.current.values = excluded
         })
@@ -203,14 +207,17 @@ const BundleWizardModal: React.FC = () => {
             categoryId: categoryId || null,
             includedTags: included,
             excludedTags: excluded,
-            buildTag,
-            algorithm,
+            buildTag: buildTag.current,
+            algorithm: algorithm.current,
         }
-        const done = existing
-            ? await updateBundle(input.projectId, existing.id, draft)
-            : Boolean(await createBundle(input.projectId, draft))
-        setSaving(false)
-        if (done) closeModal(true)
+        try {
+            const done = existing
+                ? await updateBundle(input.projectId, existing.id, draft)
+                : Boolean(await createBundle(input.projectId, draft))
+            if (done) closeModal(true)
+        } finally {
+            setSaving(false)
+        }
     }
 
     return (

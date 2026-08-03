@@ -122,9 +122,10 @@ const JobsAdmin: React.FC = () => {
 
                     {jobStats && (
                         <div className="module-jobs__stats">
-                            <tc-badge variant="secondary">
-                                {j.statsSummary(jobStats.queued, jobStats.failed)}
-                            </tc-badge>
+                            <tc-badge
+                                variant="secondary"
+                                text={j.statsSummary(jobStats.queued, jobStats.failed)}
+                            ></tc-badge>
                         </div>
                     )}
 

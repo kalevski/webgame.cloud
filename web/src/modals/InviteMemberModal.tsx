@@ -45,9 +45,12 @@ const InviteMemberModal: React.FC = () => {
     const submit = async () => {
         if (!projectId) return
         setSaving(true)
-        const sent = await sendInvite(projectId, { email: email.trim(), permissions })
-        setSaving(false)
-        if (sent) closeModal(true)
+        try {
+            const sent = await sendInvite(projectId, { email: email.trim(), permissions })
+            if (sent) closeModal(true)
+        } finally {
+            setSaving(false)
+        }
     }
 
     return (

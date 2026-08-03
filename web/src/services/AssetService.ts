@@ -1,5 +1,5 @@
 import { apiFetch } from 'helpers/api'
-import { AssetFile, AssetPatch, UploadRequest, UploadTicket } from 'types'
+import { AssetFile, AssetPatch, AssetSourceTicket, UploadRequest, UploadTicket } from 'types'
 
 const base = (projectId: string) => `/api/projects/${encodeURIComponent(projectId)}`
 
@@ -21,6 +21,12 @@ class AssetService {
             method: 'POST',
             body: JSON.stringify(request),
         })
+    }
+
+    async source(projectId: string, assetId: string): Promise<AssetSourceTicket> {
+        return apiFetch<AssetSourceTicket>(
+            `${base(projectId)}/assets/${encodeURIComponent(assetId)}/source`
+        )
     }
 
     async patchMany(projectId: string, files: AssetPatch[]): Promise<AssetFile[]> {

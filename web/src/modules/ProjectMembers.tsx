@@ -253,16 +253,22 @@ const ProjectMembers: React.FC<Props> = ({ project }) => {
         if (saving || dirtyCount === 0) return
         setSaving(true)
         try {
-            const failedMembers: string[] = []
-            for (const memberId of pendingIds) {
-                const ok = await updateMemberPermissions(project.id, memberId, pending[memberId])
-                if (!ok) failedMembers.push(memberId)
-            }
-            const failedInvites: string[] = []
-            for (const inviteId of pendingInviteIds) {
-                const ok = await updateInvitePermissions(project.id, inviteId, pendingInvites[inviteId])
-                if (!ok) failedInvites.push(inviteId)
-            }
+            const [memberResults, inviteResults] = await Promise.all([
+                Promise.all(
+                    pendingIds.map(async (memberId) => ({
+                        id: memberId,
+                        ok: await updateMemberPermissions(project.id, memberId, pending[memberId]),
+                    }))
+                ),
+                Promise.all(
+                    pendingInviteIds.map(async (inviteId) => ({
+                        id: inviteId,
+                        ok: await updateInvitePermissions(project.id, inviteId, pendingInvites[inviteId]),
+                    }))
+                ),
+            ])
+            const failedMembers = memberResults.flatMap((result) => (result.ok ? [] : [result.id]))
+            const failedInvites = inviteResults.flatMap((result) => (result.ok ? [] : [result.id]))
             setPending((current) =>
                 Object.fromEntries(failedMembers.map((memberId) => [memberId, current[memberId]]))
             )

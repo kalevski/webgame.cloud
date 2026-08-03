@@ -64,9 +64,10 @@ const SchemaEditor: React.FC<Props> = ({ project }) => {
     }))
 
     const refList = useMemo(
-        () => schemas
-            .filter((schema) => schema.id !== selectedId)
-            .map((schema) => ({ id: schema.id, label: schema.name })),
+        () =>
+            schemas.flatMap((schema) =>
+                schema.id === selectedId ? [] : [{ id: schema.id, label: schema.name }]
+            ),
         [schemas, selectedId]
     )
 

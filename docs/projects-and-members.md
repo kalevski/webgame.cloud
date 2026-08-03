@@ -158,6 +158,10 @@ Below the table sits a permanent explanation of every project permission (label,
 
 - `GET/PATCH/DELETE /api/projects/:id/members[/:memberId]` — roster management behind `member.manage`.
 - `DELETE /api/projects/:id/members/me` — any member except the owner can leave.
+
+Every route above is project-plane, so a staff account that is not a member gets a 404 from `projectAuth`
+before the handler runs. Staff read the roster through the separate, read-only
+`GET /api/admin/projects/:id/members` (`admin.project.read`) instead — see platform-directories.md.
 - `POST /api/projects/:id/invites` — an invite carries the exact permission set it will materialise. A
   member can never grant a permission they do not hold (`permission_escalation`). Team size is charged to
   the project owner (`members_per_project`, counting members **and** pending invites).

@@ -2,6 +2,7 @@ export const SIGNING_KEYS = [
 
     'partner_api',
     'realm_upload',
+    'realm_download',
     'realm_transfer',
 ] as const
 
@@ -10,6 +11,7 @@ export type SigningKeyName = typeof SIGNING_KEYS[number]
 export const SIGNING_KEY_LABELS: Record<SigningKeyName, string> = {
     partner_api: 'Partner API',
     realm_upload: 'Realm upload',
+    realm_download: 'Realm download',
     realm_transfer: 'Realm transfer',
 }
 

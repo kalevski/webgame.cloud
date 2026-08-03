@@ -158,9 +158,12 @@ const CreateProject: React.FC = () => {
             tags,
             buildTags,
         }
-        const created = await createProject(draft)
-        setSaving(false)
-        if (created) navigate(`/projects/${created.id}/assets`)
+        try {
+            const created = await createProject(draft)
+            if (created) navigate(`/projects/${created.id}/assets`)
+        } finally {
+            setSaving(false)
+        }
     }
 
     const preview = {

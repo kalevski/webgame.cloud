@@ -1,5 +1,11 @@
 # Game configuration data
 
+In the console this lives as the **Live config** tool — under the sidebar's Tools section at
+`/projects/:id/tools/live-config` (`pages/ConfigsPage.tsx`). It deliberately mirrors the other tools' save
+flow (edits raise a `FloatingActionBar` with Discard / Save), but saving never writes an asset: a config is
+a pointer the shipped game reads live, so Save publishes the values immediately, with no file and no
+rebuild.
+
 Three layers let a developer change a shipped game without rebuilding it:
 
 - a **schema** defines the shape (`config_schemas.definition`, a `SchemaProperty[]`),

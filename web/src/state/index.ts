@@ -14,6 +14,7 @@ import { createAssetsSlice, AssetsSlice } from './assets.slice'
 import { createBundlesSlice, BundlesSlice } from './bundles.slice'
 import { createBuildsSlice, BuildsSlice } from './builds.slice'
 import { createConfigsSlice, ConfigsSlice } from './configs.slice'
+import { createTranslationsSlice, TranslationsSlice } from './translations.slice'
 import { createUsersSlice, UsersSlice } from './users.slice'
 
 export type AppStore = AccessPolicySlice &
@@ -30,6 +31,7 @@ export type AppStore = AccessPolicySlice &
     BundlesSlice &
     BuildsSlice &
     ConfigsSlice &
+    TranslationsSlice &
     UsersSlice
 
 export const useStore = create<AppStore>()(
@@ -49,6 +51,7 @@ export const useStore = create<AppStore>()(
             ...createBundlesSlice(...args),
             ...createBuildsSlice(...args),
             ...createConfigsSlice(...args),
+            ...createTranslationsSlice(...args),
             ...createUsersSlice(...args),
         }),
         { name: 'store' }

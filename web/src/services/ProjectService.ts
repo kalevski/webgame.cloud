@@ -2,6 +2,7 @@ import { apiFetch } from 'helpers/api'
 import {
     AdminProject,
     AdminProjectFilters,
+    AdminProjectMember,
     AdminProjectPage,
     InviteDraft,
     LimitUsage,
@@ -46,6 +47,10 @@ class ProjectService {
 
     async getAdmin(id: string): Promise<AdminProject> {
         return apiFetch<AdminProject>(`/api/admin/projects/${encodeURIComponent(id)}`)
+    }
+
+    async listAdminMembers(id: string): Promise<AdminProjectMember[]> {
+        return apiFetch<AdminProjectMember[]>(`/api/admin/projects/${encodeURIComponent(id)}/members`)
     }
 
     async create(draft: ProjectDraft): Promise<Project> {

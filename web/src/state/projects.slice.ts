@@ -5,6 +5,7 @@ import { readFromStorage, writeToStorage } from 'helpers/storage'
 import {
     AdminProject,
     AdminProjectFilters,
+    AdminProjectMember,
     InviteDraft,
     LimitUsage,
     Project,
@@ -38,6 +39,8 @@ export type ProjectsSlice = {
     adminProjectsLoading: boolean
     adminProjectFilters: AdminProjectFilters
     adminProject: AdminProject | null
+    adminProjectMembers: AdminProjectMember[]
+    adminProjectMembersLoading: boolean
 
     activeProject: () => Project | null
 
@@ -70,6 +73,7 @@ export type ProjectsSlice = {
 
     fetchAdminProjects: (patch?: Partial<AdminProjectFilters>) => Promise<void>
     fetchAdminProject: (id: string) => Promise<void>
+    fetchAdminProjectMembers: (id: string) => Promise<void>
     clearAdminProject: () => void
 
     pollLock: (id: string) => void
@@ -120,6 +124,8 @@ export const createProjectsSlice: StateCreator<AppStore, [], [], ProjectsSlice> 
     adminProjectsLoading: false,
     adminProjectFilters: ADMIN_PROJECT_DEFAULTS,
     adminProject: null,
+    adminProjectMembers: [],
+    adminProjectMembersLoading: false,
 
     activeProject() {
         const { projects, activeProjectId } = get()
@@ -393,7 +399,18 @@ export const createProjectsSlice: StateCreator<AppStore, [], [], ProjectsSlice> 
         }
     },
 
+    async fetchAdminProjectMembers(id) {
+        set({ adminProjectMembersLoading: true })
+        try {
+            const members = await ProjectService.getInstance().listAdminMembers(id)
+            set({ adminProjectMembers: members, adminProjectMembersLoading: false })
+        } catch (error) {
+            set({ adminProjectMembersLoading: false })
+            fail(get, error, STRINGS.common.loadFailed)
+        }
+    },
+
     clearAdminProject() {
-        set({ adminProject: null })
+        set({ adminProject: null, adminProjectMembers: [] })
     },
 })

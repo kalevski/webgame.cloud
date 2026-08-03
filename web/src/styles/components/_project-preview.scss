@@ -10,6 +10,12 @@
     border: 1px solid color-mix(in srgb, var(--project-color) 45%, transparent);
     color: var(--project-color);
 
+    &[data-size='xs'] {
+        width: 24px;
+        height: 24px;
+        border-radius: 6px;
+    }
+
     &[data-size='sm'] {
         width: 30px;
         height: 30px;

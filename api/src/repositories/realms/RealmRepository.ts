@@ -3,10 +3,10 @@ import { inject, injectable } from 'tsyringe'
 import { ok, err, type Result } from '@toolcase/base'
 import { BaseRepository } from '@toolcase/node'
 import type { RealmHeartbeat, RealmStatus } from '../../contracts/index.js'
-import { REALM_SILENT_SECONDS } from '../../contracts/index.js'
+import { REALM_SAMPLE_WINDOW_HOURS, REALM_SILENT_SECONDS } from '../../contracts/index.js'
 import { Database, type QueryRunner } from '../../Database.js'
 import { repositoryOptions } from '../../logging.js'
-import type { RealmRow } from '../../schema/realms.js'
+import type { RealmRow, RealmSampleBucketRow, RealmSampleStatsRow, RealmUsageRow } from '../../schema/realms.js'
 
 import SELECT_REALMS from './sql/select-realms.sql'
 import SELECT_REALM from './sql/select-realm.sql'
@@ -16,6 +16,11 @@ import INSERT_REALM from './sql/insert-realm.sql'
 import UPDATE_REALM from './sql/update-realm.sql'
 import UPDATE_REALM_TOKEN from './sql/update-realm-token.sql'
 import UPDATE_REALM_HEARTBEAT from './sql/update-realm-heartbeat.sql'
+import INSERT_REALM_SAMPLE from './sql/insert-realm-sample.sql'
+import SELECT_REALM_USAGE from './sql/select-realm-usage.sql'
+import SELECT_REALM_SAMPLE_STATS from './sql/select-realm-sample-stats.sql'
+import SELECT_REALM_SAMPLE_SERIES from './sql/select-realm-sample-series.sql'
+import PRUNE_REALM_SAMPLES from './sql/prune-realm-samples.sql'
 import DELETE_REALM from './sql/delete-realm.sql'
 import COUNT_REALM_PROJECTS from './sql/count-realm-projects.sql'
 
@@ -26,7 +31,7 @@ export type RealmCreateConflict = 'exists'
 export type RealmWrite = {
     name: string
     baseUrl: string
-    region: string
+    regionId: string | null
     planId: string | null
     exclusive: boolean
     status: RealmStatus
@@ -40,13 +45,18 @@ export class RealmRepository extends BaseRepository<RealmRow, QueryRunner> {
 
     async findAll(trx?: QueryRunner): Promise<RealmRow[]> {
         return this.time('findAll', async () => {
-            const { rows } = await this.run(trx).query<RealmRow>(SELECT_REALMS)
+            const { rows } = await this.run(trx).query<RealmRow>(SELECT_REALMS, [
+                REALM_SAMPLE_WINDOW_HOURS,
+            ])
             return rows
         })
     }
 
     async findById(id: string, trx?: QueryRunner): Promise<RealmRow | undefined> {
-        const { rows } = await this.run(trx).query<RealmRow>(SELECT_REALM, [id])
+        const { rows } = await this.run(trx).query<RealmRow>(SELECT_REALM, [
+            id,
+            REALM_SAMPLE_WINDOW_HOURS,
+        ])
         return rows[0]
     }
 
@@ -74,7 +84,7 @@ export class RealmRepository extends BaseRepository<RealmRow, QueryRunner> {
                     randomUUID(),
                     write.name,
                     write.baseUrl,
-                    write.region,
+                    write.regionId,
                     write.planId,
                     write.exclusive,
                     write.status,
@@ -99,7 +109,7 @@ export class RealmRepository extends BaseRepository<RealmRow, QueryRunner> {
                 id,
                 write.name,
                 write.baseUrl,
-                write.region,
+                write.regionId,
                 write.planId,
                 write.exclusive,
                 write.status,
@@ -123,7 +133,61 @@ export class RealmRepository extends BaseRepository<RealmRow, QueryRunner> {
             beat.health,
             Math.max(0, Math.floor(beat.diskFreeBytes)),
             Math.max(0, Math.floor(beat.queueDepth)),
+            Math.min(100, Math.max(0, Math.round(beat.cpuUsage))),
+            Math.max(0, Math.floor(beat.memoryUsedBytes)),
+            Math.max(0, Math.floor(beat.memoryTotalBytes)),
         ])
+    }
+
+    async insertSample(id: string, beat: RealmHeartbeat, trx?: QueryRunner): Promise<void> {
+        await this.run(trx).query(INSERT_REALM_SAMPLE, [
+            randomUUID(),
+            id,
+            beat.health,
+            Math.max(0, Math.floor(beat.diskFreeBytes)),
+            Math.max(0, Math.floor(beat.queueDepth)),
+            Math.min(100, Math.max(0, Math.round(beat.cpuUsage))),
+            Math.max(0, Math.floor(beat.memoryUsedBytes)),
+            Math.max(0, Math.floor(beat.memoryTotalBytes)),
+        ])
+    }
+
+    async usageStats(id: string, trx?: QueryRunner): Promise<RealmUsageRow> {
+        return this.time('usageStats', async () => {
+            const { rows } = await this.run(trx).query<RealmUsageRow>(SELECT_REALM_USAGE, [id])
+            return rows[0]
+        })
+    }
+
+    async sampleStats(id: string, windowHours: number, trx?: QueryRunner): Promise<RealmSampleStatsRow> {
+        return this.time('sampleStats', async () => {
+            const { rows } = await this.run(trx).query<RealmSampleStatsRow>(SELECT_REALM_SAMPLE_STATS, [
+                id,
+                windowHours,
+            ])
+            return rows[0]
+        })
+    }
+
+    async sampleSeries(
+        id: string,
+        windowHours: number,
+        bucketMinutes: number,
+        trx?: QueryRunner
+    ): Promise<RealmSampleBucketRow[]> {
+        return this.time('sampleSeries', async () => {
+            const { rows } = await this.run(trx).query<RealmSampleBucketRow>(SELECT_REALM_SAMPLE_SERIES, [
+                id,
+                windowHours,
+                bucketMinutes,
+            ])
+            return rows
+        })
+    }
+
+    async pruneSamples(retentionDays: number, trx?: QueryRunner): Promise<number> {
+        const result = await this.run(trx).query(PRUNE_REALM_SAMPLES, [retentionDays])
+        return result.rowCount ?? 0
     }
 
     async softDelete(id: string, trx?: QueryRunner): Promise<boolean> {

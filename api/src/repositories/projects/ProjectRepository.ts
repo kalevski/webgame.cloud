@@ -92,9 +92,9 @@ export class ProjectRepository extends BaseRepository<ProjectRow, QueryRunner> {
         })
     }
 
-    async listForMember(userId: string, trx?: QueryRunner): Promise<ProjectRow[]> {
+    async listForMember(userId: string, trx?: QueryRunner): Promise<AdminProjectRow[]> {
         return this.time('listForMember', async () => {
-            const { rows } = await this.run(trx).query<ProjectRow>(SELECT_PROJECTS_FOR_MEMBER, [userId])
+            const { rows } = await this.run(trx).query<AdminProjectRow>(SELECT_PROJECTS_FOR_MEMBER, [userId])
             return rows
         })
     }

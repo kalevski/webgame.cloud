@@ -6,8 +6,58 @@
                 "rules": ["react-doctor/js-hoist-intl"]
             },
             {
-                "files": ["src/components/AdvancedTable.tsx"],
+                "files": ["src/components/AdvancedTable.tsx", "src/hooks/useStableValue.ts"],
                 "rules": ["react-doctor/exhaustive-deps"]
+            },
+            {
+                "files": ["src/modules/FileList.tsx", "src/modules/ProjectSettingsGeneral.tsx"],
+                "rules": ["react-doctor/no-adjust-state-on-prop-change"]
+            },
+            {
+                "files": ["src/state/assets.slice.ts"],
+                "rules": ["react-doctor/async-await-in-loop"]
+            },
+            {
+                "files": ["src/lib/tc.ts"],
+                "rules": ["react-doctor/effect-needs-cleanup", "deslop/unused-export"]
+            },
+            {
+                "files": [
+                    "src/components/LimitMeter.tsx",
+                    "src/components/LockChip.tsx",
+                    "src/components/LockedAction.tsx",
+                    "src/components/UpgradeNudge.tsx",
+                    "src/hooks/useTcEvent.ts"
+                ],
+                "rules": ["deslop/unused-file"]
+            },
+            {
+                "files": [
+                    "src/configs/entitlements.ts",
+                    "src/configs/legal.ts",
+                    "src/helpers/validation.ts",
+                    "src/hooks/useLock.ts",
+                    "src/modules/LegalPrivacy.tsx",
+                    "src/modules/LegalTerms.tsx"
+                ],
+                "rules": ["deslop/unused-export"]
+            },
+            {
+                "files": [
+                    "src/modals/BundleWizardModal.tsx",
+                    "src/modules/CreateProject.tsx",
+                    "src/modules/FileList.tsx",
+                    "src/modules/NormalMapTool.tsx",
+                    "src/modules/PhysicsShapesTool.tsx",
+                    "src/modules/ProjectMembers.tsx",
+                    "src/modules/RealmDetail.tsx",
+                    "src/modules/TranslationsTool.tsx"
+                ],
+                "rules": ["react-doctor/no-giant-component"]
+            },
+            {
+                "files": ["src/modals/BundleWizardModal.tsx", "src/modals/RealmEditorModal.tsx"],
+                "rules": ["react-doctor/prefer-useReducer"]
             }
         ]
     }

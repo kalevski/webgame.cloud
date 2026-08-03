@@ -3,6 +3,7 @@ import { ok, err, type Result } from '@toolcase/base'
 import type {
     AdminProject,
     AdminProjectFilters,
+    AdminProjectMember,
     AdminProjectPage,
     InviteDraft,
     Project,
@@ -33,7 +34,7 @@ import { EmailService } from './EmailService.js'
 import { ConflictError, NotFoundError, ValidationError } from '../domain/errors.js'
 import { asProjectPermissions, resolveProjectPermissions } from '../domain/projectAccess.js'
 import { Database } from '../Database.js'
-import { toAdminProject, toInvite, toMember, toNamed, toProject } from '../schema/projects.js'
+import { toAdminMember, toAdminProject, toInvite, toMember, toNamed, toProject } from '../schema/projects.js'
 import type { ProjectRow } from '../schema/projects.js'
 
 export type InviteConflict = 'exists'
@@ -104,6 +105,17 @@ export class ProjectService {
         const row = await this.projects.findAdminById(id)
         if (!row) throw new NotFoundError('project_not_found', 'project not found', [id])
         return toAdminProject(row)
+    }
+
+    async listAdminMembers(projectId: string): Promise<AdminProjectMember[]> {
+        const project = await this.projects.findAdminById(projectId)
+        if (!project) throw new NotFoundError('project_not_found', 'project not found', [projectId])
+        const [rows, roles] = await Promise.all([
+            this.members.listAdminByProject(projectId),
+            this.access.listRoles(),
+        ])
+        const roleNames = new Map(roles.map((role) => [role.id, role.name]))
+        return rows.map((row) => toAdminMember(row, roleNames.get(row.role) ?? row.role))
     }
 
     async get(row: ProjectRow, user: User): Promise<Project> {

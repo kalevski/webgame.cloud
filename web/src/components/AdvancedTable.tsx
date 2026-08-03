@@ -1,5 +1,6 @@
 import React from 'react'
 import { useTc } from '@toolcase/web-components/react'
+import useStableValue from 'hooks/useStableValue'
 
 export type AdvancedTableColumn = {
     key: string
@@ -46,11 +47,6 @@ type AdvancedTableProps = {
     onPageChange?: (offset: number) => void
 
     onRowAction?: (action: string, id: string, value?: string) => void
-}
-
-const useStableValue = <T,>(value: T): T => {
-    const signature = JSON.stringify(value ?? null)
-    return React.useMemo(() => value, [signature])
 }
 
 const AdvancedTable: React.FC<AdvancedTableProps> = ({

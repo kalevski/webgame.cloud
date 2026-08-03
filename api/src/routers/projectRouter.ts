@@ -137,6 +137,17 @@ const getAdminProjectEndpoint = async (
     }
 }
 
+const listAdminProjectMembersEndpoint = async (
+    request: FastifyRequest<{ Params: { id: string } }>,
+    reply: FastifyReply
+) => {
+    try {
+        return await projects().listAdminMembers(request.params.id)
+    } catch (error) {
+        return sendError(reply, error)
+    }
+}
+
 const createProjectEndpoint = async (
     request: FastifyRequest<{ Body: ProjectDraft }>,
     reply: FastifyReply
@@ -366,6 +377,12 @@ export const projectRouter: FastifyPluginAsync = async (app) => {
         '/api/admin/projects/:id',
         { preHandler: [requirePermission('admin.project.read')] },
         getAdminProjectEndpoint
+    )
+
+    app.get<{ Params: { id: string } }>(
+        '/api/admin/projects/:id/members',
+        { preHandler: [requirePermission('admin.project.read')] },
+        listAdminProjectMembersEndpoint
     )
 
     app.post<{ Body: ProjectDraft }>(

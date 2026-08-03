@@ -25,12 +25,14 @@ const PlatformProjectsPage: React.FC = () => {
     return (
         <AuthGuard secured permission="admin.project.read">
             <section className="console-page">
-                <tc-rich-page-header
-                    title-text={t.pages.platformProjectsTitle}
-                    description={t.pages.platformProjectsDescription}
-                    icon-name="FolderKanban"
-                    icon-color="violet"
-                ></tc-rich-page-header>
+                {!id && (
+                    <tc-rich-page-header
+                        title-text={t.pages.platformProjectsTitle}
+                        description={t.pages.platformProjectsDescription}
+                        icon-name="FolderKanban"
+                        icon-color="violet"
+                    ></tc-rich-page-header>
+                )}
 
                 {id ? <ProjectAdminDetail /> : <ProjectDirectory />}
             </section>

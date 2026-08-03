@@ -137,7 +137,7 @@ const BuildList: React.FC<Props> = ({ project }) => {
                             })),
                         ],
                         value: statusFilter ?? ALL_STATUSES,
-                        onChange: (id) =>
+                        onChange: (id: string | null) =>
                             setStatusFilter(!id || id === ALL_STATUSES ? null : (id as BuildStatus)),
                     },
                 ]}

@@ -112,15 +112,27 @@ request. `ProjectDirectory.tsx` needed two more steps, verified by typing across
 
 1. **Debounce the fetch** (`SEARCH_DEBOUNCE_MS`, 300 ms) so a burst of keystrokes is one request. Only the
    text filter is debounced; the selects fire immediately.
-2. **Keep `rows`/`total`/`limit`/`offset`/`loading` out of both the `useTc` props and the JSX**, and assign
-   them in one `useEffect` instead. When the response lands, React re-renders and *any* property assignment
-   rebuilds the toolbar — including the input the user is still typing into. That rebuild happens
-   asynchronously, outside the event, so the component's own focus/caret restore does not cover it. The
-   effect therefore re-focuses the input and puts the caret back at the end when the last filter change came
-   from the text field (a `typing` ref).
+2. **Restore focus and caret in a `useEffect` after every data-driven rebuild.** When the response lands,
+   React re-renders and *any* property assignment rebuilds the toolbar — including the input the user is
+   still typing into. That rebuild happens asynchronously, outside the event, so the component's own
+   focus/caret restore does not cover it. The effect re-focuses the input and puts the caret back at the end
+   when the last filter change came from the text field (a `typing` ref).
 
 Without step 2 the first burst of characters survives and everything typed after the fetch resolves is
 silently dropped — the field looks like it stopped accepting input.
+
+**Revised 2026-07-31.** Step 2 used to read *"keep `rows`/`total`/`limit`/`offset`/`loading` out of both the
+`useTc` props and the JSX, and assign them in one `useEffect` instead."* That was the wrong lesson drawn
+from a correct fix, and it caused a second bug: a table whose element mounts on a **later** commit than the
+one that produced its rows never receives them, because the effect's dependency array has not changed since
+(see usetc-property-assignment.md, trap 3 — `RealmDetail`'s Hosted projects panel rendered headers over an
+empty body). What actually protects the input is the **restore**, not the assignment channel. Both tables
+now pass those five through `useTc` and keep only the focus/caret restore in the effect; verified by typing
+across the debounce boundary and again against an 800 ms-throttled API, with no dropped characters.
+
+`filterValues` is the one prop still worth keeping off React state: `ProjectDirectory` and `RealmDetail`
+source it from a **ref** updated synchronously inside `onFilterChange`, so it can never be the lagging copy
+described above, and it is passed through `useStableValue` so an unchanged filter set does not re-assign.
 
 ## Where else this is still present
 

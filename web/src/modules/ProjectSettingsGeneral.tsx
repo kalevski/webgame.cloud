@@ -105,12 +105,6 @@ const ProjectSettingsGeneral: React.FC<{ project: Project }> = ({ project }) => 
         setDirty(false)
     }, [project, nameInput, descriptionEditor, genreSelect])
 
-    useEffect(() => {
-        if (!draft.genre || genresFor(draft.appType).some((entry) => entry.key === draft.genre)) return
-        updateDraft({ genre: '' })
-        if (genreSelect.current) genreSelect.current.value = ''
-    }, [draft.appType, draft.genre, genreSelect])
-
     const valid = draft.name.trim().length > 0 && draft.name.trim().length <= 200
 
     const handleSave = async () => {
@@ -149,25 +143,32 @@ const ProjectSettingsGeneral: React.FC<{ project: Project }> = ({ project }) => 
                             <ChoiceCards
                                 options={appTypeOptions}
                                 value={draft.appType}
-                                onChange={(next) => canWrite && patchDraft({ appType: next as AppType })}
+                                onChange={(next) => {
+                                    if (!canWrite) return
+                                    const appType = next as AppType
+                                    const keepGenre =
+                                        !draft.genre ||
+                                        genresFor(appType).some((entry) => entry.key === draft.genre)
+                                    patchDraft(keepGenre ? { appType } : { appType, genre: '' })
+                                    if (!keepGenre && genreSelect.current) genreSelect.current.value = ''
+                                }}
                                 label={p.appTypeLabel}
                             />
                         </div>
 
-                        <div>
-                            <tc-label>{w.genreLabel}</tc-label>
-                            <tc-extended-select
-                                ref={genreSelect}
-                                placeholder={w.genrePlaceholder}
-                                search-placeholder={w.genreSearch}
-                                max-height="260"
-                                disabled={!canWrite || undefined}
-                            ></tc-extended-select>
-                            <tc-helper-text icon="Wand">{w.genreHint}</tc-helper-text>
-                        </div>
-
                         <tc-row gutter="3">
                             <tc-col span="12" span-md="6">
+                                <tc-label>{w.genreLabel}</tc-label>
+                                <tc-extended-select
+                                    ref={genreSelect}
+                                    placeholder={w.genrePlaceholder}
+                                    search-placeholder={w.genreSearch}
+                                    max-height="260"
+                                    disabled={!canWrite || undefined}
+                                ></tc-extended-select>
+                                <tc-helper-text icon="Wand">{w.genreHint}</tc-helper-text>
+                            </tc-col>
+                            <tc-col span="12" span-md="3">
                                 <tc-label>{p.iconLabel}</tc-label>
                                 <tc-icon-picker
                                     ref={iconPicker}
@@ -176,7 +177,7 @@ const ProjectSettingsGeneral: React.FC<{ project: Project }> = ({ project }) => 
                                 ></tc-icon-picker>
                                 <tc-helper-text icon="Info">{w.iconHint}</tc-helper-text>
                             </tc-col>
-                            <tc-col span="12" span-md="6">
+                            <tc-col span="12" span-md="3">
                                 <tc-label>{p.colorLabel}</tc-label>
                                 <tc-color-picker
                                     ref={colorPicker}

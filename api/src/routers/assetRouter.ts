@@ -1,6 +1,6 @@
 import type { FastifyPluginAsync, FastifyReply, FastifyRequest } from 'fastify'
 import type { AssetPatch, UploadRequest } from '../contracts/index.js'
-import { ASSET_KINDS } from '../contracts/index.js'
+import { TOOL_ONLY_KINDS } from '../contracts/index.js'
 import { requireAuth } from '../auth.js'
 import { loadProject, requireProjectPermission } from '../projectAuth.js'
 import container from '../container.js'
@@ -21,9 +21,10 @@ const uploadSchema = {
         sizeBytes: { type: 'number', minimum: 0 },
         batchBytes: { type: 'number', minimum: 0 },
         mime: { type: 'string', minLength: 1, maxLength: 200 },
-        parentAssetId: { type: 'string', maxLength: 80 },
-        kind: { type: 'string', enum: [...ASSET_KINDS] },
         categoryId: { type: 'string', maxLength: 80 },
+        tags: { type: 'array', maxItems: 100, items: { type: 'string', minLength: 1, maxLength: 80 } },
+        kind: { type: 'string', enum: [...TOOL_ONLY_KINDS] },
+        parentAssetId: { type: 'string', minLength: 1, maxLength: 80 },
     },
 } as const
 
@@ -69,6 +70,17 @@ const requestUploadEndpoint = async (
     }
 }
 
+const assetSourceEndpoint = async (
+    request: FastifyRequest<{ Params: { id: string; assetId: string } }>,
+    reply: FastifyReply
+) => {
+    try {
+        return await uploads().sourceTicket(request.project!, request.params.assetId)
+    } catch (error) {
+        return sendError(reply, error)
+    }
+}
+
 const patchAssetsEndpoint = async (
     request: FastifyRequest<{ Body: { files: AssetPatch[] } }>,
     reply: FastifyReply
@@ -104,6 +116,12 @@ export const assetRouter: FastifyPluginAsync = async (app) => {
         '/api/projects/:id/assets',
         { preHandler: [loadProject] },
         listAssetsEndpoint
+    )
+
+    app.get<{ Params: { id: string; assetId: string } }>(
+        '/api/projects/:id/assets/:assetId/source',
+        { preHandler: [loadProject] },
+        assetSourceEndpoint
     )
 
     app.post<{ Params: { id: string }; Body: UploadRequest }>(

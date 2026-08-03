@@ -28,9 +28,12 @@ const ArchiveProjectModal: React.FC = () => {
     const submit = async () => {
         if (!project) return
         setSaving(true)
-        const done = await archiveProject(project.id, archiving)
-        setSaving(false)
-        if (done) closeModal(true)
+        try {
+            const done = await archiveProject(project.id, archiving)
+            if (done) closeModal(true)
+        } finally {
+            setSaving(false)
+        }
     }
 
     return (

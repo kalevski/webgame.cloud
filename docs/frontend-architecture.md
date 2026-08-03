@@ -10,7 +10,7 @@ pages → modules → components / state (slices) → services → helpers/api (
 
 - **pages** (`pages/*.tsx`) wrap one module in a layout HOC (`wrapInMainLayout` / `wrapInBaseLayout`) + `AuthGuard` (+ optional `permission`) and set the page title/description via `usePageContext`.
 - **modules** (`modules/*.tsx`) are feature screens; they read the store and open modals.
-- **components** (`components/*.tsx`) are reusable, store-agnostic (`AdvancedTable`, `PageToolbar`, `RouteTabs`, `LimitMeter`, `LockChip`, `LockedAction`, `UpgradeNudge`, `Loading`, `Icon`, `EarlyAccessPanel`).
+- **components** (`components/*.tsx`) are reusable, store-agnostic (`AdvancedTable`, `PageToolbar`, `RouteTabs`, `ToolShell`, `ToolWorkspace`, `ToolControls`, `LimitMeter`, `LockChip`, `LockedAction`, `UpgradeNudge`, `Loading`, `Icon`, `EarlyAccessPanel`).
 - **services** (`services/*Service.ts`) are singletons wrapping `apiFetch` per domain. Modules never call `apiFetch` directly.
 - **state** (`state/*.slice.ts`) are zustand slices; `state/index.ts` assembles them. Read one field per selector — never `useStore(s => s)`.
 
@@ -177,6 +177,49 @@ Many `tc-*` elements relocate their light-DOM children into an internal body con
 
 The same relocation is why a child mounted *after* the custom element connects can render outside its body — a stable wrapper (`tc-stack` or a `div`) that exists from the first render fixes that too (`DeviceSessions.tsx`, `AccountSettings.tsx`). A conditional whose value never flips at runtime is safe, but wrapping is cheap and removes the trap.
 
+**A `tc-extended-select` cannot hold `''` as a value.** Its `value` setter removes the attribute for any
+falsy value, so an item keyed `''` — the usual way to spell *Any* / *None* in front of a real list — can be
+clicked but never reads back as selected, and the trigger stays on its placeholder. Give the unset option a
+real key (`any`, `none`) and map it to `null` at the draft boundary; `RealmEditorModal`'s plan-tier and
+region pickers do exactly that.
+
+**A `tc-button` label that changes needs its own `<span>`.** `tc-button` moves its light-DOM children into an internal `.tc-button-content` and keeps a `MutationObserver` on the host to rebuild that wrapper when React overwrites the host's children — React renders a bare string label as a host text child and replaces it with `textContent`. The observer is disconnected while the button is detached, and a `slot="footer"` button in a `lazy` `tc-modal` **is** detached until the modal is first shown (`tc-modal` captures its slot nodes at connect and only appends them on `show.bs.modal`). So a label that flips off state while the modal is closed — `{realm ? save : create}`, `{copied ? copied : copy}` — destroys `.tc-button-content` unobserved, and the next attribute change (a `disabled` toggle as the form becomes valid) re-renders with an empty content array: a correctly styled button with no text. Wrapping the label in a `<span>` keeps the mutation inside a node React owns, so the host's child list never changes. `RealmEditorModal` and `RealmTokenModal` do this; static labels do not need it.
+
+## A `tc-badge` label that changes must ride on the `text` attribute
+
+Same root cause as the button above, but `tc-badge` has **no `MutationObserver` to repair itself**, so the
+damage is permanent until the next remount — and it is total, because the badge keeps none of its styling
+on the host:
+
+```html
+<!-- what the element builds -->
+<tc-badge variant="success"><span class="badge text-bg-success"><span class="tc-badge-content">Active</span></span></tc-badge>
+<!-- after React commits variant="secondary" + a new string child -->
+<tc-badge variant="secondary">Inactive</tc-badge>
+```
+
+React's `shouldSetTextContent` fast path applies to **any** host element — custom elements included —
+whose `children` prop is a single string or number, so `<tc-badge variant={v}>{label}</tc-badge>` compiles
+to `node.textContent = label` on update. That wipes the `.badge.text-bg-*` span the element painted, and
+the badge renders as bare text: transparent background, no padding, no radius. The variant attribute lands
+*before* children in prop order, so the element's `attributeChangedCallback` faithfully rebuilds its markup
+a moment before React deletes it.
+
+**Rule: any badge whose label can change at runtime passes the label as `text`, never as a child.**
+
+```tsx
+<tc-badge variant={region.active ? 'success' : 'secondary'} text={region.active ? r.regionActiveBadge : r.regionInactiveBadge}></tc-badge>
+```
+
+With no children, React never touches the element's light DOM at all; `text` is an observed attribute, so
+the element re-renders (and re-escapes) itself. `LimitMeter`, `LockChip` and the `UsersAdmin` row markup
+already used this form — `RealmRegionsAdmin`, `RealmsAdmin`, `RealmDetail`, `UserProfileAdmin`,
+`ProjectAdminDetail`, `ProjectDirectory`, `RetentionAdmin`, `JobsAdmin`, `ProjectPreview` and
+`ProjectHeader` were converted to it.
+
+A badge with a **static** label, or with several children (`FilterBar`'s chips pair a label with a count
+node, so `children` is an array and the fast path never fires), is safe as-is.
+
 ## `FilterBar` — one filter surface for every list
 
 `components/FilterBar.tsx` is the console's filter chrome: an instrument-style strip with a mono legend
@@ -189,7 +232,7 @@ belongs beside the controls that changed it, not buried in a footer.
 ```tsx
 <FilterBar
     rows={[
-        { key: 'category', legend: a.filterCategoryLabel, chips, value: category, onChange: pick },
+        { key: 'category', legend: a.filterCategoryLabel, chips, values: categoryFilter, onChange: pick },
         { key: 'tags', legend: a.filterTagLabel, control: <tc-tag-input ref={tagFilterInput} /> },
     ]}
     total={assets.length}
@@ -200,9 +243,10 @@ belongs beside the controls that changed it, not buried in a footer.
 />
 ```
 
-A row is either **chips** (`chips` + `value` + `onChange`, optional `toggle` so clicking the active chip
-clears it) or an arbitrary **control** node — that split is what lets one component carry the assets screen's
-category chips *and* its `tc-tag-input` in the same frame. Chips are `tc-badge` inside a real `<button>`
+A row is single-select **chips** (`chips` + `value` + `onChange`, optional `toggle` so clicking the active
+chip clears it), multi-select **chips** (`chips` + `values: string[]` + `onChange(ids)`, each click toggles
+one chip and an empty selection means "no filter"), or an arbitrary **control** node — that split is what
+lets one component carry the assets screen's category chips *and* its `tc-tag-input` in the same frame. Chips are `tc-badge` inside a real `<button>`
 (`aria-pressed`), each with an optional count; `unit` should agree with `total`, not with `matches`, or a
 single match reads "1 of 33 file".
 
@@ -217,6 +261,37 @@ the selected fill has to out-specify **two** `!important` rules: Bootstrap's `.t
 blueprint theme's `tc-theme[name=blueprint] .badge.text-bg-secondary`. Hence
 `.filter-bar__chip[data-active='true'] .badge.text-bg-secondary { background-color: … !important }` — four
 class-level selectors, which is what it takes to win. Note the painted node is `.badge`, not `.tc-badge`.
+
+## `ToolShell` / `ToolWorkspace` / `ToolControls` — the image-editor shell
+
+`components/ToolWorkspace.tsx` is the same idea applied to the Tools pages. The `tc-*` canvas editors
+(`tc-bitmap-font-generator`, `tc-normal-map-generator`, `tc-physics-editor`) render nothing but a canvas and
+read their whole configuration from attributes, so the console has to supply the inputs — and all three wear
+one shell: options bar on top, tool rail down the left, canvas on a dark checkerboard stage, panel dock on
+the right, status bar underneath. The rail and the action cluster are `WorkspaceTool[]` / `WorkspaceAction[]`
+descriptors rendered as `tc-icon-button`s; the options bar is whatever node the module passes, and the dock
+is `ToolControls`.
+
+`components/ToolShell.tsx` wraps `ToolWorkspace` into the full tool page the three modules render: alerts,
+the source picker (a `picker` descriptor — `tc-extended-select` items plus a loading spinner — placed as the
+first options-bar field), the workspace grid, and a `FloatingActionBar` (Asset name input + Save; without
+`file.write` it stays hidden and a plain footer shows the no-write hint). The shell owns the name input and the saving flag; the module
+passes `defaultName`, `saveDisabled`, an optional `hint` and `onSave(name)`, which receives the typed name
+slugged via `helpers/naming.ts` or the default.
+
+`components/ToolControls.tsx` renders a `ToolSection[]` as a tabbed dock — a `tc-tab-bar` on top (one tab
+per section, active tab held in React state) over the active section's `ToolControl` descriptors (`slider`,
+`toggle`, `choice`, `select`, `color`, `text`, `textarea`, plus a labelled `divider` for grouping within a
+tab); `ToolInlineControls` renders the same descriptors in a row
+for the options bar, so a control looks and behaves the same in either place. Each
+module keeps a plain settings object and spreads it onto its element. Full per-tool breakdown in
+`docs/asset-tools.md`.
+
+Two field kinds deliberately skip the `tc-*` element: `color` uses a native `<input type="color">` because
+`tc-color-picker` rebuilds its light DOM on every `value` assignment, and `text` is an uncontrolled input
+committed on blur/Enter (see *A table rebuild destroys the controls inside its rows* and
+`docs/known-problems/filter-input-loses-focus.md` for why a value being typed must never be written back).
+`revision` remounts the text fields, which is how *Reset settings* pushes defaults into them.
 
 ## A table rebuild destroys the controls inside its rows
 
@@ -519,7 +594,7 @@ two-up below `$bp-lg` and one-up below `$bp-sm`, dropping the chevrons; the puls
   (`project.permissions.includes('bundle.write')`), NOT from a page-level `useProjectCan` — that
   hook reads the active project, which has not synced yet on first render of a deep link.
   Shipped: Assets none (upload is the strip), Bundles *Create bundle*, Builds *Purge N untagged*
-  (quiet `danger outline`, only when there are untagged builds), Configs *New config* / *New schema*
+  (quiet `danger outline`, only when there are untagged builds), Live config *New config* / *New schema*
   following the active tab, Members *Invite*.
 - **`pipeline={false}`** for screens that are not stages of the asset→build flow (Members, Settings).
 

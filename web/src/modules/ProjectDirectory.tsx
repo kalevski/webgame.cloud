@@ -5,14 +5,26 @@ import useStrings from 'hooks/useStrings'
 import useCan from 'hooks/useCan'
 import { useTc } from '@toolcase/web-components/react'
 import { MODAL, useModalOpen } from 'modals'
-import { escapeHtml } from 'helpers/html'
-import { formatBytes } from 'helpers/format'
-import { formatDate } from 'helpers/dates'
+import useStableValue from 'hooks/useStableValue'
+import { PROJECT_SORTABLE, ProjectColumnKey, projectColumns, projectRow } from 'helpers/platformTables'
 import { ADMIN_PROJECT_STATES, APP_TYPES, AdminProject, AdminProjectState } from 'types'
 
 const PAGE_SIZE = 20
 
 const SEARCH_DEBOUNCE_MS = 300
+
+const COLUMN_KEYS: ProjectColumnKey[] = [
+    'name',
+    'owner',
+    'type',
+    'realm',
+    'members',
+    'assets',
+    'builds',
+    'storage',
+    'created',
+    'actions',
+]
 
 type FilterableTable = HTMLElement & {
     filterValues?: Record<string, unknown>
@@ -26,12 +38,6 @@ type FilterableTable = HTMLElement & {
 const searchInput = (element: FilterableTable): HTMLInputElement | null =>
     element.shadowRoot?.querySelector<HTMLInputElement>('input[type="text"]') ??
     element.querySelector<HTMLInputElement>('input[type="text"]')
-
-const TYPE_VARIANTS: Record<string, string> = {
-    game: 'primary',
-    app: 'info',
-    prototype: 'secondary',
-}
 
 const ProjectDirectory: React.FC = () => {
     const { t } = useStrings()
@@ -75,52 +81,13 @@ const ProjectDirectory: React.FC = () => {
     }
 
     const rows = useMemo(
-        () =>
-            projects
-                .map((project: AdminProject) => {
-                    const flags = [
-                        project.archivedAt
-                            ? `<tc-badge variant="secondary">${escapeHtml(p.archivedBadge)}</tc-badge>`
-                            : '',
-                        project.locked ? `<tc-badge variant="warning">${escapeHtml(p.lockedBadge)}</tc-badge>` : '',
-                    ].join(' ')
-                    const move = canMove
-                        ? `<tc-icon-button icon="Server" variant="secondary" size="small" outline data-action="move" data-id="${escapeHtml(project.id)}" label="${escapeHtml(p.move)}" title="${escapeHtml(p.move)}"></tc-icon-button>`
-                        : ''
-                    return [
-                        '<tr>',
-                        `<td><strong>${escapeHtml(project.name)}</strong> ${flags}</td>`,
-                        `<td>${escapeHtml(project.ownerName || project.ownerEmail)}<br><small>${escapeHtml(project.ownerEmail)}</small></td>`,
-                        `<td><tc-badge variant="${TYPE_VARIANTS[project.appType] ?? 'secondary'}">${escapeHtml(project.appType)}</tc-badge></td>`,
-                        `<td>${escapeHtml(project.realmName || p.noRealm)}</td>`,
-                        `<td style="text-align:right">${project.memberCount}</td>`,
-                        `<td style="text-align:right">${project.assetCount}</td>`,
-                        `<td style="text-align:right">${escapeHtml(formatBytes(project.storageBytes))}</td>`,
-                        `<td>${escapeHtml(formatDate(project.createdAt))}</td>`,
-                        '<td style="text-align:right"><span class="table-actions">',
-                        move,
-                        `<tc-icon-button icon="ArrowRight" variant="primary" size="small" outline data-action="open" data-id="${escapeHtml(project.id)}" label="${escapeHtml(p.open)}" title="${escapeHtml(p.open)}"></tc-icon-button>`,
-                        '</span></td>',
-                        '</tr>',
-                    ].join('')
-                })
-                .join(''),
+        () => projects.map((project: AdminProject) => projectRow(project, p, COLUMN_KEYS, { canMove })).join(''),
         [projects, p, canMove]
     )
 
     const table = useTc<FilterableTable>({
-        columns: [
-            { key: 'name', label: p.colName, minWidth: '14rem' },
-            { key: 'owner', label: p.colOwner, minWidth: '14rem' },
-            { key: 'type', label: p.colType },
-            { key: 'realm', label: p.colRealm, hideBelow: 'lg' },
-            { key: 'members', label: p.colMembers, align: 'right', hideBelow: 'md' },
-            { key: 'assets', label: p.colAssets, align: 'right', hideBelow: 'md' },
-            { key: 'storage', label: p.colStorage, align: 'right', hideBelow: 'sm' },
-            { key: 'created', label: p.colCreated, hideBelow: 'sm' },
-            { key: 'actions', label: '', align: 'right', minWidth: '6rem' },
-        ],
-        filters: [
+        columns: useStableValue(projectColumns(p, COLUMN_KEYS)),
+        filters: useStableValue([
             { key: 'q', label: p.filterSearch, type: 'text', placeholder: p.searchPlaceholder },
             {
                 key: 'appType',
@@ -144,9 +111,15 @@ const ProjectDirectory: React.FC = () => {
                     options: realms.map((realm) => ({ value: realm.id, label: realm.name })),
                 }]
                 : []),
-        ],
-        sortableColumns: ['name', 'owner', 'members', 'assets', 'storage', 'created'],
-        sort: { column: filters.sort ?? 'created', direction: filters.direction ?? 'desc' },
+        ]),
+        sortableColumns: PROJECT_SORTABLE,
+        sort: useStableValue({ column: filters.sort ?? 'created', direction: filters.direction ?? 'desc' }),
+        filterValues: useStableValue(filterState.current),
+        rows,
+        total,
+        limit: PAGE_SIZE,
+        offset: filters.offset ?? 0,
+        loading,
         onFilterChange: (key: string, value: unknown) => {
             const next = { ...filterState.current, [key]: String(value ?? '') }
             filterState.current = next
@@ -180,13 +153,6 @@ const ProjectDirectory: React.FC = () => {
         const element = table.current
         if (!element) return
 
-        element.filterValues = filterState.current
-        element.rows = rows
-        element.total = total
-        element.limit = PAGE_SIZE
-        element.offset = filters.offset ?? 0
-        element.loading = loading
-
         if (!typing.current) return
         const input = searchInput(element)
         if (!input) return
@@ -206,17 +172,9 @@ const ProjectDirectory: React.FC = () => {
 
     return (
         <div className="module module-project-directory" role="presentation" onClick={onClick}>
-            <tc-section-card title={p.title}>
-                <tc-stack direction="column" gap="0.85rem">
-                    <tc-text variant="muted">{p.subtitle}</tc-text>
+            <tc-advanced-table ref={table} sticky-last-column></tc-advanced-table>
 
-                    <tc-advanced-table ref={table} sticky-last-column></tc-advanced-table>
-
-                    {!loading && projects.length === 0 && (
-                        <tc-empty-state icon="folder">{p.empty}</tc-empty-state>
-                    )}
-                </tc-stack>
-            </tc-section-card>
+            {!loading && projects.length === 0 && <tc-empty-state icon="folder">{p.empty}</tc-empty-state>}
         </div>
     )
 }

@@ -29,9 +29,7 @@ const ProjectHeader: React.FC<Props> = ({
         icon-color={iconColor}
     >
         {project && (
-            <tc-badge slot="chips" variant="secondary">
-                {project.name}
-            </tc-badge>
+            <tc-badge slot="chips" variant="secondary" text={project.name}></tc-badge>
         )}
         {subline && (
             <span slot="chips" className="project-header__subline">

@@ -6,14 +6,24 @@ import type {
     Realm,
     RealmDraft,
     RealmHeartbeat,
+    RealmRegion,
+    RealmRegionDraft,
+    RealmSamplePoint,
+    RealmStats,
     RealmToken,
 } from '../contracts/index.js'
-import { MIGRATION_TIMEOUT_MINUTES } from '../contracts/index.js'
+import {
+    MIGRATION_TIMEOUT_MINUTES,
+    REALM_SAMPLE_BUCKET_MINUTES,
+    REALM_SAMPLE_RETENTION_DAYS,
+    REALM_SAMPLE_WINDOW_HOURS,
+} from '../contracts/index.js'
 import { ConflictError, NotFoundError, UnavailableError } from '../domain/errors.js'
 import { RealmRepository } from '../repositories/realms/RealmRepository.js'
+import { RealmRegionRepository } from '../repositories/realms/RealmRegionRepository.js'
 import { ProjectMigrationRepository } from '../repositories/realms/ProjectMigrationRepository.js'
 import { ProjectRepository } from '../repositories/projects/ProjectRepository.js'
-import { toMigration, toRealm } from '../schema/realms.js'
+import { toMigration, toRealm, toRealmRegion } from '../schema/realms.js'
 import type { RealmRow } from '../schema/realms.js'
 import type { QueryRunner } from '../Database.js'
 import { BillingService } from './BillingService.js'
@@ -31,6 +41,7 @@ export const hashRealmToken = (token: string): string =>
 export const JOB_REALM_MIGRATE = 'realm.migrate'
 export const JOB_REALM_PURGE = 'realm.purge'
 export const JOB_REALM_REAP_MIGRATIONS = 'realms.reap_stale_migrations'
+export const JOB_REALM_PRUNE_SAMPLES = 'realms.prune_samples'
 
 export type MoveConflict = 'in_progress'
 
@@ -40,6 +51,7 @@ const newToken = (): string => `${REALM_TOKEN_PREFIX}_${randomBytes(24).toString
 export class RealmService {
     constructor(
         @inject(RealmRepository) private realms: RealmRepository,
+        @inject(RealmRegionRepository) private regions: RealmRegionRepository,
         @inject(ProjectMigrationRepository) private migrations: ProjectMigrationRepository,
         @inject(ProjectRepository) private projects: ProjectRepository,
         @inject(BillingService) private billing: BillingService,
@@ -62,13 +74,61 @@ export class RealmService {
         return this.realms.findByTokenHash(hashRealmToken(token))
     }
 
+    async listRegions(): Promise<RealmRegion[]> {
+        return (await this.regions.findAll()).map(toRealmRegion)
+    }
+
+    async createRegion(draft: RealmRegionDraft): Promise<Result<RealmRegion, 'exists'>> {
+        const created = await this.regions.create({
+            name: draft.name.trim(),
+            active: draft.active ?? true,
+        })
+        if (created.isErr()) return err('exists')
+        return ok(toRealmRegion(created.unwrap()))
+    }
+
+    async updateRegion(id: string, draft: RealmRegionDraft): Promise<Result<RealmRegion, 'exists'>> {
+        const existing = await this.regions.findById(id)
+        if (!existing) {
+            throw new NotFoundError('realm_region_not_found', `unknown region ${id}`, [id])
+        }
+
+        const updated = await this.regions.updateRegion(id, {
+            name: draft.name?.trim() || existing.name,
+            active: draft.active ?? existing.active,
+        })
+        if (updated.isErr()) return err('exists')
+        const row = updated.unwrap()
+        if (!row) throw new NotFoundError('realm_region_not_found', `unknown region ${id}`, [id])
+        return ok(toRealmRegion(row))
+    }
+
+    async removeRegion(id: string): Promise<void> {
+        const hosted = await this.regions.countRealms(id)
+        if (hosted > 0) {
+            throw new ConflictError('realm_region_in_use', `${hosted} realms sit in this region`, [hosted])
+        }
+        const removed = await this.regions.softDelete(id)
+        if (!removed) throw new NotFoundError('realm_region_not_found', `unknown region ${id}`, [id])
+    }
+
+    private async resolveRegion(regionId: string | null): Promise<string | null> {
+        if (!regionId) return null
+        const region = await this.regions.findById(regionId)
+        if (!region) {
+            throw new NotFoundError('realm_region_not_found', `unknown region ${regionId}`, [regionId])
+        }
+        return region.id
+    }
+
     async create(draft: RealmDraft): Promise<Result<RealmToken, 'exists'>> {
+        const regionId = await this.resolveRegion(draft.regionId ?? null)
         const token = newToken()
         const created = await this.realms.create(
             {
                 name: draft.name.trim(),
                 baseUrl: draft.baseUrl.trim().replace(/\/+$/, ''),
-                region: draft.region?.trim() ?? '',
+                regionId,
                 planId: draft.planId ?? null,
                 exclusive: draft.exclusive ?? false,
                 status: draft.status ?? 'active',
@@ -83,10 +143,15 @@ export class RealmService {
         const existing = await this.realms.findById(id)
         if (!existing) throw new NotFoundError('realm_not_found', `unknown realm ${id}`, [id])
 
+        const regionId =
+            draft.regionId === undefined
+                ? existing.region_id
+                : await this.resolveRegion(draft.regionId)
+
         const updated = await this.realms.updateRealm(id, {
             name: draft.name?.trim() || existing.name,
             baseUrl: draft.baseUrl?.trim().replace(/\/+$/, '') || existing.base_url,
-            region: draft.region?.trim() ?? existing.region,
+            regionId,
             planId: draft.planId === undefined ? existing.plan_id : draft.planId,
             exclusive: draft.exclusive ?? existing.exclusive,
             status: draft.status ?? existing.status,
@@ -115,6 +180,58 @@ export class RealmService {
 
     async heartbeat(realmId: string, beat: RealmHeartbeat): Promise<void> {
         await this.realms.touchHeartbeat(realmId, beat)
+        await this.realms.insertSample(realmId, beat)
+    }
+
+    async stats(id: string): Promise<RealmStats> {
+        const row = await this.realms.findById(id)
+        if (!row) throw new NotFoundError('realm_not_found', `unknown realm ${id}`, [id])
+
+        const [usage, samples] = await Promise.all([
+            this.realms.usageStats(id),
+            this.realms.sampleStats(id, REALM_SAMPLE_WINDOW_HOURS),
+        ])
+        const realm = toRealm(row)
+
+        return {
+            storageUsedBytes: Number(usage.storage_used_bytes ?? 0),
+            diskFreeBytes: realm.diskFreeBytes,
+            filesProcessedToday: Number(usage.files_processed_today ?? 0),
+            buildsToday: Number(usage.builds_today ?? 0),
+            avgDailyBuilds: Math.round((Number(usage.builds_week ?? 0) / 7) * 10) / 10,
+            queueDepth: realm.queueDepth,
+            peakQueueDepth: samples.peak_queue_depth ?? realm.queueDepth,
+            cpuUsage: realm.cpuUsage,
+            avgCpuUsage: Math.round(Number(samples.avg_cpu_usage ?? realm.cpuUsage)),
+            peakCpuUsage: samples.peak_cpu_usage ?? realm.cpuUsage,
+            memoryUsedBytes: realm.memoryUsedBytes,
+            memoryTotalBytes: realm.memoryTotalBytes,
+            avgMemoryUsedBytes: Math.round(Number(samples.avg_memory_used_bytes ?? realm.memoryUsedBytes)),
+            peakMemoryUsedBytes: Number(samples.peak_memory_used_bytes ?? realm.memoryUsedBytes),
+        }
+    }
+
+    async sampleSeries(id: string): Promise<RealmSamplePoint[]> {
+        const row = await this.realms.findById(id)
+        if (!row) throw new NotFoundError('realm_not_found', `unknown realm ${id}`, [id])
+        const buckets = await this.realms.sampleSeries(
+            id,
+            REALM_SAMPLE_WINDOW_HOURS,
+            REALM_SAMPLE_BUCKET_MINUTES
+        )
+        return buckets.map((bucket) => ({
+            t: bucket.bucket.toISOString(),
+            queueDepth: bucket.queue_depth,
+            cpuUsage: bucket.cpu_usage,
+            memoryUsedBytes: Number(bucket.memory_used_bytes ?? 0),
+            diskFreeBytes: Number(bucket.disk_free_bytes ?? 0),
+        }))
+    }
+
+    async pruneSamples(): Promise<number> {
+        const pruned = await this.realms.pruneSamples(REALM_SAMPLE_RETENTION_DAYS)
+        if (pruned > 0) log.info('pruned realm samples', { count: pruned })
+        return pruned
     }
 
     async selectRealm(ownerId: string, trx?: QueryRunner): Promise<RealmRow | undefined> {

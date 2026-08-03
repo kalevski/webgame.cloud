@@ -58,7 +58,33 @@ always created.
   `key={`${group.id}:${group.files.length}`}` so a group that changes size remounts and re-captures its
   children instead of relying on the element preserving them.
 
+## The sibling failure: a single string child
+
+There is a second, sharper version of this. When a `tc-*` element's `children` prop is a **single string or
+number**, React skips child reconciliation entirely and writes `node.textContent = value` — its
+`shouldSetTextContent` fast path, which applies to custom elements like any other host. That does not just
+relocate the element's markup, it deletes it:
+
+```html
+<tc-badge variant="success"><span class="badge text-bg-success"><span class="tc-badge-content">Active</span></span></tc-badge>
+<!-- React commits variant="secondary" then textContent="Inactive" -->
+<tc-badge variant="secondary">Inactive</tc-badge>
+```
+
+`tc-button` survives this because it watches its host with a `MutationObserver` and rebuilds. `tc-badge`
+does not, and it keeps none of its styling on the host, so the badge becomes unstyled text — the symptom
+being a status pill that "loses its colour" the first time the thing it describes changes. Region
+activate/deactivate was the reported case: it flips the badge's variant *and* its label in one commit.
+
+The fix is to hand the label over as the `text` attribute so the element has no React-owned children at
+all. Full rule, and the list of converted call sites, in
+[frontend-architecture.md](../frontend-architecture.md#a-tc-badge-label-that-changes-must-ride-on-the-text-attribute).
+
 ## Where it may still bite
 
 Any module that renders a variable number of React children into a `tc-*` element whose observed attributes
 change with that number. `FileList` is fixed. Audit before adding another.
+
+For the single-string-child variant: any element that paints itself into an inner wrapper and has no
+`MutationObserver`. `grep` for a `tc-*` tag whose only child is a `{…}` expression before assuming a screen
+is safe.

@@ -20,12 +20,14 @@ const PlatformUsersPage: React.FC = () => {
     return (
         <AuthGuard secured permission="admin.user.read">
             <section className="console-page">
-                <tc-rich-page-header
-                    title-text={t.pages.platformUsersTitle}
-                    description={t.pages.platformUsersDescription}
-                    icon-name="UsersRound"
-                    icon-color="blue"
-                ></tc-rich-page-header>
+                {!id && (
+                    <tc-rich-page-header
+                        title-text={t.pages.platformUsersTitle}
+                        description={t.pages.platformUsersDescription}
+                        icon-name="UsersRound"
+                        icon-color="blue"
+                    ></tc-rich-page-header>
+                )}
 
                 {id ? <UserProfileAdmin /> : <UserDirectory />}
             </section>

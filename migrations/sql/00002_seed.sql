@@ -71,10 +71,6 @@ INSERT INTO email_templates (key, name, subject, body)
 
 Open {{inviteUrl}} to accept. The invitation expires in 7 days.');
 
-INSERT INTO realms (id, name, base_url, region, exclusive, token_hash)
-    VALUES ('local', 'local', 'http://127.0.0.1:5100', 'local', false,
-    encode(sha256('rlm_dev_local'::bytea), 'hex'));
-
 INSERT INTO settings (key, value) VALUES ('role_slot_default', 'indie');
 
 INSERT INTO settings (key, value) VALUES ('signups_open', 'true');
@@ -99,7 +95,6 @@ DELETE FROM sales_enquiries;
 DELETE FROM invoices;
 DELETE FROM subscriptions;
 DELETE FROM billing_plans;
-DELETE FROM realms;
 DELETE FROM role_limits;
 DELETE FROM settings;
 DELETE FROM role_permissions;

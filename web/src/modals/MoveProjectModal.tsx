@@ -18,22 +18,27 @@ const MoveProjectModal: React.FC = () => {
     const [saving, setSaving] = useState(false)
 
     const picker = useTc<ValueElement>({
-        options: realms
-            .filter((realm) => realm.status !== 'offline')
-            .map((realm) => ({
-                key: realm.id,
-                label: realm.name,
-                description: `${realm.region || '—'} · ${realm.projectCount}${realm.exclusive ? ' · exclusive' : ''}`,
-            })),
+        options: realms.flatMap((realm) =>
+            realm.status === 'offline'
+                ? []
+                : [{
+                      key: realm.id,
+                      label: realm.name,
+                      description: `${realm.regionName || '—'} · ${realm.projectCount}${realm.exclusive ? ' · exclusive' : ''}`,
+                  }]
+        ),
         onChange: (value: unknown) => setRealmId(String(value ?? '')),
     })
 
     const submit = async () => {
         if (!projectId || !realmId) return
         setSaving(true)
-        const done = await moveProjectToRealm(projectId, realmId)
-        setSaving(false)
-        if (done) closeModal(true)
+        try {
+            const done = await moveProjectToRealm(projectId, realmId)
+            if (done) closeModal(true)
+        } finally {
+            setSaving(false)
+        }
     }
 
     return (

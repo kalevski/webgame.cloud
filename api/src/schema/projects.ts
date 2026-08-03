@@ -1,5 +1,6 @@
 import type {
     AdminProject,
+    AdminProjectMember,
     AppType,
     NamedRow,
     Project,
@@ -69,6 +70,13 @@ export type ProjectMemberRow = {
     created_at: Date
 }
 
+export type AdminProjectMemberRow = Omit<ProjectMemberRow, 'project_id'> & {
+    role: string
+    active: boolean
+    verified: boolean
+    is_owner: boolean
+}
+
 export type ProjectInviteRow = {
     id: string
     project_id: string
@@ -122,6 +130,21 @@ export const toMember = (row: ProjectMemberRow, ownerId: string): ProjectMember 
     permissions: (row.permissions ?? []) as ProjectPermission[],
     isOwner: row.user_id === ownerId,
     createdAt: row.created_at.toISOString(),
+})
+
+export const toAdminMember = (row: AdminProjectMemberRow, roleName: string): AdminProjectMember => ({
+    id: row.id,
+    userId: row.user_id,
+    name: row.name ?? '',
+    email: row.email ?? '',
+    avatarUrl: row.picture ?? '',
+    verified: row.verified,
+    active: row.active,
+    roleId: row.role,
+    roleName,
+    permissions: (row.permissions ?? []) as ProjectPermission[],
+    isOwner: row.is_owner,
+    joinedAt: row.created_at.toISOString(),
 })
 
 export const toInvite = (row: ProjectInviteRow): ProjectInvite => ({

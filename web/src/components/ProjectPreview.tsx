@@ -79,8 +79,8 @@ const ProjectPreview: React.FC<ProjectPreviewProps> = ({ draft, compact = false 
                 <div className="project-preview__identity">
                     <span className="project-preview__name">{draft.name.trim() || w.previewUntitled}</span>
                     <span className="project-preview__badges">
-                        <tc-badge variant="primary">{appTypeLabel}</tc-badge>
-                        {genre && <tc-badge variant="secondary">{genre.label}</tc-badge>}
+                        <tc-badge variant="primary" text={appTypeLabel}></tc-badge>
+                        {genre && <tc-badge variant="secondary" text={genre.label}></tc-badge>}
                     </span>
                 </div>
             </div>

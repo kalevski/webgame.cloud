@@ -5,15 +5,37 @@ import useStrings from 'hooks/useStrings'
 import useCan from 'hooks/useCan'
 import { MODAL, useModalOpen } from 'modals'
 import { ManageAccessInput, ManageAccessResult } from 'modals/ManageAccessModal'
+import AdvancedTable from 'components/AdvancedTable'
+import RouteTabs from 'components/RouteTabs'
+import { ProjectColumnKey, projectColumns, projectRow } from 'helpers/platformTables'
 import { formatBytes } from 'helpers/format'
 import { formatDate, formatDateTime } from 'helpers/dates'
 import { OAUTH_PROVIDER_LABELS, OWNER_ROLE_ID, RESOURCE_LABELS, User } from 'types'
 
+const TABS = ['profile', 'projects', 'activity'] as const
+
+type ProfileTab = (typeof TABS)[number]
+
+const PROJECT_COLUMN_KEYS: ProjectColumnKey[] = [
+    'name',
+    'standing',
+    'type',
+    'realm',
+    'members',
+    'assets',
+    'builds',
+    'storage',
+    'created',
+    'actions',
+]
+
 const UserProfileAdmin: React.FC = () => {
     const { t } = useStrings()
     const u = t.userProfilesAdmin
-    const { id } = useParams()
+    const { id, tab } = useParams()
     const navigate = useNavigate()
+
+    const activeTab: ProfileTab = TABS.includes(tab as ProfileTab) ? (tab as ProfileTab) : 'profile'
 
     const me = useStore((state) => state.me)
     const profile = useStore((state) => state.userProfile)
@@ -73,15 +95,17 @@ const UserProfileAdmin: React.FC = () => {
     const activeOwners = users.filter((entry) => entry.role === OWNER_ROLE_ID && entry.active).length
 
     const facts = [
-        { label: u.labelEmail, value: user.email },
-        { label: u.labelRole, value: profile.roleName },
-        { label: u.labelStatus, value: user.active ? u.active : u.inactive },
+        { label: u.labelEmail, value: user.email, mono: true },
+        { label: u.labelJoined, value: formatDate(user.createdAt), mono: true },
         { label: u.labelVerified, value: user.verified ? u.yes : u.no },
-        { label: u.labelJoined, value: formatDate(user.createdAt) },
-        { label: u.labelConsent, value: user.consentedAt ? formatDate(user.consentedAt) : u.never },
-        { label: u.labelSessions, value: String(profile.sessionCount) },
-        { label: u.labelLastSeen, value: profile.lastSeenAt ? formatDateTime(profile.lastSeenAt) : u.never },
-        { label: u.labelStorage, value: formatBytes(profile.storageBytes) },
+        { label: u.labelConsent, value: user.consentedAt ? formatDate(user.consentedAt) : u.never, mono: true },
+        { label: u.labelSessions, value: String(profile.sessionCount), mono: true },
+        {
+            label: u.labelLastSeen,
+            value: profile.lastSeenAt ? formatDateTime(profile.lastSeenAt) : u.never,
+            mono: true,
+        },
+        { label: u.labelStorage, value: formatBytes(profile.storageBytes), mono: true },
         {
             label: u.labelProviders,
             value: profile.identities.length
@@ -90,127 +114,202 @@ const UserProfileAdmin: React.FC = () => {
         },
     ]
 
+    const owned = profile.projects.filter((project) => project.ownerId === user.id)
+    const assetTotal = profile.projects.reduce((sum, project) => sum + project.assetCount, 0)
+
+    const projectTableColumns = projectColumns(t.projectsAdmin, PROJECT_COLUMN_KEYS)
+    const projectRows = profile.projects
+        .map((project) => projectRow(project, t.projectsAdmin, PROJECT_COLUMN_KEYS, { viewerId: user.id }))
+        .join('')
+
+    const tabs = [
+        { id: 'profile', label: u.tabProfile, icon: 'user', path: `/platform/users/${user.id}` },
+        {
+            id: 'projects',
+            label: u.tabProjects(profile.projects.length),
+            icon: 'folder',
+            path: `/platform/users/${user.id}/projects`,
+        },
+        {
+            id: 'activity',
+            label: u.tabActivity(profile.activity.length),
+            icon: 'history',
+            path: `/platform/users/${user.id}/activity`,
+        },
+    ]
+
     return (
         <div className="module module-user-profile-admin">
-            <div className="module-user-profile-admin__actions">
-                <tc-button variant="secondary" outline onClick={() => navigate('/platform/users')}>
-                    {u.backToList}
-                </tc-button>
-                {canWriteAccess && !self && (
-                    <tc-button
-                        variant="primary"
-                        outline
-                        onClick={() => {
-                            pending.current = user.id
-                            openAccessModal({ user, activeOwners, clientCount: 0 })
-                        }}
-                    >
-                        {t.usersAdmin.manageAccess}
-                    </tc-button>
-                )}
-                {canWriteAccess && !self && (
-                    <tc-button
-                        variant={user.active ? 'danger' : 'success'}
-                        outline
-                        onClick={async () => {
-                            const saved = await updateUser(user.id, { active: !user.active })
-                            if (saved) void fetchUserProfile(user.id)
-                        }}
-                    >
-                        {user.active ? t.usersAdmin.deactivate : t.usersAdmin.activate}
-                    </tc-button>
-                )}
-                {canImpersonate && !self && user.active && (
-                    <tc-button variant="secondary" outline onClick={() => openImpersonate(user)}>
-                        {t.usersAdmin.loginAs}
-                    </tc-button>
-                )}
-                {canReadAudit && (
-                    <tc-button
+            <tc-rich-page-header
+                title-text={user.name || user.email}
+                sub={user.name ? user.email : undefined}
+                icon-name="UserRound"
+                icon-color="blue"
+            >
+                <span slot="chips">
+                    <tc-badge variant="primary" text={profile.roleName}></tc-badge>
+                    <tc-badge
+                        variant={user.active ? 'success' : 'danger'}
+                        text={user.active ? u.active : u.inactive}
+                    ></tc-badge>
+                    <tc-badge
                         variant="secondary"
-                        outline
-                        onClick={() => navigate(`/moderation/audit?actor=${encodeURIComponent(user.id)}`)}
-                    >
-                        {u.viewAudit}
+                        text={u.permissionCount(profile.permissions.length)}
+                    ></tc-badge>
+                </span>
+
+                <span slot="actions" className="platform-detail__actions">
+                    <tc-button variant="secondary" outline onClick={() => navigate('/platform/users')}>
+                        <span>{u.backToList}</span>
                     </tc-button>
-                )}
-            </div>
+                    {canWriteAccess && !self && (
+                        <tc-button
+                            variant="primary"
+                            outline
+                            onClick={() => {
+                                pending.current = user.id
+                                openAccessModal({ user, activeOwners, clientCount: 0 })
+                            }}
+                        >
+                            <span>{t.usersAdmin.manageAccess}</span>
+                        </tc-button>
+                    )}
+                    {canWriteAccess && !self && (
+                        <tc-button
+                            variant={user.active ? 'danger' : 'success'}
+                            outline
+                            onClick={async () => {
+                                const saved = await updateUser(user.id, { active: !user.active })
+                                if (saved) void fetchUserProfile(user.id)
+                            }}
+                        >
+                            <span>{user.active ? t.usersAdmin.deactivate : t.usersAdmin.activate}</span>
+                        </tc-button>
+                    )}
+                    {canImpersonate && !self && user.active && (
+                        <tc-button variant="secondary" outline onClick={() => openImpersonate(user)}>
+                            <span>{t.usersAdmin.loginAs}</span>
+                        </tc-button>
+                    )}
+                    {canReadAudit && (
+                        <tc-button
+                            variant="secondary"
+                            outline
+                            onClick={() => navigate(`/moderation/audit?actor=${encodeURIComponent(user.id)}`)}
+                        >
+                            <span>{u.viewAudit}</span>
+                        </tc-button>
+                    )}
+                </span>
+            </tc-rich-page-header>
 
-            <tc-section-card title={user.name || user.email}>
-                <tc-stack direction="column" gap="0.85rem">
-                    <div className="module-user-profile-admin__badges">
-                        <tc-badge variant="primary">{profile.roleName}</tc-badge>
-                        <tc-badge variant={user.active ? 'success' : 'danger'}>
-                            {user.active ? u.active : u.inactive}
-                        </tc-badge>
-                        <tc-badge variant="secondary">{u.permissionCount(profile.permissions.length)}</tc-badge>
-                    </div>
+            <RouteTabs tabs={tabs} activeId={activeTab} />
 
-                    <dl className="module-user-profile-admin__facts">
-                        {facts.map((fact) => (
-                            <div key={fact.label} className="module-user-profile-admin__fact">
-                                <dt>{fact.label}</dt>
-                                <dd>{fact.value}</dd>
-                            </div>
-                        ))}
-                    </dl>
-                </tc-stack>
-            </tc-section-card>
-
-            <tc-section-card title={u.sectionUsage}>
-                <tc-metric-grid columns="3">
-                    {profile.usage.map((entry) => (
+            {activeTab === 'profile' && (
+                <div className="console-section">
+                    <tc-metric-grid columns="4">
+                        <tc-metric-tile label={u.metricOwned} value={String(owned.length)}></tc-metric-tile>
                         <tc-metric-tile
-                            key={entry.resource}
-                            label={RESOURCE_LABELS[entry.resource]}
-                            value={entry.limit === null ? String(entry.used) : `${entry.used} / ${entry.limit}`}
-                            hint={entry.limit === null ? u.unlimited : undefined}
+                            label={u.metricJoined}
+                            value={String(profile.projects.length - owned.length)}
                         ></tc-metric-tile>
-                    ))}
-                </tc-metric-grid>
-            </tc-section-card>
+                        <tc-metric-tile label={u.metricAssets} value={String(assetTotal)}></tc-metric-tile>
+                        <tc-metric-tile
+                            label={u.metricStorage}
+                            value={formatBytes(profile.storageBytes)}
+                        ></tc-metric-tile>
+                    </tc-metric-grid>
 
-            <tc-section-card title={u.sectionProjects}>
-                <tc-stack direction="column" gap="0.5rem">
+                    <tc-section-card title={u.sectionIdentity} icon="IdCard">
+                        <dl className="platform-facts">
+                            {facts.map((fact) => (
+                                <div key={fact.label} className="platform-facts__fact">
+                                    <dt>{fact.label}</dt>
+                                    <dd className={fact.mono ? 'platform-mono' : undefined}>{fact.value}</dd>
+                                </div>
+                            ))}
+                        </dl>
+                    </tc-section-card>
+
+                    <tc-section-card title={u.sectionUsage} icon="Gauge">
+                        <ul className="platform-meters">
+                            {profile.usage.map((entry) => {
+                                const ratio =
+                                    entry.limit === null || entry.limit === 0
+                                        ? 0
+                                        : Math.min(1, entry.used / entry.limit)
+                                const level =
+                                    entry.limit === null
+                                        ? 'none'
+                                        : entry.reached
+                                          ? 'full'
+                                          : ratio >= 0.6
+                                            ? 'high'
+                                            : 'ok'
+
+                                return (
+                                    <li key={entry.resource} className="platform-meters__row" data-level={level}>
+                                        <span className="platform-meters__label">
+                                            {RESOURCE_LABELS[entry.resource]}
+                                        </span>
+                                        <span className="platform-meters__value">
+                                            {entry.limit === null
+                                                ? `${entry.used} · ${u.unlimited}`
+                                                : `${entry.used} / ${entry.limit}`}
+                                        </span>
+                                        <span className="platform-meters__track" aria-hidden="true">
+                                            <span
+                                                className="platform-meters__fill"
+                                                style={{ width: `${Math.round(ratio * 100)}%` }}
+                                            />
+                                        </span>
+                                    </li>
+                                )
+                            })}
+                        </ul>
+                    </tc-section-card>
+                </div>
+            )}
+
+            {activeTab === 'projects' && (
+                <div className="module-user-profile-admin__table">
+                    <AdvancedTable
+                        columns={projectTableColumns}
+                        rows={projectRows}
+                        total={profile.projects.length}
+                        offset={0}
+                        limit={profile.projects.length || 1}
+                        stickyLastColumn
+                        onRowAction={(action, projectId) => {
+                            if (action === 'open' && canReadProjects) {
+                                navigate(`/platform/projects/${projectId}`)
+                            }
+                        }}
+                    />
+
                     {profile.projects.length === 0 && (
                         <tc-empty-state icon="folder">{u.noProjects}</tc-empty-state>
                     )}
-                    {profile.projects.map((project) => (
-                        <div key={project.id} className="module-user-profile-admin__row">
-                            <tc-badge variant={project.owner ? 'primary' : 'secondary'}>
-                                {project.owner ? u.ownerBadge : u.memberBadge}
-                            </tc-badge>
-                            <tc-text>{project.name}</tc-text>
-                            {project.archived && <tc-badge variant="secondary">{u.archivedBadge}</tc-badge>}
-                            {canReadProjects && (
-                                <tc-button
-                                    variant="secondary"
-                                    size="small"
-                                    outline
-                                    onClick={() => navigate(`/platform/projects/${project.id}`)}
-                                >
-                                    {u.openProject}
-                                </tc-button>
-                            )}
-                        </div>
-                    ))}
-                </tc-stack>
-            </tc-section-card>
+                </div>
+            )}
 
-            <tc-section-card title={u.sectionActivity}>
-                <tc-stack direction="column" gap="0.35rem">
-                    {profile.activity.length === 0 && (
-                        <tc-empty-state icon="history">{u.noActivity}</tc-empty-state>
-                    )}
-                    {profile.activity.map((entry) => (
-                        <div key={entry.id} className="module-user-profile-admin__row">
-                            <tc-badge variant="secondary">{entry.action}</tc-badge>
-                            <tc-text variant="muted">{formatDateTime(entry.createdAt)}</tc-text>
-                            {entry.detail && <tc-text variant="muted">{entry.detail}</tc-text>}
-                        </div>
-                    ))}
-                </tc-stack>
-            </tc-section-card>
+            {activeTab === 'activity' && (
+                <tc-section-card title={u.sectionActivity} icon="History">
+                    <div className="platform-log">
+                        {profile.activity.length === 0 ? (
+                            <tc-empty-state icon="history">{u.noActivity}</tc-empty-state>
+                        ) : (
+                            profile.activity.map((entry) => (
+                                <div key={entry.id} className="platform-log__row">
+                                    <time className="platform-log__when">{formatDateTime(entry.createdAt)}</time>
+                                    <span className="platform-log__action">{entry.action}</span>
+                                    {entry.detail && <span className="platform-log__detail">{entry.detail}</span>}
+                                </div>
+                            ))
+                        )}
+                    </div>
+                </tc-section-card>
+            )}
         </div>
     )
 }

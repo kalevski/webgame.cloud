@@ -33,6 +33,10 @@ const PlatformProjectsPage = lazy(() => import('pages/PlatformProjectsPage'))
 const PlatformUsersPage = lazy(() => import('pages/PlatformUsersPage'))
 const CreateProjectPage = lazy(() => import('pages/CreateProjectPage'))
 const LiveBuildsPage = lazy(() => import('pages/LiveBuildsPage'))
+const ToolsFontsPage = lazy(() => import('pages/ToolsFontsPage'))
+const ToolsNormalMapsPage = lazy(() => import('pages/ToolsNormalMapsPage'))
+const ToolsPhysicsPage = lazy(() => import('pages/ToolsPhysicsPage'))
+const ToolsTranslationsPage = lazy(() => import('pages/ToolsTranslationsPage'))
 
 const ScrollRestore = () => {
     const { pathname } = useLocation()
@@ -88,16 +92,24 @@ export const Router = () => {
                                     <Route path="/projects/:id/builds" element={<BuildsPage />} />
                                     <Route path="/projects/:id/live" element={<LiveBuildsPage />} />
                                     <Route path="/projects/:id/live/:buildId" element={<LiveBuildsPage />} />
-                                    <Route path="/projects/:id/configs" element={<ConfigsPage />} />
+                                    <Route path="/projects/:id/tools/live-config" element={<ConfigsPage />} />
+                                    <Route path="/projects/:id/tools/fonts" element={<ToolsFontsPage />} />
+                                    <Route path="/projects/:id/tools/normal-maps" element={<ToolsNormalMapsPage />} />
+                                    <Route path="/projects/:id/tools/physics" element={<ToolsPhysicsPage />} />
+                                    <Route path="/projects/:id/tools/translations" element={<ToolsTranslationsPage />} />
                                     <Route path="/projects/:id/members" element={<MembersPage />} />
                                     <Route path="/projects/:id/settings" element={<ProjectSettingsPage />} />
                                     <Route path="/projects/:id/settings/:tab" element={<ProjectSettingsPage />} />
                                     <Route path="/platform/realms" element={<RealmsAdminPage />} />
+                                    <Route path="/platform/realms/regions" element={<RealmsAdminPage />} />
+                                    <Route path="/platform/realms/:id" element={<RealmsAdminPage />} />
                                     <Route path="/admin/realms" element={<Navigate to="/platform/realms" replace />} />
                                     <Route path="/platform/projects" element={<PlatformProjectsPage />} />
                                     <Route path="/platform/projects/:id" element={<PlatformProjectsPage />} />
+                                    <Route path="/platform/projects/:id/:tab" element={<PlatformProjectsPage />} />
                                     <Route path="/platform/users" element={<PlatformUsersPage />} />
                                     <Route path="/platform/users/:id" element={<PlatformUsersPage />} />
+                                    <Route path="/platform/users/:id/:tab" element={<PlatformUsersPage />} />
                                     <Route path="/profile" element={<ProfilePage />} />
                                     <Route path="/profile/billing" element={<Navigate to="/billing" replace />} />
                                     <Route path="/profile/:tab" element={<ProfilePage />} />

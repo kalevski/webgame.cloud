@@ -73,17 +73,50 @@ const SidebarMenu: React.FC = () => {
                         icon: 'hammer',
                         active: location.pathname.startsWith(`/projects/${activeProjectId}/builds`),
                     },
-                    {
-                        key: `projects/${activeProjectId}/configs`,
-                        label: t.configs.title,
-                        icon: 'sliders',
-                        active: location.pathname.startsWith(`/projects/${activeProjectId}/configs`),
-                    },
                 ]
                 : []),
         ]
 
         const workspace = { key: 'workspace', title: t.nav.sectionMain, items: workspaceItems }
+
+        const toolItems = [
+            ...(activeProjectId
+                ? [
+                    {
+                        key: `projects/${activeProjectId}/tools/fonts`,
+                        label: t.nav.toolFonts,
+                        icon: 'type',
+                        active: location.pathname.startsWith(`/projects/${activeProjectId}/tools/fonts`),
+                    },
+                    {
+                        key: `projects/${activeProjectId}/tools/normal-maps`,
+                        label: t.nav.toolNormalMaps,
+                        icon: 'mountain',
+                        active: location.pathname.startsWith(`/projects/${activeProjectId}/tools/normal-maps`),
+                    },
+                    {
+                        key: `projects/${activeProjectId}/tools/physics`,
+                        label: t.nav.toolPhysics,
+                        icon: 'shapes',
+                        active: location.pathname.startsWith(`/projects/${activeProjectId}/tools/physics`),
+                    },
+                    {
+                        key: `projects/${activeProjectId}/tools/translations`,
+                        label: t.nav.toolTranslations,
+                        icon: 'languages',
+                        active: location.pathname.startsWith(`/projects/${activeProjectId}/tools/translations`),
+                    },
+                    {
+                        key: `projects/${activeProjectId}/tools/live-config`,
+                        label: t.nav.toolLiveConfig,
+                        icon: 'sliders',
+                        active: location.pathname.startsWith(`/projects/${activeProjectId}/tools/live-config`),
+                    },
+                ]
+                : []),
+        ]
+
+        const tools = { key: 'tools', title: t.nav.sectionTools, items: toolItems }
 
         const invoiceItem = {
             key: 'platform/invoices',
@@ -141,6 +174,7 @@ const SidebarMenu: React.FC = () => {
         return [
             project,
             ...(workspaceItems.length > 0 ? [workspace] : []),
+            ...(toolItems.length > 0 ? [tools] : []),
             ...(items.length > 0 ? [platform] : []),
         ]
     }, [

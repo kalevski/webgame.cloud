@@ -28,9 +28,12 @@ const EditMemberPermissionsModal: React.FC = () => {
     const submit = async () => {
         if (!input) return
         setSaving(true)
-        const saved = await updateMemberPermissions(input.projectId, input.member.id, permissions)
-        setSaving(false)
-        if (saved) closeModal(true)
+        try {
+            const saved = await updateMemberPermissions(input.projectId, input.member.id, permissions)
+            if (saved) closeModal(true)
+        } finally {
+            setSaving(false)
+        }
     }
 
     return (

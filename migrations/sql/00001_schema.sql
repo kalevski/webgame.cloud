@@ -521,25 +521,55 @@ CREATE INDEX files_owner_idx ON files (owner_id) WHERE deleted_at IS NULL;
 CREATE INDEX files_type_idx ON files (asset_type) WHERE deleted_at IS NULL;
 CREATE UNIQUE INDEX files_source_location_idx ON files (source_id, location) WHERE deleted_at IS NULL;
 
+CREATE TABLE realm_regions (
+    id         text PRIMARY KEY,
+    name       text NOT NULL,
+    active     boolean NOT NULL DEFAULT true,
+    created_at timestamptz NOT NULL DEFAULT now(),
+    updated_at timestamptz NOT NULL DEFAULT now(),
+    deleted_at timestamptz
+);
+CREATE UNIQUE INDEX realm_regions_name_idx ON realm_regions (lower(name)) WHERE deleted_at IS NULL;
+CREATE INDEX realm_regions_active_idx ON realm_regions (active) WHERE deleted_at IS NULL;
+
 CREATE TABLE realms (
-    id              text PRIMARY KEY,
-    name            text NOT NULL,
-    base_url        text NOT NULL,
-    region          text NOT NULL DEFAULT '',
-    plan_id         text REFERENCES billing_plans(id) ON UPDATE CASCADE ON DELETE SET NULL,
-    exclusive       boolean NOT NULL DEFAULT false,
-    status          text NOT NULL DEFAULT 'active' CHECK (status IN ('active', 'draining', 'offline')),
-    token_hash      text NOT NULL,
-    disk_free_bytes bigint NOT NULL DEFAULT 0,
-    queue_depth     integer NOT NULL DEFAULT 0,
-    health          text NOT NULL DEFAULT 'unknown' CHECK (health IN ('unknown', 'healthy', 'degraded', 'unhealthy')),
-    last_seen_at    timestamptz,
-    created_at      timestamptz NOT NULL DEFAULT now(),
-    updated_at      timestamptz NOT NULL DEFAULT now(),
-    deleted_at      timestamptz
+    id                 text PRIMARY KEY,
+    name               text NOT NULL,
+    base_url           text NOT NULL,
+    region_id          text REFERENCES realm_regions(id) ON UPDATE CASCADE ON DELETE SET NULL,
+    plan_id            text REFERENCES billing_plans(id) ON UPDATE CASCADE ON DELETE SET NULL,
+    exclusive          boolean NOT NULL DEFAULT false,
+    status             text NOT NULL DEFAULT 'active' CHECK (status IN ('active', 'draining', 'offline')),
+    token_hash         text NOT NULL,
+    disk_free_bytes    bigint NOT NULL DEFAULT 0,
+    queue_depth        integer NOT NULL DEFAULT 0,
+    cpu_usage          integer NOT NULL DEFAULT 0 CHECK (cpu_usage BETWEEN 0 AND 100),
+    memory_used_bytes  bigint NOT NULL DEFAULT 0,
+    memory_total_bytes bigint NOT NULL DEFAULT 0,
+    health             text NOT NULL DEFAULT 'unknown' CHECK (health IN ('unknown', 'healthy', 'degraded', 'unhealthy')),
+    last_seen_at       timestamptz,
+    created_at         timestamptz NOT NULL DEFAULT now(),
+    updated_at         timestamptz NOT NULL DEFAULT now(),
+    deleted_at         timestamptz
 );
 CREATE UNIQUE INDEX realms_name_idx ON realms (lower(name)) WHERE deleted_at IS NULL;
 CREATE INDEX realms_assignable_idx ON realms (status) WHERE NOT exclusive AND deleted_at IS NULL;
+CREATE INDEX realms_region_idx ON realms (region_id) WHERE deleted_at IS NULL;
+
+CREATE TABLE realm_samples (
+    id                 text PRIMARY KEY,
+    realm_id           text NOT NULL REFERENCES realms(id) ON DELETE CASCADE,
+    health             text NOT NULL DEFAULT 'unknown' CHECK (health IN ('unknown', 'healthy', 'degraded', 'unhealthy')),
+    disk_free_bytes    bigint NOT NULL DEFAULT 0,
+    queue_depth        integer NOT NULL DEFAULT 0,
+    cpu_usage          integer NOT NULL DEFAULT 0 CHECK (cpu_usage BETWEEN 0 AND 100),
+    memory_used_bytes  bigint NOT NULL DEFAULT 0,
+    memory_total_bytes bigint NOT NULL DEFAULT 0,
+    created_at         timestamptz NOT NULL DEFAULT now(),
+    updated_at         timestamptz NOT NULL DEFAULT now(),
+    deleted_at         timestamptz
+);
+CREATE INDEX realm_samples_realm_idx ON realm_samples (realm_id, created_at DESC) WHERE deleted_at IS NULL;
 
 CREATE TABLE projects (
     id                  text PRIMARY KEY,
@@ -650,7 +680,8 @@ CREATE TABLE assets (
     uploaded_by     text REFERENCES users(id) ON DELETE SET NULL,
     parent_asset_id text REFERENCES assets(id) ON DELETE CASCADE,
     kind            text NOT NULL DEFAULT 'texture'
-                    CHECK (kind IN ('texture', 'normal-map', 'physics', 'audio', 'shader', 'text', 'json')),
+                    CHECK (kind IN ('texture', 'audio', 'video', 'data', 'plain', 'font', 'normal-map', 'physics',
+                                    'bitmap-font', 'bitmap-font-page')),
     category_id     text REFERENCES asset_categories(id) ON DELETE SET NULL,
     name            text NOT NULL,
     extension       text NOT NULL DEFAULT '',
@@ -781,6 +812,17 @@ CREATE UNIQUE INDEX config_versions_default_idx ON config_versions (config_id)
 CREATE UNIQUE INDEX config_versions_tag_idx ON config_versions (config_id, build_tag)
     WHERE build_tag <> '' AND deleted_at IS NULL;
 
+CREATE TABLE project_translations (
+    id         text PRIMARY KEY,
+    project_id text NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+    doc        jsonb NOT NULL DEFAULT '{"languages": [], "groups": []}'::jsonb,
+    created_at timestamptz NOT NULL DEFAULT now(),
+    updated_at timestamptz NOT NULL DEFAULT now(),
+    deleted_at timestamptz
+);
+CREATE UNIQUE INDEX project_translations_project_idx ON project_translations (project_id)
+    WHERE deleted_at IS NULL;
+
 CREATE TABLE waitlist_signups (
     id               text PRIMARY KEY,
     email            text NOT NULL,
@@ -800,6 +842,7 @@ CREATE INDEX waitlist_signups_created_idx ON waitlist_signups (created_at DESC, 
 
 -- +goose Down
 DROP TABLE waitlist_signups;
+DROP TABLE project_translations;
 DROP TABLE config_versions;
 DROP TABLE configs;
 DROP TABLE config_schemas;
@@ -814,7 +857,9 @@ DROP TABLE project_invites;
 DROP TABLE project_members;
 DROP TABLE project_migrations;
 DROP TABLE projects;
+DROP TABLE realm_samples;
 DROP TABLE realms;
+DROP TABLE realm_regions;
 DROP TABLE files;
 DROP TABLE asset_sources;
 DROP TABLE invoice_reminders;

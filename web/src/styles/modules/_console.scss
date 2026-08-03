@@ -245,44 +245,6 @@ tc-group[data-empty='true'] {
     }
 }
 
-.upload-strip {
-    display: flex;
-    flex-direction: column;
-    gap: $space-2;
-
-    .tc-file-dropzone__area {
-        flex-direction: row;
-        flex-wrap: wrap;
-        align-items: center;
-        justify-content: center;
-        gap: $space-3;
-
-        min-height: 0;
-        padding: $space-4;
-
-        transition: background-color 120ms ease, border-color 120ms ease;
-    }
-
-    .tc-file-dropzone__icon {
-        margin: 0;
-
-        svg,
-        i {
-            width: 1.25rem;
-            height: 1.25rem;
-        }
-    }
-
-    .tc-file-dropzone__prompt {
-        margin: 0;
-        font-size: 0.875rem;
-    }
-
-    .tc-file-dropzone__formats {
-        margin: 0;
-    }
-}
-
 .member-remove {
     display: flex;
     flex-direction: column;

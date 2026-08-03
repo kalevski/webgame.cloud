@@ -6,6 +6,10 @@ export type {
     RealmDraft,
     RealmHealth,
     RealmHeartbeat,
+    RealmRegion,
+    RealmRegionDraft,
+    RealmSamplePoint,
+    RealmStats,
     RealmStatus,
     RealmToken,
 } from '@webgame-cloud/api/contracts'

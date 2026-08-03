@@ -52,21 +52,18 @@ const LiveBuildDetail: React.FC<Props> = ({ project }) => {
         return configs.filter((config) => keys.has(config.key))
     }, [configs, detail])
 
-    useEffect(() => {
-        if (activeConfigId || scopedConfigs.length === 0) return
-        setActiveConfigId(scopedConfigs[0].id)
-    }, [scopedConfigs, activeConfigId])
+    const effectiveConfigId = activeConfigId || (scopedConfigs[0]?.id ?? '')
 
     useEffect(() => {
-        if (!activeConfigId) return
-        void fetchVersion(project.id, activeConfigId, buildTag || 'default')
-    }, [project.id, activeConfigId, buildTag, fetchVersion])
+        if (!effectiveConfigId) return
+        void fetchVersion(project.id, effectiveConfigId, buildTag || 'default')
+    }, [project.id, effectiveConfigId, buildTag, fetchVersion])
 
     useEffect(() => {
         setValues(activeVersion?.values ?? {})
     }, [activeVersion])
 
-    const activeConfig = scopedConfigs.find((config) => config.id === activeConfigId) ?? null
+    const activeConfig = scopedConfigs.find((config) => config.id === effectiveConfigId) ?? null
     const schema = schemas.find((entry) => entry.id === activeConfig?.schemaId) ?? null
 
     const editor = useTc<ValueElement>({
@@ -137,10 +134,13 @@ const LiveBuildDetail: React.FC<Props> = ({ project }) => {
     })
 
     const submit = async () => {
-        if (!activeConfigId) return
+        if (!effectiveConfigId) return
         setSaving(true)
-        await saveVersion(project.id, activeConfigId, buildTag || 'default', values)
-        setSaving(false)
+        try {
+            await saveVersion(project.id, effectiveConfigId, buildTag || 'default', values)
+        } finally {
+            setSaving(false)
+        }
     }
 
     const snapshotBundle = detail?.snapshot?.bundle ?? null
@@ -245,8 +245,8 @@ const LiveBuildDetail: React.FC<Props> = ({ project }) => {
                                         {scopedConfigs.map((config) => (
                                             <tc-button
                                                 key={config.id}
-                                                variant={config.id === activeConfigId ? 'primary' : 'secondary'}
-                                                outline={config.id === activeConfigId ? undefined : true}
+                                                variant={config.id === effectiveConfigId ? 'primary' : 'secondary'}
+                                                outline={config.id === effectiveConfigId ? undefined : true}
                                                 size="small"
                                                 onClick={() => setActiveConfigId(config.id)}
                                             >

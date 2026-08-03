@@ -87,6 +87,7 @@ the endpoint useful for smoke-testing a handler. An unregistered kind is rejecte
 | `assets.reap_orphans` | `*/5 * * * *` | Soft-deletes `pending_upload` assets older than 20 minutes. |
 | `builds.reap_stale` | `*/5 * * * *` | Fails builds a realm claimed and never reported on (`build_timeout_minutes`, default 30). |
 | `realms.reap_stale_migrations` | `*/5 * * * *` | Fails migrations stuck in a non-terminal state, releasing the project lock. |
+| `realms.prune_samples` | `30 2 * * *` | Soft-deletes realm heartbeat samples older than `REALM_SAMPLE_RETENTION_DAYS` (7 days). |
 | `realm.migrate` | — | Drives one project migration between realms. Queued by a staff move, re-enqueued at boot. |
 | `realm.purge` | — | Deletes files on a realm after the rows they belong to were deleted. |
 

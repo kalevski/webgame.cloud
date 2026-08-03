@@ -4,8 +4,9 @@ import type { ProjectPermission } from '../../contracts/index.js'
 import { Database, type QueryRunner } from '../../Database.js'
 import { repositoryOptions } from '../../logging.js'
 import { BaseRepository } from '@toolcase/node'
-import type { ProjectMemberRow } from '../../schema/projects.js'
+import type { AdminProjectMemberRow, ProjectMemberRow } from '../../schema/projects.js'
 
+import SELECT_ADMIN_MEMBERS from './sql/select-admin-members.sql'
 import SELECT_MEMBERS from './sql/select-members.sql'
 import SELECT_MEMBER from './sql/select-member.sql'
 import SELECT_MEMBERSHIP from './sql/select-membership.sql'
@@ -23,6 +24,15 @@ export class MemberRepository extends BaseRepository<ProjectMemberRow, QueryRunn
     async listByProject(projectId: string, trx?: QueryRunner): Promise<ProjectMemberRow[]> {
         return this.time('listByProject', async () => {
             const { rows } = await this.run(trx).query<ProjectMemberRow>(SELECT_MEMBERS, [projectId])
+            return rows
+        })
+    }
+
+    async listAdminByProject(projectId: string, trx?: QueryRunner): Promise<AdminProjectMemberRow[]> {
+        return this.time('listAdminByProject', async () => {
+            const { rows } = await this.run(trx).query<AdminProjectMemberRow>(SELECT_ADMIN_MEMBERS, [
+                projectId,
+            ])
             return rows
         })
     }

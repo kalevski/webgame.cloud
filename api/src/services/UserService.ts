@@ -1,5 +1,5 @@
 import { inject, injectable } from 'tsyringe'
-import type { AdminUserProfile, AdminUserProject, User, UserRole } from '../contracts/index.js'
+import type { AdminUserProfile, User, UserRole } from '../contracts/index.js'
 import { OWNER_ROLE_ID } from '../contracts/index.js'
 import { UserRepository, normalizeEmail } from '../repositories/users/UserRepository.js'
 import { SessionRepository } from '../repositories/users/SessionRepository.js'
@@ -11,20 +11,9 @@ import { AccessPolicyService } from './AccessPolicyService.js'
 import { ConflictError, ForbiddenError, NotFoundError, ValidationError } from '../domain/errors.js'
 import { notify } from '../notify.js'
 import { toUserIdentity } from '../schema/users.js'
-import type { ProjectRow } from '../schema/projects.js'
+import { toAdminProject } from '../schema/projects.js'
 
 const PROFILE_ACTIVITY_LIMIT = 20
-
-const toUserProject = (row: ProjectRow, userId: string): AdminUserProject => ({
-    id: row.id,
-    name: row.name,
-    icon: row.icon,
-    color: row.color,
-    owner: row.owner_id === userId,
-    memberCount: Number(row.member_count ?? 0),
-    archived: row.archived_at !== null,
-    createdAt: row.created_at.toISOString(),
-})
 
 @injectable()
 export class UserService {
@@ -85,7 +74,7 @@ export class UserService {
             identities: identities.map(toUserIdentity),
             sessionCount: sessions.length,
             lastSeenAt: lastSeenAt?.toISOString() ?? null,
-            projects: projects.map((row) => toUserProject(row, user.id)),
+            projects: projects.map(toAdminProject),
             storageBytes,
             activity: activity.map((row) => ({
                 id: row.id,

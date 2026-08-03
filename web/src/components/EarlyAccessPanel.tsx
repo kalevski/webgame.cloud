@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react'
+import React, { useMemo, useRef, useState } from 'react'
 import { useTc } from '@toolcase/web-components/react'
 
 export const ALLOCATION_BLOCKS = 25
@@ -35,7 +35,7 @@ const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 const EarlyAccessPanel: React.FC<Props> = ({ copy, reservedCount, onReserve }) => {
     const [email, setEmail] = useState('')
     const [honeypot, setHoneypot] = useState('')
-    const [optIn, setOptIn] = useState(false)
+    const optIn = useRef(false)
     const [error, setError] = useState('')
     const [busy, setBusy] = useState(false)
     const [reserved, setReserved] = useState(false)
@@ -43,7 +43,9 @@ const EarlyAccessPanel: React.FC<Props> = ({ copy, reservedCount, onReserve }) =
     const blocks = useMemo(() => Array.from({ length: ALLOCATION_BLOCKS }, (_, index) => index), [])
 
     const consent = useTc<HTMLElement>({
-        onChange: (checked: boolean) => setOptIn(checked),
+        onChange: (checked: boolean) => {
+            optIn.current = checked
+        },
     })
 
     const submit = async (event: React.FormEvent) => {
@@ -56,11 +58,13 @@ const EarlyAccessPanel: React.FC<Props> = ({ copy, reservedCount, onReserve }) =
 
         setError('')
         setBusy(true)
-        const saved = await onReserve(address, optIn, honeypot)
-        setBusy(false)
-
-        if (saved) setReserved(true)
-        else setError(copy.failed)
+        try {
+            const saved = await onReserve(address, optIn.current, honeypot)
+            if (saved) setReserved(true)
+            else setError(copy.failed)
+        } finally {
+            setBusy(false)
+        }
     }
 
     return (

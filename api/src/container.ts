@@ -42,6 +42,7 @@ import { ProjectRepository } from './repositories/projects/ProjectRepository.js'
 import { MemberRepository } from './repositories/projects/MemberRepository.js'
 import { InviteRepository } from './repositories/projects/InviteRepository.js'
 import { RealmRepository } from './repositories/realms/RealmRepository.js'
+import { RealmRegionRepository } from './repositories/realms/RealmRegionRepository.js'
 import { ProjectMigrationRepository } from './repositories/realms/ProjectMigrationRepository.js'
 import { RealmService } from './services/RealmService.js'
 import { AssetFileRepository } from './repositories/assets/AssetFileRepository.js'
@@ -52,6 +53,8 @@ import { BuildRepository } from './repositories/builds/BuildRepository.js'
 import { BuildService } from './services/BuildService.js'
 import { ConfigRepository } from './repositories/configs/ConfigRepository.js'
 import { ConfigService } from './services/ConfigService.js'
+import { TranslationRepository } from './repositories/translations/TranslationRepository.js'
+import { TranslationService } from './services/TranslationService.js'
 import { WaitlistRepository } from './repositories/waitlist/WaitlistRepository.js'
 import { WaitlistService } from './services/WaitlistService.js'
 import { ProjectService } from './services/ProjectService.js'
@@ -96,6 +99,7 @@ container.registerSingleton(ProjectRepository, ProjectRepository)
 container.registerSingleton(MemberRepository, MemberRepository)
 container.registerSingleton(InviteRepository, InviteRepository)
 container.registerSingleton(RealmRepository, RealmRepository)
+container.registerSingleton(RealmRegionRepository, RealmRegionRepository)
 container.registerSingleton(ProjectMigrationRepository, ProjectMigrationRepository)
 container.registerSingleton(RealmService, RealmService)
 container.registerSingleton(AssetFileRepository, AssetFileRepository)
@@ -106,6 +110,9 @@ container.registerSingleton(BuildRepository, BuildRepository)
 container.registerSingleton(BuildService, BuildService)
 container.registerSingleton(ConfigRepository, ConfigRepository)
 container.registerSingleton(ConfigService, ConfigService)
+
+container.registerSingleton(TranslationRepository, TranslationRepository)
+container.registerSingleton(TranslationService, TranslationService)
 container.registerSingleton(WaitlistRepository, WaitlistRepository)
 container.registerSingleton(WaitlistService, WaitlistService)
 container.registerSingleton(ProjectService, ProjectService)

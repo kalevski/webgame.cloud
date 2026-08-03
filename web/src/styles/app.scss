@@ -3,6 +3,15 @@
 @use 'components';
 @use 'modules';
 
+:root {
+    --kind-color-textures: #8b5cf6;
+    --kind-color-audio: #ec4899;
+    --kind-color-videos: #ef4444;
+    --kind-color-data: #f59e0b;
+    --kind-color-plain: #0ea5e9;
+    --kind-color-fonts: #10b981;
+}
+
 * {
     box-sizing: border-box;
 }

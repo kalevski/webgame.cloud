@@ -10,11 +10,11 @@
         "typecheck": "tsc --noEmit"
     },
     "dependencies": {
-        "@webgame-cloud/api": "*",
         "@fontsource/playfair-display": "^5.2.8",
         "@fontsource/source-sans-3": "^5.2.9",
         "@toolcase/base": "^5.0.0",
-        "@toolcase/web-components": "^5.0.15",
+        "@toolcase/web-components": "^5.0.17",
+        "@webgame-cloud/api": "*",
         "lucide-static": "^1.24.0",
         "react": "^19.1.0",
         "react-dom": "^19.1.0",

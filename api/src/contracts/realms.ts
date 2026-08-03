@@ -23,11 +23,28 @@ export const REALM_SILENT_SECONDS = 90
 
 export const MIGRATION_TIMEOUT_MINUTES = 30
 
+export type RealmRegion = {
+    id: string
+    name: string
+    active: boolean
+
+    realmCount: number
+
+    createdAt: string
+}
+
+export type RealmRegionDraft = {
+    name: string
+    active?: boolean
+}
+
 export type Realm = {
     id: string
     name: string
     baseUrl: string
-    region: string
+
+    regionId: string | null
+    regionName: string
 
     planId: string | null
     exclusive: boolean
@@ -37,6 +54,13 @@ export type Realm = {
 
     diskFreeBytes: number
     queueDepth: number
+    cpuUsage: number
+    memoryUsedBytes: number
+    memoryTotalBytes: number
+
+    storageUsedBytes: number
+    peakCpuUsage: number
+    peakMemoryUsedBytes: number
 
     projectCount: number
 
@@ -47,7 +71,7 @@ export type Realm = {
 export type RealmDraft = {
     name: string
     baseUrl: string
-    region?: string
+    regionId?: string | null
     planId?: string | null
     exclusive?: boolean
     status?: RealmStatus
@@ -78,4 +102,42 @@ export type RealmHeartbeat = {
     health: RealmHealth
     diskFreeBytes: number
     queueDepth: number
+    cpuUsage: number
+    memoryUsedBytes: number
+    memoryTotalBytes: number
+}
+
+export const REALM_SAMPLE_WINDOW_HOURS = 24
+
+export const REALM_SAMPLE_RETENTION_DAYS = 7
+
+export const REALM_SAMPLE_BUCKET_MINUTES = 5
+
+export type RealmSamplePoint = {
+    t: string
+    queueDepth: number
+    cpuUsage: number
+    memoryUsedBytes: number
+    diskFreeBytes: number
+}
+
+export type RealmStats = {
+    storageUsedBytes: number
+    diskFreeBytes: number
+
+    filesProcessedToday: number
+    buildsToday: number
+    avgDailyBuilds: number
+
+    queueDepth: number
+    peakQueueDepth: number
+
+    cpuUsage: number
+    avgCpuUsage: number
+    peakCpuUsage: number
+
+    memoryUsedBytes: number
+    memoryTotalBytes: number
+    avgMemoryUsedBytes: number
+    peakMemoryUsedBytes: number
 }

@@ -1,0 +1,146 @@
+@use '../abstracts' as *;
+
+.upload-zone {
+    --uz-line: var(--tc-border, #e3e0f2);
+    --uz-muted: var(--tc-text-muted, #5d5887);
+    --uz-faint: var(--tc-text-faint, #8f8bb3);
+    --uz-mono: var(--tc-font-mono, ui-monospace, SFMono-Regular, Menlo, monospace);
+    --uz-accent: var(--tc-app-accent, #ff7e5f);
+
+    display: flex;
+    flex-direction: column;
+
+    .tc-file-dropzone__formats {
+        display: none;
+    }
+
+    &__manifest {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr));
+        gap: $space-2;
+
+        margin: 0;
+        padding: $space-2;
+        border: 1px dashed var(--uz-line);
+        border-top: 0;
+        background: var(--tc-surface, #fff);
+        list-style: none;
+    }
+
+    &__kind {
+        --uz-kind-accent: var(--uz-accent);
+
+        display: flex;
+        flex-direction: column;
+        gap: $space-2;
+
+        padding: $space-3;
+        border-radius: $radius-sm;
+        background: linear-gradient(
+            135deg,
+            var(--tc-surface-muted, #fbfaff) 0%,
+            color-mix(in srgb, var(--uz-kind-accent) 8%, var(--tc-surface-muted, #fbfaff)) 100%
+        );
+
+        &:hover {
+            background: linear-gradient(
+                135deg,
+                color-mix(in srgb, var(--uz-kind-accent) 4%, var(--tc-surface-muted, #fbfaff)) 0%,
+                color-mix(in srgb, var(--uz-kind-accent) 14%, var(--tc-surface-muted, #fbfaff)) 100%
+            );
+        }
+
+        &--textures {
+            --uz-kind-accent: var(--kind-color-textures);
+        }
+
+        &--audio {
+            --uz-kind-accent: var(--kind-color-audio);
+        }
+
+        &--videos {
+            --uz-kind-accent: var(--kind-color-videos);
+        }
+
+        &--data {
+            --uz-kind-accent: var(--kind-color-data);
+        }
+
+        &--plain {
+            --uz-kind-accent: var(--kind-color-plain);
+        }
+
+        &--fonts {
+            --uz-kind-accent: var(--kind-color-fonts);
+        }
+    }
+
+    &__kind-head {
+        display: flex;
+        align-items: center;
+        gap: $space-2;
+
+        color: var(--uz-muted);
+        font-family: var(--uz-mono);
+        font-size: 0.7rem;
+        font-weight: 600;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+
+        tc-icon {
+            color: var(--uz-kind-accent);
+        }
+    }
+
+    &__kind-count {
+        margin-inline-start: auto;
+        color: var(--uz-faint);
+        font-weight: 400;
+    }
+
+    &__assign {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: $space-2 $space-3;
+
+        max-height: 100px;
+        padding: $space-2 $space-3;
+        border: 1px dashed var(--uz-line);
+        border-top: 0;
+        background: var(--tc-surface, #fff);
+        overflow: visible;
+    }
+
+    &__assign-title {
+        margin: 0;
+        flex-shrink: 0;
+
+        color: var(--uz-muted);
+        font-family: var(--uz-mono);
+        font-size: 0.7rem;
+        font-weight: 600;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+    }
+
+    &__assign-field {
+        flex: 1 1 12rem;
+        min-width: 0;
+    }
+
+    &__kind-formats {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: flex-start;
+        gap: $space-1;
+
+        tc-badge .badge.text-bg-secondary {
+            background-color: color-mix(in srgb, var(--uz-kind-accent) 14%, var(--tc-surface, #fff)) !important;
+            border-color: color-mix(in srgb, var(--uz-kind-accent) 30%, transparent);
+            color: color-mix(in srgb, var(--uz-kind-accent) 72%, var(--tc-text, #1a1830)) !important;
+            font-family: var(--uz-mono);
+            text-transform: lowercase;
+        }
+    }
+}

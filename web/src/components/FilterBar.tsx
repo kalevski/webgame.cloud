@@ -17,13 +17,21 @@ export type FilterChipRow = {
     toggle?: boolean
 }
 
+export type FilterMultiChipRow = {
+    key: string
+    legend: string
+    chips: FilterChip[]
+    values: string[]
+    onChange: (ids: string[]) => void
+}
+
 export type FilterControlRow = {
     key: string
     legend: string
     control: React.ReactNode
 }
 
-export type FilterRow = FilterChipRow | FilterControlRow
+export type FilterRow = FilterChipRow | FilterMultiChipRow | FilterControlRow
 
 type FilterBarProps = {
     rows: FilterRow[]
@@ -36,7 +44,9 @@ type FilterBarProps = {
     onClear?: () => void
 }
 
-const isChipRow = (row: FilterRow): row is FilterChipRow => 'chips' in row
+const isMultiChipRow = (row: FilterRow): row is FilterMultiChipRow => 'values' in row
+
+const isChipRow = (row: FilterRow): row is FilterChipRow => 'chips' in row && 'value' in row
 
 const FilterBar: React.FC<FilterBarProps> = ({ rows, total, matches, unit, active = false, onClear }) => {
     const { t } = useStrings()
@@ -52,7 +62,40 @@ const FilterBar: React.FC<FilterBarProps> = ({ rows, total, matches, unit, activ
                             {row.legend}
                         </span>
 
-                        {isChipRow(row) ? (
+                        {isMultiChipRow(row) ? (
+                            <div
+                                className="filter-bar__chips"
+                                role="group"
+                                aria-labelledby={`filter-legend-${row.key}`}
+                            >
+                                {row.chips.map((chip) => {
+                                    const selected = row.values.includes(chip.id)
+                                    return (
+                                        <button
+                                            key={chip.id}
+                                            type="button"
+                                            className="filter-bar__chip"
+                                            data-active={selected ? 'true' : 'false'}
+                                            aria-pressed={selected}
+                                            onClick={() =>
+                                                row.onChange(
+                                                    selected
+                                                        ? row.values.filter((id) => id !== chip.id)
+                                                        : [...row.values, chip.id]
+                                                )
+                                            }
+                                        >
+                                            <tc-badge variant="secondary">
+                                                {chip.label}
+                                                {chip.count !== undefined && (
+                                                    <span className="filter-bar__chip-count">{chip.count}</span>
+                                                )}
+                                            </tc-badge>
+                                        </button>
+                                    )
+                                })}
+                            </div>
+                        ) : isChipRow(row) ? (
                             <div
                                 className="filter-bar__chips"
                                 role="group"

@@ -28,11 +28,13 @@ export const MODAL = {
 
     REALM_EDITOR: 'realm-editor',
     REALM_TOKEN: 'realm-token',
+    DELETE_REALM: 'delete-realm',
+    REALM_REGION: 'realm-region',
+    DELETE_REALM_REGION: 'delete-realm-region',
     MOVE_PROJECT: 'move-project',
 
     PLAN_LIMIT: 'plan-limit',
 
-    EDIT_ASSET: 'edit-asset',
     DELETE_ASSET: 'delete-asset',
     ASSET_CHILDREN: 'asset-children',
 

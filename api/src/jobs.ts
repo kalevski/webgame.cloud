@@ -9,6 +9,7 @@ import { UploadService } from './services/UploadService.js'
 import { BuildService } from './services/BuildService.js'
 import {
     JOB_REALM_MIGRATE,
+    JOB_REALM_PRUNE_SAMPLES,
     JOB_REALM_PURGE,
     JOB_REALM_REAP_MIGRATIONS,
     RealmService,
@@ -86,6 +87,14 @@ export const registerJobHandlers = (): void => {
             await container.resolve(RealmService).reapStaleMigrations()
         },
         { cron: '*/5 * * * *', description: 'Fail migrations stuck in a non-terminal state, releasing the project lock.' }
+    )
+
+    registerJobHandler(
+        JOB_REALM_PRUNE_SAMPLES,
+        async () => {
+            await container.resolve(RealmService).pruneSamples()
+        },
+        { cron: '30 2 * * *', description: 'Soft-delete realm heartbeat samples older than the retention window.' }
     )
 }
 
