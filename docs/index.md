@@ -30,10 +30,13 @@ One file per feature area. Jump to the focused doc instead of re-reading the cod
 | [api-keys.md](api-keys.md) | Bearer tokens for scripts and integrations — scopes intersected with the owner's live permissions. |
 | [service-accounts.md](service-accounts.md) | Machine identities other applications authenticate as — a `kind = 'service'` user row with its own role, per-account permission overrides and API keys. |
 | [tickets.md](tickets.md) | Support tickets — a developer opens one, staff work a shared queue, both sides reply in a thread, behind the `tickets` flag and quota. |
-| [design-studio.md](design-studio.md) | Frame templates, video templates and the designs built from them — a phone-to-desktop editor shell (tool rail, canvas, inspector, timeline), fields bound to a data-source registry, PNG/video export and file storage, behind the `designs` flag. |
 | [signing-keys.md](signing-keys.md) | The other direction — RSA key pairs this workspace signs outbound JWTs with, auto-generated at boot, rotatable from the admin UI. |
 | [webhooks.md](webhooks.md) | Outbound HMAC-signed delivery of audited actions, retried on the job queue. |
-| [platform-hardening.md](platform-hardening.md) | Security headers, CSRF origin guard, rate limits, idempotency keys, health/ready/version and cross-instance cache invalidation. |
+| [role-applications.md](role-applications.md) | Roles that can be asked for rather than bought — the applicable flag, the application, the staff queue and what approval writes. |
+| [operations.md](operations.md) | The six health components, what blocks readiness, the four alarms, the production config guard, and the localhost-only control API and its CLI. |
+| [caching.md](caching.md) | The in-process caching primitives (slot, KeyedCache, Throttle), what is cached and for how long, and the HTTP/ETag layer. |
+| [demo-data.md](demo-data.md) | `seed-demo` — deterministic demo datasets written through the real services, and the guards that keep it out of production. |
+| [platform-hardening.md](platform-hardening.md) | Security headers, CSRF origin guard, rate limits, idempotency reservations, the single error handler, the production config guard and cross-instance cache invalidation. |
 | [background-jobs.md](background-jobs.md) | The durable job queue, cron-scheduled work declared next to its handler, the worker, and the run-now admin screen. |
 | [data-retention.md](data-retention.md) | Per-table retention days for soft-deleted rows, and the batched purge worker that finally hard-deletes them. |
 | [local-development.md](local-development.md) | The root `.env` file, how the API and the migration scripts load it, and the local Postgres setup. |

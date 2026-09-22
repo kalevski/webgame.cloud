@@ -3,6 +3,8 @@ import { inject, injectable } from 'tsyringe'
 import type { ServiceAccount, User, UserRole } from '../../contracts/index.js'
 import { OWNER_ROLE_ID } from '../../contracts/index.js'
 import { Database } from '../../Database.js'
+import { Throttle } from '../../domain/cache.js'
+import { SessionRepository } from './SessionRepository.js'
 import { toServiceAccount, toUser, type ServiceAccountRow, type UserRow } from '../../schema/users.js'
 
 import COUNT_ACTIVE_OWNERS from './sql/count-active-owners.sql'
@@ -21,9 +23,16 @@ import UPDATE_USER from './sql/update-user.sql'
 
 export const normalizeEmail = (email: string): string => email.trim().toLowerCase()
 
+const LAST_SEEN_INTERVAL_MS = 5 * 60 * 1000
+
 @injectable()
 export class UserRepository {
-    constructor(@inject(Database) private database: Database) {}
+    private lastSeen = new Throttle(LAST_SEEN_INTERVAL_MS)
+
+    constructor(
+        @inject(Database) private database: Database,
+        @inject(SessionRepository) private sessions: SessionRepository
+    ) {}
 
     async findById(id: string): Promise<User | null> {
         const { rows } = await this.database.pool.query<UserRow>(FIND_USER_BY_ID, [id])
@@ -98,15 +107,18 @@ export class UserRepository {
         const { rows } = await this.database.pool.query<UserRow>(TOUCH_USER_PROFILE, [
             id, profile.name, profile.picture,
         ])
+        this.sessions.invalidateUsers()
         return rows[0] ? toUser(rows[0]) : null
     }
 
     async recordConsent(userId: string): Promise<User | null> {
         const { rows } = await this.database.pool.query<UserRow>(RECORD_CONSENT, [userId])
+        this.sessions.invalidateUsers()
         return rows[0] ? toUser(rows[0]) : null
     }
 
     async touchLastSeen(userId: string): Promise<void> {
+        if (!this.lastSeen.due(userId)) return
         await this.database.pool.query(TOUCH_LAST_SEEN, [userId])
     }
 
@@ -122,6 +134,7 @@ export class UserRepository {
         const { rows } = await this.database.pool.query<UserRow>(UPDATE_USER, [
             id, patch.role ?? null, patch.active ?? null, patch.verified ?? null,
         ])
+        this.sessions.invalidateUsers()
         return rows[0] ? toUser(rows[0]) : null
     }
 

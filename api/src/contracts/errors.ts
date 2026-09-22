@@ -11,6 +11,8 @@ export const API_ERROR_CODES = [
     'cross_origin_rejected',
 
     'invalid_body',
+    'unsupported_media_type',
+    'payload_too_large',
 
     'user_not_found',
     'name_required',
@@ -18,6 +20,11 @@ export const API_ERROR_CODES = [
     'account_deactivated',
     'owner_cannot_self_delete',
     'self_impersonation',
+    'not_impersonating',
+    'consent_while_impersonating',
+    'demo_refused_production',
+    'demo_refused_no_owner',
+    'demo_refused_populated',
     'self_role_change',
     'self_access_change',
     'last_owner',
@@ -34,15 +41,6 @@ export const API_ERROR_CODES = [
     'ticket_message_required',
     'ticket_closed',
 
-    'frame_template_not_found',
-    'video_template_not_found',
-    'design_name_required',
-    'design_format_mismatch',
-    'design_frames_required',
-    'frame_template_in_use',
-    'design_not_found',
-    'design_source_not_found',
-
     'target_not_found',
     'report_exists',
     'report_not_found',
@@ -58,7 +56,16 @@ export const API_ERROR_CODES = [
 
     'role_in_use',
     'role_bound',
+    'role_plan_bound',
+    'role_has_applications',
     'default_role_required',
+
+    'role_not_applicable',
+    'role_already_held',
+    'role_application_not_found',
+    'role_application_exists',
+    'role_application_not_pending',
+    'role_application_owner',
 
     'limit_reached',
 
@@ -71,6 +78,7 @@ export const API_ERROR_CODES = [
     'plan_in_use',
     'plan_name_required',
     'plan_role_required',
+    'plan_not_visible',
     'template_not_found',
     'template_exists',
     'template_required',
@@ -81,6 +89,8 @@ export const API_ERROR_CODES = [
     'enquiry_not_found',
     'enquiry_exists',
     'rate_limited',
+    'idempotency_in_flight',
+    'idempotency_key_reused',
     'email_invalid',
     'magic_link_invalid',
     'api_key_not_found',
@@ -97,6 +107,9 @@ export const API_ERROR_CODES = [
     'job_kind_unknown',
     'webhook_not_found',
     'webhook_url_invalid',
+    'webhook_url_private',
+    'webhook_url_unresolvable',
+
     'asset_source_not_found',
     'asset_source_name_required',
     'asset_source_config_invalid',
@@ -104,6 +117,8 @@ export const API_ERROR_CODES = [
     'asset_not_found',
     'asset_type_invalid',
     'asset_type_unassigned',
+    'asset_extension_not_allowed',
+    'asset_mime_not_allowed',
     'answers_required',
     'invoice_not_found',
 

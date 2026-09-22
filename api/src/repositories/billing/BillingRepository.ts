@@ -1,6 +1,8 @@
 import { inject, injectable } from 'tsyringe'
 import { err, ok, type Result } from '@toolcase/base'
 import { Database, type QueryRunner } from '../../Database.js'
+import { BaseRepository } from '@toolcase/node'
+import { repositoryOptions } from '../../logging.js'
 import type {
     CouponRow,
     InvoiceRow,
@@ -51,6 +53,7 @@ export type PlanWrite = {
     name: string
     description: string
     roleId: string | null
+    visibleRoleIds: string[]
     mode: PlanRow['mode']
     priceCents: number
     currency: string
@@ -59,12 +62,14 @@ export type PlanWrite = {
     active: boolean
     features: string[]
     salesFields: PlanRow['sales_fields']
+    trialDays: number
 }
 
 export type PlanPatch = {
     name?: string
     description?: string
     roleId?: string | null
+    visibleRoleIds?: string[]
     mode?: PlanRow['mode']
     priceCents?: number
     currency?: string
@@ -73,6 +78,7 @@ export type PlanPatch = {
     active?: boolean
     features?: string[]
     salesFields?: PlanRow['sales_fields']
+    trialDays?: number
 }
 
 export type InvoiceWrite = {
@@ -121,79 +127,97 @@ const UNIQUE_VIOLATION = '23505'
 export type EnquiryCreateConflict = 'open'
 
 @injectable()
-export class BillingRepository {
-    constructor(@inject(Database) private database: Database) {}
-
-    private run(trx?: QueryRunner): QueryRunner {
-        return trx ?? this.database.pool
+export class BillingRepository extends BaseRepository<unknown, QueryRunner> {
+    constructor(@inject(Database) database: Database) {
+        super(database.pool, 'billing', 'id', repositoryOptions)
     }
 
     async listActivePlans(trx?: QueryRunner): Promise<PlanRow[]> {
-        const { rows } = await this.run(trx).query<PlanRow>(SELECT_ACTIVE_PLANS)
-        return rows
+        return this.time('listActivePlans', async () => {
+            const { rows } = await this.run(trx).query<PlanRow>(SELECT_ACTIVE_PLANS)
+            return rows
+        })
     }
 
     async listAllPlans(trx?: QueryRunner): Promise<PlanRow[]> {
-        const { rows } = await this.run(trx).query<PlanRow>(SELECT_ALL_PLANS)
-        return rows
+        return this.time('listAllPlans', async () => {
+            const { rows } = await this.run(trx).query<PlanRow>(SELECT_ALL_PLANS)
+            return rows
+        })
     }
 
     async insertPlan(write: PlanWrite, trx?: QueryRunner): Promise<PlanRow | undefined> {
-        await this.run(trx).query(INSERT_PLAN, [
-            write.id,
-            write.name,
-            write.description,
-            write.roleId,
-            write.mode,
-            write.priceCents,
-            write.currency,
-            write.interval,
-            write.position,
-            write.active,
-            JSON.stringify(write.features),
-            JSON.stringify(write.salesFields),
-        ])
-        return this.findPlan(write.id, trx)
+        return this.time('insertPlan', async () => {
+            await this.run(trx).query(INSERT_PLAN, [
+                write.id,
+                write.name,
+                write.description,
+                write.roleId,
+                JSON.stringify(write.visibleRoleIds),
+                write.mode,
+                write.priceCents,
+                write.currency,
+                write.interval,
+                write.position,
+                write.active,
+                JSON.stringify(write.features),
+                JSON.stringify(write.salesFields),
+                write.trialDays,
+            ])
+            return this.findPlan(write.id, trx)
+        })
     }
 
     async updatePlan(id: string, patch: PlanPatch, trx?: QueryRunner): Promise<PlanRow | undefined> {
-        const result = await this.run(trx).query(UPDATE_PLAN, [
-            id,
-            patch.name ?? null,
-            patch.description ?? null,
-            patch.roleId !== undefined,
-            patch.roleId ?? null,
-            patch.mode ?? null,
-            patch.priceCents ?? null,
-            patch.currency ?? null,
-            patch.interval ?? null,
-            patch.position ?? null,
-            patch.active ?? null,
-            patch.features === undefined ? null : JSON.stringify(patch.features),
-            patch.salesFields === undefined ? null : JSON.stringify(patch.salesFields),
-        ])
-        if ((result.rowCount ?? 0) === 0) return undefined
-        return this.findPlan(id, trx)
+        return this.time('updatePlan', async () => {
+            const result = await this.run(trx).query(UPDATE_PLAN, [
+                id,
+                patch.name ?? null,
+                patch.description ?? null,
+                patch.roleId !== undefined,
+                patch.roleId ?? null,
+                patch.visibleRoleIds === undefined ? null : JSON.stringify(patch.visibleRoleIds),
+                patch.mode ?? null,
+                patch.priceCents ?? null,
+                patch.currency ?? null,
+                patch.interval ?? null,
+                patch.position ?? null,
+                patch.active ?? null,
+                patch.features === undefined ? null : JSON.stringify(patch.features),
+                patch.salesFields === undefined ? null : JSON.stringify(patch.salesFields),
+                patch.trialDays ?? null,
+            ])
+            if ((result.rowCount ?? 0) === 0) return undefined
+            return this.findPlan(id, trx)
+        })
     }
 
     async deletePlan(id: string, trx?: QueryRunner): Promise<boolean> {
-        const result = await this.run(trx).query(DELETE_PLAN, [id])
-        return (result.rowCount ?? 0) > 0
+        return this.time('deletePlan', async () => {
+            const result = await this.run(trx).query(DELETE_PLAN, [id])
+            return (result.rowCount ?? 0) > 0
+        })
     }
 
     async countPlanSubscribers(id: string, trx?: QueryRunner): Promise<number> {
-        const { rows } = await this.run(trx).query<{ c: string }>(COUNT_PLAN_SUBSCRIBERS, [id])
-        return Number(rows[0]?.c ?? 0)
+        return this.time('countPlanSubscribers', async () => {
+            const { rows } = await this.run(trx).query<{ c: string }>(COUNT_PLAN_SUBSCRIBERS, [id])
+            return Number(rows[0]?.c ?? 0)
+        })
     }
 
     async findPlan(id: string, trx?: QueryRunner): Promise<PlanRow | undefined> {
-        const { rows } = await this.run(trx).query<PlanRow>(SELECT_PLAN, [id])
-        return rows[0]
+        return this.time('findPlan', async () => {
+            const { rows } = await this.run(trx).query<PlanRow>(SELECT_PLAN, [id])
+            return rows[0]
+        })
     }
 
     async findSubscription(userId: string, trx?: QueryRunner): Promise<SubscriptionRow | undefined> {
-        const { rows } = await this.run(trx).query<SubscriptionRow>(SELECT_SUBSCRIPTION, [userId])
-        return rows[0]
+        return this.time('findSubscription', async () => {
+            const { rows } = await this.run(trx).query<SubscriptionRow>(SELECT_SUBSCRIPTION, [userId])
+            return rows[0]
+        })
     }
 
     async flagStorageOverage(userId: string, bytes: number, trx?: QueryRunner): Promise<void> {
@@ -205,123 +229,149 @@ export class BillingRepository {
     }
 
     async saveSubscription(write: SubscriptionWrite, trx?: QueryRunner): Promise<SubscriptionRow> {
-        await this.run(trx).query(UPSERT_SUBSCRIPTION, [
-            write.userId,
-            write.planId,
-            write.status,
-            write.provider,
-            write.providerCustomerId,
-            write.providerSubscriptionId,
-            write.cancelAtPeriodEnd,
-            write.currentPeriodEnd,
-            write.startedAt,
-        ])
-        const saved = await this.findSubscription(write.userId, trx)
-        if (!saved) throw new Error('subscription row missing after upsert')
-        return saved
+        return this.time('saveSubscription', async () => {
+            await this.run(trx).query(UPSERT_SUBSCRIPTION, [
+                write.userId,
+                write.planId,
+                write.status,
+                write.provider,
+                write.providerCustomerId,
+                write.providerSubscriptionId,
+                write.cancelAtPeriodEnd,
+                write.currentPeriodEnd,
+                write.startedAt,
+            ])
+            const saved = await this.findSubscription(write.userId, trx)
+            if (!saved) throw new Error('subscription row missing after upsert')
+            return saved
+        })
     }
 
     async insertInvoice(write: InvoiceWrite, trx?: QueryRunner): Promise<InvoiceRow | undefined> {
-        await this.run(trx).query(INSERT_INVOICE, [
-            write.id,
-            write.number,
-            write.publicToken,
-            write.userId,
-            write.planId,
-            write.status,
-            write.provider,
-            write.providerInvoiceId,
-            write.amountCents,
-            write.discountCents ?? 0,
-            write.creditCents ?? 0,
-            write.currency,
-            write.dueAt,
-            write.paidAt,
-        ])
-        return this.findInvoice(write.id, trx)
+        return this.time('insertInvoice', async () => {
+            await this.run(trx).query(INSERT_INVOICE, [
+                write.id,
+                write.number,
+                write.publicToken,
+                write.userId,
+                write.planId,
+                write.status,
+                write.provider,
+                write.providerInvoiceId,
+                write.amountCents,
+                write.discountCents ?? 0,
+                write.creditCents ?? 0,
+                write.currency,
+                write.dueAt,
+                write.paidAt,
+            ])
+            return this.findInvoice(write.id, trx)
+        })
     }
 
     async findInvoice(id: string, trx?: QueryRunner): Promise<InvoiceRow | undefined> {
-        const { rows } = await this.run(trx).query<InvoiceRow>(SELECT_INVOICE, [id])
-        return rows[0]
+        return this.time('findInvoice', async () => {
+            const { rows } = await this.run(trx).query<InvoiceRow>(SELECT_INVOICE, [id])
+            return rows[0]
+        })
     }
 
     async listInvoices(query: InvoiceQuery, trx?: QueryRunner): Promise<InvoiceRow[]> {
-        const { rows } = await this.run(trx).query<InvoiceRow>(SELECT_INVOICES, [
-            query.userId, query.planId, query.status, query.provider,
-            query.from, query.to, query.q, query.limit, query.offset,
-        ])
-        return rows
+        return this.time('listInvoices', async () => {
+            const { rows } = await this.run(trx).query<InvoiceRow>(SELECT_INVOICES, [
+                query.userId, query.planId, query.status, query.provider,
+                query.from, query.to, query.q, query.limit, query.offset,
+            ])
+            return rows
+        })
     }
 
     async countInvoices(query: InvoiceQuery, trx?: QueryRunner): Promise<number> {
-        const { rows } = await this.run(trx).query<{ c: string }>(COUNT_INVOICES, [
-            query.userId, query.planId, query.status, query.provider,
-            query.from, query.to, query.q,
-        ])
-        return Number(rows[0]?.c ?? 0)
+        return this.time('countInvoices', async () => {
+            const { rows } = await this.run(trx).query<{ c: string }>(COUNT_INVOICES, [
+                query.userId, query.planId, query.status, query.provider,
+                query.from, query.to, query.q,
+            ])
+            return Number(rows[0]?.c ?? 0)
+        })
     }
 
     async updateInvoiceStatus(id: string, status: InvoiceRow['status'], trx?: QueryRunner): Promise<InvoiceRow | undefined> {
-        const result = await this.run(trx).query(UPDATE_INVOICE_STATUS, [id, status])
-        if ((result.rowCount ?? 0) === 0) return undefined
-        return this.findInvoice(id, trx)
+        return this.time('updateInvoiceStatus', async () => {
+            const result = await this.run(trx).query(UPDATE_INVOICE_STATUS, [id, status])
+            if ((result.rowCount ?? 0) === 0) return undefined
+            return this.findInvoice(id, trx)
+        })
     }
 
     async findInvoiceByToken(token: string, trx?: QueryRunner): Promise<InvoiceRow | undefined> {
-        const { rows } = await this.run(trx).query<InvoiceRow>(SELECT_INVOICE_BY_TOKEN, [token])
-        return rows[0]
+        return this.time('findInvoiceByToken', async () => {
+            const { rows } = await this.run(trx).query<InvoiceRow>(SELECT_INVOICE_BY_TOKEN, [token])
+            return rows[0]
+        })
     }
 
     async insertEnquiry(
         write: { id: string; planId: string | null; userId: string; status: SalesEnquiryRow['status']; answers: Record<string, string> },
         trx?: QueryRunner
     ): Promise<Result<SalesEnquiryRow | undefined, EnquiryCreateConflict>> {
-        try {
-            await this.run(trx).query(INSERT_ENQUIRY, [
-                write.id, write.planId, write.userId, write.status, JSON.stringify(write.answers),
-            ])
-        } catch (error) {
-            if ((error as { code?: string }).code === UNIQUE_VIOLATION) return err('open')
-            throw error
-        }
-        return ok(await this.findEnquiry(write.id, trx))
+        return this.time('insertEnquiry', async () => {
+            try {
+                await this.run(trx).query(INSERT_ENQUIRY, [
+                    write.id, write.planId, write.userId, write.status, JSON.stringify(write.answers),
+                ])
+            } catch (error) {
+                if ((error as { code?: string }).code === UNIQUE_VIOLATION) return err('open')
+                throw error
+            }
+            return ok(await this.findEnquiry(write.id, trx))
+        })
     }
 
     async findOpenEnquiryForUser(userId: string, trx?: QueryRunner): Promise<SalesEnquiryRow | undefined> {
-        const { rows } = await this.run(trx).query<SalesEnquiryRow>(SELECT_OPEN_ENQUIRY_FOR_USER, [userId])
-        return rows[0]
+        return this.time('findOpenEnquiryForUser', async () => {
+            const { rows } = await this.run(trx).query<SalesEnquiryRow>(SELECT_OPEN_ENQUIRY_FOR_USER, [userId])
+            return rows[0]
+        })
     }
 
     async findEnquiry(id: string, trx?: QueryRunner): Promise<SalesEnquiryRow | undefined> {
-        const { rows } = await this.run(trx).query<SalesEnquiryRow>(SELECT_ENQUIRY, [id])
-        return rows[0]
+        return this.time('findEnquiry', async () => {
+            const { rows } = await this.run(trx).query<SalesEnquiryRow>(SELECT_ENQUIRY, [id])
+            return rows[0]
+        })
     }
 
     async listEnquiries(
         query: { status: string | null; planId: string | null; q: string | null; limit: number; offset: number },
         trx?: QueryRunner
     ): Promise<SalesEnquiryRow[]> {
-        const { rows } = await this.run(trx).query<SalesEnquiryRow>(SELECT_ENQUIRIES, [
-            query.status, query.planId, query.q, query.limit, query.offset,
-        ])
-        return rows
+        return this.time('listEnquiries', async () => {
+            const { rows } = await this.run(trx).query<SalesEnquiryRow>(SELECT_ENQUIRIES, [
+                query.status, query.planId, query.q, query.limit, query.offset,
+            ])
+            return rows
+        })
     }
 
     async countEnquiries(
         query: { status: string | null; planId: string | null; q: string | null },
         trx?: QueryRunner
     ): Promise<number> {
-        const { rows } = await this.run(trx).query<{ c: string }>(COUNT_ENQUIRIES, [
-            query.status, query.planId, query.q,
-        ])
-        return Number(rows[0]?.c ?? 0)
+        return this.time('countEnquiries', async () => {
+            const { rows } = await this.run(trx).query<{ c: string }>(COUNT_ENQUIRIES, [
+                query.status, query.planId, query.q,
+            ])
+            return Number(rows[0]?.c ?? 0)
+        })
     }
 
     async updateEnquiryStatus(id: string, status: SalesEnquiryRow['status'], trx?: QueryRunner): Promise<SalesEnquiryRow | undefined> {
-        const result = await this.run(trx).query(UPDATE_ENQUIRY_STATUS, [id, status])
-        if ((result.rowCount ?? 0) === 0) return undefined
-        return this.findEnquiry(id, trx)
+        return this.time('updateEnquiryStatus', async () => {
+            const result = await this.run(trx).query(UPDATE_ENQUIRY_STATUS, [id, status])
+            if ((result.rowCount ?? 0) === 0) return undefined
+            return this.findEnquiry(id, trx)
+        })
     }
 
     async insertEnquiryEvent(
@@ -344,13 +394,17 @@ export class BillingRepository {
     }
 
     async listEnquiryEvents(enquiryId: string, trx?: QueryRunner): Promise<SalesEnquiryEventRow[]> {
-        const { rows } = await this.run(trx).query<SalesEnquiryEventRow>(SELECT_ENQUIRY_EVENTS, [enquiryId])
-        return rows
+        return this.time('listEnquiryEvents', async () => {
+            const { rows } = await this.run(trx).query<SalesEnquiryEventRow>(SELECT_ENQUIRY_EVENTS, [enquiryId])
+            return rows
+        })
     }
 
     async listExpired(trx?: QueryRunner): Promise<SubscriptionRow[]> {
-        const { rows } = await this.run(trx).query<SubscriptionRow>(SELECT_EXPIRED_SUBSCRIPTIONS)
-        return rows
+        return this.time('listExpired', async () => {
+            const { rows } = await this.run(trx).query<SubscriptionRow>(SELECT_EXPIRED_SUBSCRIPTIONS)
+            return rows
+        })
     }
 
     async insertCoupon(
@@ -375,37 +429,47 @@ export class BillingRepository {
     }
 
     async listCoupons(trx?: QueryRunner): Promise<CouponRow[]> {
-        const { rows } = await this.run(trx).query<CouponRow>(SELECT_COUPONS)
-        return rows
+        return this.time('listCoupons', async () => {
+            const { rows } = await this.run(trx).query<CouponRow>(SELECT_COUPONS)
+            return rows
+        })
     }
 
     async findCouponByCode(code: string, trx?: QueryRunner): Promise<CouponRow | undefined> {
-        const { rows } = await this.run(trx).query<CouponRow>(SELECT_COUPON_BY_CODE, [code])
-        return rows[0]
+        return this.time('findCouponByCode', async () => {
+            const { rows } = await this.run(trx).query<CouponRow>(SELECT_COUPON_BY_CODE, [code])
+            return rows[0]
+        })
     }
 
     async deleteCoupon(id: string, trx?: QueryRunner): Promise<boolean> {
-        const result = await this.run(trx).query(DELETE_COUPON, [id])
-        return (result.rowCount ?? 0) > 0
+        return this.time('deleteCoupon', async () => {
+            const result = await this.run(trx).query(DELETE_COUPON, [id])
+            return (result.rowCount ?? 0) > 0
+        })
     }
 
     async redeemCoupon(
         write: { id: string; couponId: string; userId: string; invoiceId: string | null },
         trx?: QueryRunner
     ): Promise<CouponRow | undefined> {
-        const { rows } = await this.run(trx).query<CouponRow>(REDEEM_COUPON, [
-            write.id, write.couponId, write.userId, write.invoiceId,
-        ])
-        return rows[0]
+        return this.time('redeemCoupon', async () => {
+            const { rows } = await this.run(trx).query<CouponRow>(REDEEM_COUPON, [
+                write.id, write.couponId, write.userId, write.invoiceId,
+            ])
+            return rows[0]
+        })
     }
 
     async insertUsageEvent(
         write: { id: string; userId: string; resource: string; quantity: number; occurredAt: Date | null },
         trx?: QueryRunner
     ): Promise<void> {
-        await this.run(trx).query(INSERT_USAGE_EVENT, [
-            write.id, write.userId, write.resource, write.quantity, write.occurredAt,
-        ])
+        return this.time('insertUsageEvent', async () => {
+            await this.run(trx).query(INSERT_USAGE_EVENT, [
+                write.id, write.userId, write.resource, write.quantity, write.occurredAt,
+            ])
+        })
     }
 
     async usageSummary(
@@ -414,19 +478,25 @@ export class BillingRepository {
         to: Date,
         trx?: QueryRunner
     ): Promise<Array<{ resource: string; total: number }>> {
-        const { rows } = await this.run(trx).query<{ resource: string; total: number }>(
-            SELECT_USAGE_SUMMARY,
-            [userId, from, to]
-        )
-        return rows
+        return this.time('usageSummary', async () => {
+            const { rows } = await this.run(trx).query<{ resource: string; total: number }>(
+                SELECT_USAGE_SUMMARY,
+                [userId, from, to]
+            )
+            return rows
+        })
     }
 
     async dueInvoices(afterDays: number, stage: number, trx?: QueryRunner): Promise<InvoiceRow[]> {
-        const { rows } = await this.run(trx).query<InvoiceRow>(SELECT_DUE_INVOICES, [afterDays, stage])
-        return rows
+        return this.time('dueInvoices', async () => {
+            const { rows } = await this.run(trx).query<InvoiceRow>(SELECT_DUE_INVOICES, [afterDays, stage])
+            return rows
+        })
     }
 
     async recordReminder(id: string, invoiceId: string, stage: number, trx?: QueryRunner): Promise<void> {
-        await this.run(trx).query(INSERT_INVOICE_REMINDER, [id, invoiceId, stage])
+        return this.time('recordReminder', async () => {
+            await this.run(trx).query(INSERT_INVOICE_REMINDER, [id, invoiceId, stage])
+        })
     }
 }

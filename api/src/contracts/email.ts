@@ -1,3 +1,14 @@
+export const EMAIL_PLACEHOLDERS = [
+    'workspace',
+    'recipientName',
+    'recipientEmail',
+    'actorName',
+    'actorEmail',
+    'date',
+] as const
+
+export type EmailPlaceholder = typeof EMAIL_PLACEHOLDERS[number]
+
 export const EMAIL_PROVIDERS = [
     'log',
     'smtp',

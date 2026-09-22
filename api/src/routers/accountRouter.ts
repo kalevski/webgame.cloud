@@ -9,14 +9,14 @@ import type {
     UserIdentity,
     UserSession,
 } from '../contracts/index.js'
-import { OAUTH_PROVIDERS, PERMISSIONS } from '../contracts/index.js'
+import { OAUTH_PROVIDERS, PERMISSIONS, encodeErrorCause } from '../contracts/index.js'
 import { clearSessionCookie, readSessionId, requireAuth } from '../auth.js'
 import container from '../container.js'
 import { AccountService } from '../services/AccountService.js'
-import { sendError } from './sendError.js'
-import { recordAudit } from '../audit.js'
+import { recordRequestAudit } from '../audit.js'
 
 import { ApiKeyService } from '../services/ApiKeyService.js'
+import { ForbiddenError } from '../domain/errors.js'
 
 const account = () => container.resolve(AccountService)
 
@@ -47,27 +47,22 @@ const sessionParamsSchema = {
     },
 } as const
 
-const consentEndpoint = async (request: FastifyRequest, reply: FastifyReply): Promise<User | { error: string }> => {
-    try {
-        const consented = await account().consent(request.user!.id)
-        void recordAudit(consented, 'accept_consent', consented.id)
-        return consented
-    } catch (error) {
-        return sendError(reply, error)
+const consentEndpoint = async (request: FastifyRequest, reply: FastifyReply): Promise<User> => {
+    if (request.impersonatedBy !== null) {
+        throw new ForbiddenError('consent_while_impersonating')
     }
+    const consented = await account().consent(request.user!.id)
+    void recordRequestAudit(request, 'accept_consent', consented.id, '', consented)
+    return consented
 }
 
 const renameAccountEndpoint = async (
     request: FastifyRequest<{ Body: { name: string } }>,
     reply: FastifyReply
-): Promise<User | { error: string }> => {
-    try {
-        const renamed = await account().rename(request.user!.id, request.body.name)
-        void recordAudit(renamed, 'rename_account', renamed.id, renamed.name)
-        return renamed
-    } catch (error) {
-        return sendError(reply, error)
-    }
+): Promise<User> => {
+    const renamed = await account().rename(request.user!.id, request.body.name)
+    void recordRequestAudit(request, 'rename_account', renamed.id, renamed.name, renamed)
+    return renamed
 }
 
 const listIdentitiesEndpoint = async (request: FastifyRequest): Promise<UserIdentity[]> =>
@@ -77,14 +72,10 @@ const unlinkIdentityEndpoint = async (
     request: FastifyRequest<{ Params: { provider: OAuthProvider } }>,
     reply: FastifyReply
 ) => {
-    try {
-        await account().unlinkIdentity(request.user!.id, request.params.provider)
-        void recordAudit(request.user!, 'unlink_identity', request.user!.id, request.params.provider)
-        reply.code(204)
-        return null
-    } catch (error) {
-        return sendError(reply, error)
-    }
+    await account().unlinkIdentity(request.user!.id, request.params.provider)
+    void recordRequestAudit(request, 'unlink_identity', request.user!.id, request.params.provider)
+    reply.code(204)
+    return null
 }
 
 const listSessionsEndpoint = async (request: FastifyRequest): Promise<UserSession[]> =>
@@ -94,33 +85,25 @@ const revokeSessionEndpoint = async (
     request: FastifyRequest<{ Params: { id: string } }>,
     reply: FastifyReply
 ) => {
-    try {
-        await account().revokeSession(request.user!.id, request.params.id, readSessionId(request))
-        void recordAudit(request.user!, 'revoke_session', request.user!.id, request.params.id)
-        reply.code(204)
-        return null
-    } catch (error) {
-        return sendError(reply, error)
-    }
+    await account().revokeSession(request.user!.id, request.params.id, readSessionId(request))
+    void recordRequestAudit(request, 'revoke_session', request.user!.id, request.params.id)
+    reply.code(204)
+    return null
 }
 
 const exportAccountEndpoint = async (request: FastifyRequest, reply: FastifyReply): Promise<AccountExport | null> => {
     const data = await account().exportData(request.user!.id)
-    void recordAudit(request.user!, 'export_account', request.user!.id)
+    void recordRequestAudit(request, 'export_account', request.user!.id)
     reply.header('content-disposition', `attachment; filename="account-export-${request.user!.id}.json"`)
     return data
 }
 
 const deleteAccountEndpoint = async (request: FastifyRequest, reply: FastifyReply) => {
-    try {
-        await account().deleteAccount(request.user!)
-        void recordAudit(request.user!, 'delete_account', request.user!.id, request.user!.email)
-        clearSessionCookie(reply)
-        reply.code(204)
-        return null
-    } catch (error) {
-        return sendError(reply, error)
-    }
+    await account().deleteAccount(request.user!)
+    void recordRequestAudit(request, 'delete_account', request.user!.id, request.user!.email)
+    clearSessionCookie(reply)
+    reply.code(204)
+    return null
 }
 
 const apiKeySchema = {
@@ -140,29 +123,21 @@ const listApiKeysEndpoint = async (request: FastifyRequest): Promise<ApiKey[]> =
 const createApiKeyEndpoint = async (
     request: FastifyRequest<{ Body: ApiKeyDraft }>,
     reply: FastifyReply
-): Promise<ApiKeyIssued | { error: string }> => {
-    try {
-        const issued = await apiKeys().create(request.user!.id, request.body)
-        void recordAudit(request.user!, 'create_api_key', issued.key.id, issued.key.name, request.id)
-        reply.code(201)
-        return issued
-    } catch (error) {
-        return sendError(reply, error)
-    }
+): Promise<ApiKeyIssued> => {
+    const issued = await apiKeys().create(request.user!.id, request.body)
+    void recordRequestAudit(request, 'create_api_key', issued.key.id, issued.key.name)
+    reply.code(201)
+    return issued
 }
 
 const revokeApiKeyEndpoint = async (
     request: FastifyRequest<{ Params: { keyId: string } }>,
     reply: FastifyReply
-): Promise<null | { error: string }> => {
-    try {
-        await apiKeys().revoke(request.user!.id, request.params.keyId)
-        void recordAudit(request.user!, 'revoke_api_key', request.params.keyId, '', request.id)
-        reply.code(204)
-        return null
-    } catch (error) {
-        return sendError(reply, error)
-    }
+): Promise<null> => {
+    await apiKeys().revoke(request.user!.id, request.params.keyId)
+    void recordRequestAudit(request, 'revoke_api_key', request.params.keyId, '')
+    reply.code(204)
+    return null
 }
 
 export const accountRouter: FastifyPluginAsync = async (app) => {

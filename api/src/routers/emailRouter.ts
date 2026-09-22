@@ -23,11 +23,10 @@ import {
 import { requireAuth, requirePermission } from '../auth.js'
 import { requireFeature } from '../features.js'
 import { rateLimit } from '../http/rateLimit.js'
-import { recordAudit } from '../audit.js'
+import { recordRequestAudit } from '../audit.js'
 import container from '../container.js'
 import { EmailService } from '../services/EmailService.js'
 import { EmailWorker } from '../services/EmailWorker.js'
-import { sendError } from './sendError.js'
 
 const email = () => container.resolve(EmailService)
 const worker = () => container.resolve(EmailWorker)
@@ -125,21 +124,17 @@ const saveConfigEndpoint = async (
     request: FastifyRequest<{ Body: EmailConfigDraft }>
 ): Promise<EmailConfig> => {
     const saved = await email().saveConfig(request.body)
-    void recordAudit(request.user!, 'update_email_config', '', `provider=${saved.provider} from=${saved.fromEmail}`)
+    void recordRequestAudit(request, 'update_email_config', '', `provider=${saved.provider} from=${saved.fromEmail}`)
     return saved
 }
 
 const testEmailEndpoint = async (
     request: FastifyRequest,
     reply: FastifyReply
-): Promise<EmailMessage | { error: string }> => {
-    try {
-        const message = await email().sendTest(request.user!)
-        void worker().tick()
-        return message
-    } catch (error) {
-        return sendError(reply, error)
-    }
+): Promise<EmailMessage> => {
+    const message = await email().sendTest(request.user!)
+    void worker().tick()
+    return message
 }
 
 const listTemplatesEndpoint = async (): Promise<EmailTemplate[]> => email().listTemplates()
@@ -147,42 +142,30 @@ const listTemplatesEndpoint = async (): Promise<EmailTemplate[]> => email().list
 const createTemplateEndpoint = async (
     request: FastifyRequest<{ Body: EmailTemplateDraft }>,
     reply: FastifyReply
-): Promise<EmailTemplate | { error: string }> => {
-    try {
-        const created = await email().createTemplate(request.body)
-        void recordAudit(request.user!, 'create_email_template', created.key, created.name)
-        reply.code(201)
-        return created
-    } catch (error) {
-        return sendError(reply, error)
-    }
+): Promise<EmailTemplate> => {
+    const created = await email().createTemplate(request.body)
+    void recordRequestAudit(request, 'create_email_template', created.key, created.name)
+    reply.code(201)
+    return created
 }
 
 const updateTemplateEndpoint = async (
     request: FastifyRequest<{ Params: { key: string }; Body: Partial<EmailTemplateDraft> }>,
     reply: FastifyReply
-): Promise<EmailTemplate | { error: string }> => {
-    try {
-        const saved = await email().updateTemplate(request.params.key, request.body)
-        void recordAudit(request.user!, 'update_email_template', saved.key, saved.name)
-        return saved
-    } catch (error) {
-        return sendError(reply, error)
-    }
+): Promise<EmailTemplate> => {
+    const saved = await email().updateTemplate(request.params.key, request.body)
+    void recordRequestAudit(request, 'update_email_template', saved.key, saved.name)
+    return saved
 }
 
 const deleteTemplateEndpoint = async (
     request: FastifyRequest<{ Params: { key: string } }>,
     reply: FastifyReply
 ) => {
-    try {
-        await email().deleteTemplate(request.params.key)
-        void recordAudit(request.user!, 'delete_email_template', request.params.key)
-        reply.code(204)
-        return null
-    } catch (error) {
-        return sendError(reply, error)
-    }
+    await email().deleteTemplate(request.params.key)
+    void recordRequestAudit(request, 'delete_email_template', request.params.key)
+    reply.code(204)
+    return null
 }
 
 const listTriggersEndpoint = async (): Promise<EmailTrigger[]> => email().listTriggers()
@@ -194,29 +177,21 @@ const listRecipientsEndpoint = async (): Promise<EmailRecipientOption[]> => emai
 const saveTriggerEndpoint = async (
     request: FastifyRequest<{ Body: EmailTriggerDraft }>,
     reply: FastifyReply
-): Promise<EmailTrigger | { error: string }> => {
-    try {
-        const saved = await email().saveTrigger(request.body)
-        void recordAudit(request.user!, 'save_email_trigger', saved.id, `${saved.action} → ${saved.templateKey}`)
-        reply.code(201)
-        return saved
-    } catch (error) {
-        return sendError(reply, error)
-    }
+): Promise<EmailTrigger> => {
+    const saved = await email().saveTrigger(request.body)
+    void recordRequestAudit(request, 'save_email_trigger', saved.id, `${saved.action} → ${saved.templateKey}`)
+    reply.code(201)
+    return saved
 }
 
 const deleteTriggerEndpoint = async (
     request: FastifyRequest<{ Params: { id: string } }>,
     reply: FastifyReply
 ) => {
-    try {
-        await email().deleteTrigger(request.params.id)
-        void recordAudit(request.user!, 'delete_email_trigger', request.params.id)
-        reply.code(204)
-        return null
-    } catch (error) {
-        return sendError(reply, error)
-    }
+    await email().deleteTrigger(request.params.id)
+    void recordRequestAudit(request, 'delete_email_trigger', request.params.id)
+    reply.code(204)
+    return null
 }
 
 const listMessagesEndpoint = async (
@@ -227,35 +202,28 @@ const listMessagesEndpoint = async (
 const composeEndpoint = async (
     request: FastifyRequest<{ Body: EmailComposeDraft }>,
     reply: FastifyReply
-): Promise<EmailComposeResult | { error: string }> => {
-    try {
-        const result = await email().compose(request.user!, request.body)
-        void recordAudit(
-            request.user!,
-            'queue_email',
-            request.body.templateKey ?? '',
-            `${result.queued} recipients, audience=${request.body.audience}`
-        )
-        if (!request.body.scheduledAt) void worker().tick()
-        reply.code(201)
-        return result
-    } catch (error) {
-        return sendError(reply, error)
-    }
+): Promise<EmailComposeResult> => {
+    const result = await email().compose(request.user!, request.body)
+    void recordRequestAudit(
+        request,
+        'queue_email',
+        request.body.templateKey ?? '',
+        `${result.queued} recipients,
+        audience=${request.body.audience}`
+    )
+    if (!request.body.scheduledAt) void worker().tick()
+    reply.code(201)
+    return result
 }
 
 const patchMessageEndpoint = async (
     request: FastifyRequest<{ Params: { id: string }; Body: { status: EmailStatus } }>,
     reply: FastifyReply
-): Promise<EmailMessage | { error: string }> => {
-    try {
-        const saved = await email().setMessageStatus(request.params.id, request.body.status)
-        void recordAudit(request.user!, 'update_email_message', saved.id, saved.status)
-        if (saved.status === 'queued') void worker().tick()
-        return saved
-    } catch (error) {
-        return sendError(reply, error)
-    }
+): Promise<EmailMessage> => {
+    const saved = await email().setMessageStatus(request.params.id, request.body.status)
+    void recordRequestAudit(request, 'update_email_message', saved.id, saved.status)
+    if (saved.status === 'queued') void worker().tick()
+    return saved
 }
 
 export const emailRouter: FastifyPluginAsync = async (app) => {

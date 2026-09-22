@@ -6,7 +6,6 @@ import { loadProject, requireProjectPermission } from '../projectAuth.js'
 import container from '../container.js'
 import { UploadService } from '../services/UploadService.js'
 import { RealmService } from '../services/RealmService.js'
-import { sendError } from './sendError.js'
 import { recordAudit } from '../audit.js'
 
 const uploads = () => container.resolve(UploadService)
@@ -60,53 +59,37 @@ const requestUploadEndpoint = async (
     request: FastifyRequest<{ Body: UploadRequest }>,
     reply: FastifyReply
 ) => {
-    try {
-        const ticket = await uploads().requestUpload(request.user!, request.project!, request.body)
-        void recordAudit(request.user!, 'file.uploaded', request.project!.id, request.body.name, request.id)
-        reply.code(201)
-        return ticket
-    } catch (error) {
-        return sendError(reply, error)
-    }
+    const ticket = await uploads().requestUpload(request.user!, request.project!, request.body)
+    void recordAudit(request.user!, 'file.uploaded', request.project!.id, request.body.name, request.id)
+    reply.code(201)
+    return ticket
 }
 
 const assetSourceEndpoint = async (
     request: FastifyRequest<{ Params: { id: string; assetId: string } }>,
     reply: FastifyReply
 ) => {
-    try {
-        return await uploads().sourceTicket(request.project!, request.params.assetId)
-    } catch (error) {
-        return sendError(reply, error)
-    }
+    return await uploads().sourceTicket(request.project!, request.params.assetId)
 }
 
 const patchAssetsEndpoint = async (
     request: FastifyRequest<{ Body: { files: AssetPatch[] } }>,
     reply: FastifyReply
 ) => {
-    try {
-        const files = await uploads().patchMany(request.project!, request.body.files)
-        void recordAudit(request.user!, 'file.updated', request.project!.id, String(request.body.files.length), request.id)
-        return files
-    } catch (error) {
-        return sendError(reply, error)
-    }
+    const files = await uploads().patchMany(request.project!, request.body.files)
+    void recordAudit(request.user!, 'file.updated', request.project!.id, String(request.body.files.length), request.id)
+    return files
 }
 
 const deleteAssetEndpoint = async (
     request: FastifyRequest<{ Params: { id: string; assetId: string } }>,
     reply: FastifyReply
 ) => {
-    try {
-        const path = await uploads().remove(request.project!, request.params.assetId)
-        if (path) void realms().purgePaths(request.project!.realm_id, [path]).catch(() => undefined)
-        void recordAudit(request.user!, 'file.deleted', request.params.assetId, request.project!.id, request.id)
-        reply.code(204)
-        return null
-    } catch (error) {
-        return sendError(reply, error)
-    }
+    const path = await uploads().remove(request.project!, request.params.assetId)
+    if (path) void realms().purgePaths(request.project!.realm_id, [path]).catch(() => undefined)
+    void recordAudit(request.user!, 'file.deleted', request.params.assetId, request.project!.id, request.id)
+    reply.code(204)
+    return null
 }
 
 export const assetRouter: FastifyPluginAsync = async (app) => {

@@ -31,6 +31,7 @@ const toAuditEntry = (row: AuditRow): AuditEntry => ({
     action: row.action,
     targetId: row.target_id,
     detail: row.detail,
+    impersonated: row.impersonated,
     createdAt: row.created_at.toISOString(),
 })
 
@@ -131,7 +132,7 @@ export class ModerationService {
                 cursor,
             }),
             this.audit.count(query),
-            this.audit.listActions(),
+            cursor.createdAt || query.offset > 0 ? Promise.resolve([]) : this.audit.listActions(),
         ])
         const page = takePage(rows, limit, (row) => ({ createdAt: row.created_at, id: row.id }))
         return { entries: page.rows.map(toAuditEntry), total, actions, nextCursor: page.nextCursor }

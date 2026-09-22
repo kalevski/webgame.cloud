@@ -5,7 +5,6 @@ import { requireAuth, requirePermission } from '../auth.js'
 import { requireRealm } from '../realmAuth.js'
 import container from '../container.js'
 import { RealmService } from '../services/RealmService.js'
-import { sendError } from './sendError.js'
 import { recordAudit } from '../audit.js'
 
 const realms = () => container.resolve(RealmService)
@@ -61,33 +60,21 @@ const getRealmEndpoint = async (
     request: FastifyRequest<{ Params: { id: string } }>,
     reply: FastifyReply
 ) => {
-    try {
-        return await realms().find(request.params.id)
-    } catch (error) {
-        return sendError(reply, error)
-    }
+    return await realms().find(request.params.id)
 }
 
 const getRealmStatsEndpoint = async (
     request: FastifyRequest<{ Params: { id: string } }>,
     reply: FastifyReply
 ) => {
-    try {
-        return await realms().stats(request.params.id)
-    } catch (error) {
-        return sendError(reply, error)
-    }
+    return await realms().stats(request.params.id)
 }
 
 const getRealmSamplesEndpoint = async (
     request: FastifyRequest<{ Params: { id: string } }>,
     reply: FastifyReply
 ) => {
-    try {
-        return await realms().sampleSeries(request.params.id)
-    } catch (error) {
-        return sendError(reply, error)
-    }
+    return await realms().sampleSeries(request.params.id)
 }
 
 const listRegionsEndpoint = async () => realms().listRegions()
@@ -111,32 +98,24 @@ const patchRegionEndpoint = async (
     request: FastifyRequest<{ Params: { id: string }; Body: RealmRegionDraft }>,
     reply: FastifyReply
 ) => {
-    try {
-        const updated = await realms().updateRegion(request.params.id, request.body)
-        if (updated.isErr()) {
-            reply.code(409)
-            return { error: encodeErrorCause('realm_region_name_exists') }
-        }
-        const region = updated.unwrap()
-        void recordAudit(request.user!, 'realm.region_updated', region.id, region.name, request.id)
-        return region
-    } catch (error) {
-        return sendError(reply, error)
+    const updated = await realms().updateRegion(request.params.id, request.body)
+    if (updated.isErr()) {
+        reply.code(409)
+        return { error: encodeErrorCause('realm_region_name_exists') }
     }
+    const region = updated.unwrap()
+    void recordAudit(request.user!, 'realm.region_updated', region.id, region.name, request.id)
+    return region
 }
 
 const deleteRegionEndpoint = async (
     request: FastifyRequest<{ Params: { id: string } }>,
     reply: FastifyReply
 ) => {
-    try {
-        await realms().removeRegion(request.params.id)
-        void recordAudit(request.user!, 'realm.region_deleted', request.params.id, '', request.id)
-        reply.code(204)
-        return null
-    } catch (error) {
-        return sendError(reply, error)
-    }
+    await realms().removeRegion(request.params.id)
+    void recordAudit(request.user!, 'realm.region_deleted', request.params.id, '', request.id)
+    reply.code(204)
+    return null
 }
 
 const createRealmEndpoint = async (
@@ -158,67 +137,51 @@ const patchRealmEndpoint = async (
     request: FastifyRequest<{ Params: { id: string }; Body: RealmDraft }>,
     reply: FastifyReply
 ) => {
-    try {
-        const updated = await realms().update(request.params.id, request.body)
-        if (updated.isErr()) {
-            reply.code(409)
-            return { error: encodeErrorCause('realm_name_exists') }
-        }
-        const realm = updated.unwrap()
-        void recordAudit(request.user!, 'realm.updated', realm.id, realm.name, request.id)
-        return realm
-    } catch (error) {
-        return sendError(reply, error)
+    const updated = await realms().update(request.params.id, request.body)
+    if (updated.isErr()) {
+        reply.code(409)
+        return { error: encodeErrorCause('realm_name_exists') }
     }
+    const realm = updated.unwrap()
+    void recordAudit(request.user!, 'realm.updated', realm.id, realm.name, request.id)
+    return realm
 }
 
 const deleteRealmEndpoint = async (
     request: FastifyRequest<{ Params: { id: string } }>,
     reply: FastifyReply
 ) => {
-    try {
-        await realms().remove(request.params.id)
-        void recordAudit(request.user!, 'realm.deleted', request.params.id, '', request.id)
-        reply.code(204)
-        return null
-    } catch (error) {
-        return sendError(reply, error)
-    }
+    await realms().remove(request.params.id)
+    void recordAudit(request.user!, 'realm.deleted', request.params.id, '', request.id)
+    reply.code(204)
+    return null
 }
 
 const rotateTokenEndpoint = async (
     request: FastifyRequest<{ Params: { id: string } }>,
     reply: FastifyReply
 ) => {
-    try {
-        const issued = await realms().rotateToken(request.params.id)
-        void recordAudit(request.user!, 'realm.token_rotated', issued.realm.id, issued.realm.name, request.id)
-        return issued
-    } catch (error) {
-        return sendError(reply, error)
-    }
+    const issued = await realms().rotateToken(request.params.id)
+    void recordAudit(request.user!, 'realm.token_rotated', issued.realm.id, issued.realm.name, request.id)
+    return issued
 }
 
 const moveProjectEndpoint = async (
     request: FastifyRequest<{ Params: { id: string }; Body: { realmId: string } }>,
     reply: FastifyReply
 ) => {
-    try {
-        const moved = await realms().moveProject(
-            request.params.id,
-            request.body.realmId,
-            request.user!.id
-        )
-        if (moved.isErr()) {
-            reply.code(409)
-            return { error: encodeErrorCause('migration_in_progress') }
-        }
-        void recordAudit(request.user!, 'project.moved', request.params.id, request.body.realmId, request.id)
-        reply.code(202)
-        return moved.unwrap()
-    } catch (error) {
-        return sendError(reply, error)
+    const moved = await realms().moveProject(
+        request.params.id,
+        request.body.realmId,
+        request.user!.id
+    )
+    if (moved.isErr()) {
+        reply.code(409)
+        return { error: encodeErrorCause('migration_in_progress') }
     }
+    void recordAudit(request.user!, 'project.moved', request.params.id, request.body.realmId, request.id)
+    reply.code(202)
+    return moved.unwrap()
 }
 
 const heartbeatEndpoint = async (

@@ -1,4 +1,5 @@
-import { ApiError, parseErrorCause } from '@webgame-cloud/api/contracts'
+import { Async } from '@toolcase/base'
+import { parseErrorCause } from '@webgame-cloud/api/contracts'
 import { EVENT } from 'configs/analytics'
 import { STRINGS } from 'configs/strings'
 import { normalizeEndpoint, trackEvent } from 'helpers/analytics'
@@ -20,9 +21,9 @@ const resolveErrorMessage = (cause: string): string => {
 
 const unwrapError = (body: unknown, fallback: string): string => {
     if (typeof body !== 'object' || body === null) return fallback
-    const rest = body as Partial<RestErrorBody> & Partial<ApiError>
+    const rest = body as Partial<RestErrorBody>
 
-    const cause = rest.cause ?? rest.error
+    const cause = rest.cause
     return cause ? resolveErrorMessage(cause) : fallback
 }
 
@@ -36,8 +37,6 @@ const RETRY_DELAYS_MS = [300, 900]
 
 const SAFE_METHODS = new Set(['GET', 'HEAD'])
 
-const sleep = (ms: number): Promise<void> => new Promise((resolve) => { setTimeout(resolve, ms) })
-
 const fetchWithRetry = async (url: string, init: RequestInit): Promise<Response> => {
     const method = (init.method ?? 'GET').toUpperCase()
 
@@ -49,7 +48,7 @@ const fetchWithRetry = async (url: string, init: RequestInit): Promise<Response>
         } catch (error) {
             if (attempt >= retries) throw error
 
-            await sleep(RETRY_DELAYS_MS[attempt]!)
+            await Async.sleep(RETRY_DELAYS_MS[attempt]!)
         }
     }
 }

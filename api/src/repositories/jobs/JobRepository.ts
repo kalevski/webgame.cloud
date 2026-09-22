@@ -16,6 +16,7 @@ import SELECT_JOB from './sql/select-job.sql'
 import SELECT_JOBS from './sql/select-jobs.sql'
 import SELECT_LATEST_PER_KIND from './sql/select-latest-per-kind.sql'
 import SELECT_JOB_STATS from './sql/select-job-stats.sql'
+import SELECT_OLDEST_DUE from './sql/select-oldest-due.sql'
 import UPDATE_JOB_STATUS from './sql/update-job-status.sql'
 
 @injectable()
@@ -122,6 +123,13 @@ export class JobRepository extends BaseRepository<JobRow, QueryRunner> {
         return this.time('stats', async () => {
             const { rows } = await this.run(trx).query<{ status: JobStatus; c: string }>(SELECT_JOB_STATS)
             return rows
+        })
+    }
+
+    async oldestDue(trx?: QueryRunner): Promise<{ oldest: Date | null; due: number }> {
+        return this.time('oldestDue', async () => {
+            const { rows } = await this.run(trx).query<{ oldest: Date | null; due: number }>(SELECT_OLDEST_DUE)
+            return { oldest: rows[0]?.oldest ?? null, due: rows[0]?.due ?? 0 }
         })
     }
 

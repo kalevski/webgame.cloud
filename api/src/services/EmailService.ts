@@ -18,8 +18,10 @@ import type {
     User,
 } from '../contracts/index.js'
 import { EMAIL_STATUSES, OWNER_ROLE_ID, toRoleId } from '../contracts/index.js'
+import type { EmailPlaceholder } from '../contracts/index.js'
 import { WORKSPACE_NAME } from '../env.js'
 import { getEmailPort, logEmailPort, renderTemplate, type EmailSender } from '../domain/email.js'
+import { dispatchSuppressed } from '../notify.js'
 import { ConflictError, NotFoundError, ValidationError } from '../domain/errors.js'
 import { EmailRepository } from '../repositories/email/EmailRepository.js'
 import { decodeCursor, takePage } from '../repositories/pagination.js'
@@ -43,6 +45,19 @@ const KEY = {
     batchSize: 'email_batch_size',
 } as const
 
+const SENDER_KEYS = [
+    KEY.fromName,
+    KEY.fromEmail,
+    KEY.smtpHost,
+    KEY.smtpPort,
+    KEY.smtpUser,
+    KEY.smtpPassword,
+    KEY.smtpSecure,
+    KEY.mailchimpKey,
+] as const
+
+const CONFIG_KEYS = [...SENDER_KEYS, KEY.provider, KEY.batchSize] as const
+
 const emptyStats = (): EmailStats =>
     Object.fromEntries(EMAIL_STATUSES.map((status) => [status, 0])) as EmailStats
 
@@ -55,17 +70,18 @@ export class EmailService {
     ) {}
 
     async getSender(): Promise<EmailSender> {
-        const [fromName, fromEmail, smtpHost, smtpPort, smtpUser, smtpPassword, smtpSecure, mailchimpKey] =
-            await Promise.all([
-                this.settings.getRaw(KEY.fromName),
-                this.settings.getRaw(KEY.fromEmail),
-                this.settings.getRaw(KEY.smtpHost),
-                this.settings.getRaw(KEY.smtpPort),
-                this.settings.getRaw(KEY.smtpUser),
-                this.settings.getRaw(KEY.smtpPassword),
-                this.settings.getRaw(KEY.smtpSecure),
-                this.settings.getRaw(KEY.mailchimpKey),
-            ])
+        return this.senderFrom(await this.settings.getRawMany(SENDER_KEYS))
+    }
+
+    private senderFrom(values: Map<string, string>): EmailSender {
+        const fromName = values.get(KEY.fromName)
+        const fromEmail = values.get(KEY.fromEmail)
+        const smtpHost = values.get(KEY.smtpHost)
+        const smtpPort = values.get(KEY.smtpPort)
+        const smtpUser = values.get(KEY.smtpUser)
+        const smtpPassword = values.get(KEY.smtpPassword)
+        const smtpSecure = values.get(KEY.smtpSecure)
+        const mailchimpKey = values.get(KEY.mailchimpKey)
 
         return {
             fromName: fromName ?? WORKSPACE_NAME,
@@ -80,13 +96,16 @@ export class EmailService {
     }
 
     async getConfig(): Promise<EmailConfig> {
-        const sender = await this.getSender()
-        const [provider, batchSize] = await Promise.all([
-            this.settings.getRaw(KEY.provider),
-            this.settings.getRaw(KEY.batchSize),
-        ])
+        return (await this.resolve()).config
+    }
 
-        return {
+    private async resolve(): Promise<{ config: EmailConfig; sender: EmailSender }> {
+        const values = await this.settings.getRawMany(CONFIG_KEYS)
+        const sender = this.senderFrom(values)
+        const provider = values.get(KEY.provider)
+        const batchSize = values.get(KEY.batchSize)
+
+        const config: EmailConfig = {
             provider: (provider as EmailProvider) ?? 'log',
             fromName: sender.fromName,
             fromEmail: sender.fromEmail,
@@ -98,6 +117,8 @@ export class EmailService {
             mailchimpKeySet: sender.mailchimpKey.length > 0,
             batchSize: Number(batchSize ?? 25) || 25,
         }
+
+        return { config, sender }
     }
 
     async saveConfig(draft: EmailConfigDraft): Promise<EmailConfig> {
@@ -302,9 +323,6 @@ export class EmailService {
         if (triggers.length === 0) return
 
         for (const trigger of triggers) {
-            const template = await this.email.findTemplate(trigger.template_key)
-            if (!template) continue
-
             const recipients = await this.resolveTriggerRecipients(trigger, actor)
 
             for (const recipient of recipients) {
@@ -319,9 +337,9 @@ export class EmailService {
                 await this.queue({
                     toEmail: recipient.email,
                     toName: recipient.name,
-                    subject: renderTemplate(template.subject, context),
-                    body: renderTemplate(template.body, context),
-                    templateKey: template.key,
+                    subject: renderTemplate(trigger.template_subject, context),
+                    body: renderTemplate(trigger.template_body, context),
+                    templateKey: trigger.template_key,
                     scheduledAt: new Date(),
                 })
             }
@@ -345,8 +363,7 @@ export class EmailService {
     }
 
     async port() {
-        const config = await this.getConfig()
-        const sender = await this.getSender()
+        const { config, sender } = await this.resolve()
         const port = getEmailPort(config.provider) ?? logEmailPort
         if (!port.ready(sender)) {
             log.info('email provider not configured, falling back to log', { provider: config.provider })
@@ -380,7 +397,7 @@ export class EmailService {
             .map((user) => ({ email: user.email, name: user.name }))
     }
 
-    private context(recipient: { email: string; name: string }): Record<string, string> {
+    private context(recipient: { email: string; name: string }): Record<EmailPlaceholder, string> {
         return {
             workspace: WORKSPACE_NAME,
             recipientName: recipient.name || recipient.email,
@@ -456,6 +473,8 @@ export class EmailService {
         templateKey: string | null
         scheduledAt: Date
     }): Promise<string> {
+        if (dispatchSuppressed()) return ''
+
         const id = randomUUID()
         await this.email.insertMessage({
             id,

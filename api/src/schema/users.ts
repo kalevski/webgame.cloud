@@ -43,7 +43,7 @@ export const toServiceAccount = (row: ServiceAccountRow): ServiceAccount => ({
 
 export type SessionRow = {
     id: string
-    public_id: string
+    token_hash: string
     user_id: string
     user_agent: string
     ip: string

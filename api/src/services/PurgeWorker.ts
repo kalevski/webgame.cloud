@@ -1,6 +1,7 @@
 import { inject, injectable } from 'tsyringe'
 import { formatDuration } from '@toolcase/base'
 import { getLogger } from '../logging.js'
+import { drain } from '../domain/drain.js'
 import { recordHeartbeat, registerWorker, unregisterWorker } from '../health.js'
 import { RetentionService } from './RetentionService.js'
 
@@ -25,6 +26,9 @@ export class PurgeWorker {
     async dispose(): Promise<void> {
         if (this.timer) clearInterval(this.timer)
         this.timer = null
+        if (!(await drain(() => this.running))) {
+            log.warning('purge worker still busy at shutdown, abandoning the batch')
+        }
         unregisterWorker('purge')
     }
 

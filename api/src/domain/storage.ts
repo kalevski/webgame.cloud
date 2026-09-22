@@ -46,7 +46,11 @@ const s3Bucket = (source: AssetSourceRow): string => {
     return bucket
 }
 
-const s3ClientFor = async (source: AssetSourceRow) => {
+type S3ClientInstance = Awaited<ReturnType<typeof buildS3Client>>
+
+const s3Clients = new Map<string, { signature: string; client: S3ClientInstance }>()
+
+const buildS3Client = async (source: AssetSourceRow) => {
     const { S3Client } = await import('@aws-sdk/client-s3')
     const { region, endpoint, forcePathStyle, accessKeyId } = source.config
     return new S3Client({
@@ -55,6 +59,17 @@ const s3ClientFor = async (source: AssetSourceRow) => {
         forcePathStyle: forcePathStyle ?? Boolean(endpoint),
         credentials: accessKeyId ? { accessKeyId, secretAccessKey: source.secret } : undefined,
     })
+}
+
+const s3ClientFor = async (source: AssetSourceRow): Promise<S3ClientInstance> => {
+    const signature = JSON.stringify([source.config, source.secret])
+    const cached = s3Clients.get(source.id)
+    if (cached && cached.signature === signature) return cached.client
+
+    cached?.client.destroy()
+    const client = await buildS3Client(source)
+    s3Clients.set(source.id, { signature, client })
+    return client
 }
 
 export const s3StoragePort: StoragePort = {

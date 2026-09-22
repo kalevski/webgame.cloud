@@ -3,19 +3,19 @@ import multipart from '@fastify/multipart'
 import container from '../container.js'
 import { requireAuth, requirePermission } from '../auth.js'
 import { requireFeature } from '../features.js'
-import { recordAudit } from '../audit.js'
-import { sendError } from './sendError.js'
+import { recordRequestAudit } from '../audit.js'
 import { FileService } from '../services/FileService.js'
 import { encodeErrorCause } from '../contracts/index.js'
 import type { AssetSource, AssetSourceDraft, AssetType, AssetTypeBindings, StoredFile, User } from '../contracts/index.js'
-import { ASSET_SOURCE_TYPES, ASSET_TYPES, OWNER_ROLE_ID } from '../contracts/index.js'
+import { ASSET_SOURCE_TYPES, ASSET_TYPES } from '../contracts/index.js'
+import { NotFoundError, ValidationError } from '../domain/errors.js'
 
 const UPLOAD_MAX_BYTES = 20 * 1024 * 1024
 
 const files = () => container.resolve(FileService)
 
 const canAccessFile = (user: User, file: StoredFile): boolean =>
-    user.role === OWNER_ROLE_ID || file.ownerId === user.id
+    file.ownerId === user.id
 
 const assetSourceConfigSchema = {
     type: 'object',
@@ -30,6 +30,15 @@ const assetSourceConfigSchema = {
     },
 } as const
 
+const assetSourceRulesSchema = {
+    type: 'object',
+    additionalProperties: false,
+    properties: {
+        extensions: { type: 'array', maxItems: 40, items: { type: 'string', maxLength: 20 } },
+        mimeTypes: { type: 'array', maxItems: 40, items: { type: 'string', maxLength: 100 } },
+    },
+} as const
+
 const assetSourceSchema = {
     type: 'object',
     additionalProperties: false,
@@ -39,6 +48,7 @@ const assetSourceSchema = {
         type: { type: 'string', enum: [...ASSET_SOURCE_TYPES] },
         config: assetSourceConfigSchema,
         secret: { type: 'string', maxLength: 500 },
+        rules: assetSourceRulesSchema,
     },
 } as const
 
@@ -55,42 +65,30 @@ const listSourcesEndpoint = async (): Promise<AssetSource[]> => files().listSour
 const createSourceEndpoint = async (
     request: FastifyRequest<{ Body: AssetSourceDraft }>,
     reply: FastifyReply
-): Promise<AssetSource | { error: string }> => {
-    try {
-        const created = await files().createSource(request.body)
-        void recordAudit(request.user!, 'create_asset_source', created.id, created.name, request.id)
-        reply.code(201)
-        return created
-    } catch (error) {
-        return sendError(reply, error)
-    }
+): Promise<AssetSource> => {
+    const created = await files().createSource(request.body)
+    void recordRequestAudit(request, 'create_asset_source', created.id, created.name)
+    reply.code(201)
+    return created
 }
 
 const updateSourceEndpoint = async (
     request: FastifyRequest<{ Params: { sourceId: string }; Body: Partial<AssetSourceDraft> }>,
     reply: FastifyReply
-): Promise<AssetSource | { error: string }> => {
-    try {
-        const updated = await files().updateSource(request.params.sourceId, request.body)
-        void recordAudit(request.user!, 'update_asset_source', updated.id, updated.name, request.id)
-        return updated
-    } catch (error) {
-        return sendError(reply, error)
-    }
+): Promise<AssetSource> => {
+    const updated = await files().updateSource(request.params.sourceId, request.body)
+    void recordRequestAudit(request, 'update_asset_source', updated.id, updated.name)
+    return updated
 }
 
 const deleteSourceEndpoint = async (
     request: FastifyRequest<{ Params: { sourceId: string } }>,
     reply: FastifyReply
-): Promise<null | { error: string }> => {
-    try {
-        await files().deleteSource(request.params.sourceId)
-        void recordAudit(request.user!, 'delete_asset_source', request.params.sourceId, '', request.id)
-        reply.code(204)
-        return null
-    } catch (error) {
-        return sendError(reply, error)
-    }
+): Promise<null> => {
+    await files().deleteSource(request.params.sourceId)
+    void recordRequestAudit(request, 'delete_asset_source', request.params.sourceId, '')
+    reply.code(204)
+    return null
 }
 
 const getBindingsEndpoint = async (): Promise<AssetTypeBindings> => files().getBindings()
@@ -98,84 +96,75 @@ const getBindingsEndpoint = async (): Promise<AssetTypeBindings> => files().getB
 const saveBindingsEndpoint = async (
     request: FastifyRequest<{ Body: Partial<AssetTypeBindings> }>,
     reply: FastifyReply
-): Promise<AssetTypeBindings | { error: string }> => {
-    try {
-        const saved = await files().saveBindings(request.body)
-        void recordAudit(request.user!, 'update_asset_bindings', '', JSON.stringify(saved), request.id)
-        return saved
-    } catch (error) {
-        return sendError(reply, error)
-    }
+): Promise<AssetTypeBindings> => {
+    const saved = await files().saveBindings(request.body)
+    void recordRequestAudit(request, 'update_asset_bindings', '', JSON.stringify(saved))
+    return saved
 }
 
 const uploadFileEndpoint = async (
     request: FastifyRequest,
     reply: FastifyReply
-): Promise<StoredFile | { error: string }> => {
-    try {
-        const data = await request.file()
-        if (!data) {
-            reply.code(400)
-            return { error: encodeErrorCause('asset_type_invalid') }
-        }
-
-        const assetTypeField = data.fields.assetType
-        const assetType = assetTypeField && 'value' in assetTypeField ? String(assetTypeField.value) : ''
-        const buffer = await data.toBuffer()
-
-        const created = await files().upload(assetType as AssetType, request.user!.id, buffer, {
-            originalName: data.filename,
-            mime: data.mimetype,
-        })
-        void recordAudit(request.user!, 'upload_file', created.id, created.assetType, request.id)
-        reply.code(201)
-        return created
-    } catch (error) {
-        return sendError(reply, error)
+): Promise<StoredFile> => {
+    const data = await request.file()
+    if (!data) {
+        throw new ValidationError('asset_type_invalid')
     }
+
+    const assetTypeField = data.fields.assetType
+    const assetType = assetTypeField && 'value' in assetTypeField ? String(assetTypeField.value) : ''
+    const buffer = await data.toBuffer()
+
+    const created = await files().upload(assetType as AssetType, request.user!.id, buffer, {
+        originalName: data.filename,
+        mime: data.mimetype,
+    })
+    void recordRequestAudit(request, 'upload_file', created.id, created.assetType)
+    reply.code(201)
+    return created
 }
+
+const IMMUTABLE_MAX_AGE = 31_536_000
 
 const downloadFileEndpoint = async (
     request: FastifyRequest<{ Params: { fileId: string } }>,
     reply: FastifyReply
-): Promise<Buffer | { error: string } | undefined> => {
-    try {
-        const file = await files().get(request.params.fileId)
-        if (!canAccessFile(request.user!, file)) {
-            reply.code(404)
-            return { error: encodeErrorCause('asset_not_found', request.params.fileId) }
-        }
-
-        const data = await files().readBytes(file)
-        reply.header('content-type', file.mime || 'application/octet-stream')
-        reply.header(
-            'content-disposition',
-            `inline; filename="${encodeURIComponent(file.originalName || file.id)}"`
-        )
-        return data
-    } catch (error) {
-        return sendError(reply, error)
+): Promise<Buffer | undefined> => {
+    const file = await files().get(request.params.fileId)
+    if (!canAccessFile(request.user!, file)) {
+        throw new NotFoundError('asset_not_found', undefined, [request.params.fileId])
     }
+
+    const etag = `"${file.id}"`
+    reply.header('etag', etag)
+    reply.header('cache-control', `private, max-age=${IMMUTABLE_MAX_AGE}, immutable`)
+    if (request.headers['if-none-match'] === etag) {
+        reply.code(304)
+        return undefined
+    }
+
+    const data = await files().readBytes(file)
+    reply.header('content-type', file.mime || 'application/octet-stream')
+    reply.header(
+        'content-disposition',
+        `inline; filename="${encodeURIComponent(file.originalName || file.id)}"`
+    )
+    return data
 }
 
 const deleteFileEndpoint = async (
     request: FastifyRequest<{ Params: { fileId: string } }>,
     reply: FastifyReply
-): Promise<null | { error: string }> => {
-    try {
-        const file = await files().get(request.params.fileId)
-        if (!canAccessFile(request.user!, file)) {
-            reply.code(404)
-            return { error: encodeErrorCause('asset_not_found', request.params.fileId) }
-        }
-
-        await files().remove(file)
-        void recordAudit(request.user!, 'delete_file', file.id, file.assetType, request.id)
-        reply.code(204)
-        return null
-    } catch (error) {
-        return sendError(reply, error)
+): Promise<null> => {
+    const file = await files().get(request.params.fileId)
+    if (!canAccessFile(request.user!, file)) {
+        throw new NotFoundError('asset_not_found', undefined, [request.params.fileId])
     }
+
+    await files().remove(file)
+    void recordRequestAudit(request, 'delete_file', file.id, file.assetType)
+    reply.code(204)
+    return null
 }
 
 export const filesRouter: FastifyPluginAsync = async (app) => {

@@ -1,6 +1,7 @@
 import container from './container.js'
 import { previousRun, registerJobHandler, scheduledRegistrations } from './domain/jobs.js'
 import { getLogger } from './logging.js'
+import { AlarmService } from './services/AlarmService.js'
 import { BillingService } from './services/BillingService.js'
 import { JobService } from './services/JobService.js'
 import { SessionRepository } from './repositories/users/SessionRepository.js'
@@ -22,6 +23,8 @@ export const JOB_SUBSCRIPTION_EXPIRY = 'subscription_expiry'
 export const JOB_WEBHOOK_DELIVERY = 'webhook_delivery'
 export const JOB_ASSET_REAP_ORPHANS = 'assets.reap_orphans'
 export const JOB_BUILD_REAP_STALE = 'builds.reap_stale'
+export const JOB_INVOICE_DUNNING = 'invoice_dunning'
+export const JOB_HEALTH_SWEEP = 'health_sweep'
 
 export const registerJobHandlers = (): void => {
     registerJobHandler(
@@ -38,6 +41,22 @@ export const registerJobHandlers = (): void => {
             await container.resolve(BillingService).expireDue()
         },
         { cron: '10 * * * *', description: 'End subscriptions whose paid period has run out.' }
+    )
+
+    registerJobHandler(
+        JOB_INVOICE_DUNNING,
+        async () => {
+            await container.resolve(BillingService).sendDunning()
+        },
+        { cron: '30 9 * * *', description: 'Email a reminder for every invoice that is still open.' }
+    )
+
+    registerJobHandler(
+        JOB_HEALTH_SWEEP,
+        async () => {
+            await container.resolve(AlarmService).sweep()
+        },
+        { cron: '*/5 * * * *', description: 'Evaluate the health alarms, log each firing one and digest it to the owners.' }
     )
 
     registerJobHandler(

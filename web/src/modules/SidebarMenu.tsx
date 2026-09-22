@@ -20,8 +20,6 @@ const SidebarMenu: React.FC = () => {
     const canReadUsers = useCan('admin.user.read')
     const ticketsEnabled = useFeature('tickets')
     const canReadTicketQueue = useCan('ticket.queue.read')
-    const designsEnabled = useFeature('designs')
-    const canReadDesigns = useCan('design.template.read')
     const activeProjectId = useStore((state) => state.activeProjectId)
 
     const sections = useMemo(() => {
@@ -169,14 +167,6 @@ const SidebarMenu: React.FC = () => {
                     active: location.pathname.startsWith('/platform/tickets'),
                 }]
                 : []),
-            ...(designsEnabled && canReadDesigns
-                ? [{
-                    key: 'studio',
-                    label: t.nav.studio,
-                    icon: 'clapperboard',
-                    active: location.pathname.startsWith('/studio'),
-                }]
-                : []),
             ...(billingEnabled && canReadInvoices ? [invoiceItem] : []),
             ...(billingEnabled && canReadEnquiries ? [enquiryItem] : []),
             ...(emailEnabled && canReadEmail
@@ -211,8 +201,6 @@ const SidebarMenu: React.FC = () => {
         canReadEmail,
         ticketsEnabled,
         canReadTicketQueue,
-        designsEnabled,
-        canReadDesigns,
     ])
 
     const nav = useTc<HTMLElement>({

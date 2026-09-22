@@ -1,11 +1,11 @@
 import type { FastifyPluginAsync, FastifyReply, FastifyRequest } from 'fastify'
 import type { AuditFilters, AuditEntry, Report, ReportStatus, ReportTargetKind } from '../contracts/index.js'
+import { REPORT_STATUSES } from '../contracts/index.js'
 import { REPORT_TARGET_KINDS } from '../contracts/index.js'
 import { requireAuth, requirePermission } from '../auth.js'
 import { rateLimit } from '../http/rateLimit.js'
 import container from '../container.js'
 import { ModerationService } from '../services/ModerationService.js'
-import { sendError } from './sendError.js'
 
 const moderation = () => container.resolve(ModerationService)
 
@@ -24,7 +24,7 @@ const listQuerySchema = {
     type: 'object',
     additionalProperties: false,
     properties: {
-        status: { type: 'string', enum: ['pending', 'resolved'] },
+        status: { type: 'string', enum: [...REPORT_STATUSES] },
         offset: { type: 'integer', minimum: 0, maximum: 1000000 },
     },
 } as const
@@ -62,18 +62,14 @@ const createReportEndpoint = async (
     request: FastifyRequest<{ Body: { targetKind: ReportTargetKind; targetId: string; reason?: string } }>,
     reply: FastifyReply
 ) => {
-    try {
-        const created = await moderation().report(
-            request.user!,
-            request.body.targetKind,
-            request.body.targetId,
-            request.body.reason ?? ''
-        )
-        reply.code(201)
-        return created
-    } catch (error) {
-        return sendError(reply, error)
-    }
+    const created = await moderation().report(
+        request.user!,
+        request.body.targetKind,
+        request.body.targetId,
+        request.body.reason ?? ''
+    )
+    reply.code(201)
+    return created
 }
 
 const listReportsEndpoint = async (
@@ -85,13 +81,9 @@ const resolveReportEndpoint = async (
     request: FastifyRequest<{ Params: { id: string }; Body: { resolution?: string } }>,
     reply: FastifyReply
 ) => {
-    try {
-        return await moderation().resolveReport(
-            request.user!, request.params.id, request.body.resolution ?? ''
-        )
-    } catch (error) {
-        return sendError(reply, error)
-    }
+    return await moderation().resolveReport(
+        request.user!, request.params.id, request.body.resolution ?? ''
+    )
 }
 
 const listAuditLogEndpoint = async (

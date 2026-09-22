@@ -5,7 +5,6 @@ import { requireAuth } from '../auth.js'
 import { loadProject, requireProjectPermission } from '../projectAuth.js'
 import container from '../container.js'
 import { ConfigService } from '../services/ConfigService.js'
-import { sendError } from './sendError.js'
 import { recordAudit } from '../audit.js'
 
 const configs = () => container.resolve(ConfigService)
@@ -59,33 +58,25 @@ const saveSchemaEndpoint = async (
     request: FastifyRequest<{ Params: { id: string; schemaId?: string }; Body: ConfigSchemaDraft }>,
     reply: FastifyReply
 ) => {
-    try {
-        const saved = await configs().saveSchema(request.project!, request.body, request.params.schemaId)
-        if (saved.isErr()) {
-            reply.code(409)
-            return { error: encodeErrorCause('schema_name_exists') }
-        }
-        const schema = saved.unwrap()
-        void recordAudit(request.user!, 'schema.saved', schema.id, schema.name, request.id)
-        if (!request.params.schemaId) reply.code(201)
-        return schema
-    } catch (error) {
-        return sendError(reply, error)
+    const saved = await configs().saveSchema(request.project!, request.body, request.params.schemaId)
+    if (saved.isErr()) {
+        reply.code(409)
+        return { error: encodeErrorCause('schema_name_exists') }
     }
+    const schema = saved.unwrap()
+    void recordAudit(request.user!, 'schema.saved', schema.id, schema.name, request.id)
+    if (!request.params.schemaId) reply.code(201)
+    return schema
 }
 
 const deleteSchemaEndpoint = async (
     request: FastifyRequest<{ Params: { id: string; schemaId: string } }>,
     reply: FastifyReply
 ) => {
-    try {
-        await configs().deleteSchema(request.project!, request.params.schemaId)
-        void recordAudit(request.user!, 'schema.deleted', request.params.schemaId, request.project!.id, request.id)
-        reply.code(204)
-        return null
-    } catch (error) {
-        return sendError(reply, error)
-    }
+    await configs().deleteSchema(request.project!, request.params.schemaId)
+    void recordAudit(request.user!, 'schema.deleted', request.params.schemaId, request.project!.id, request.id)
+    reply.code(204)
+    return null
 }
 
 const listConfigsEndpoint = async (request: FastifyRequest) => configs().listConfigs(request.project!.id)
@@ -94,55 +85,39 @@ const createConfigEndpoint = async (
     request: FastifyRequest<{ Body: GameConfigDraft }>,
     reply: FastifyReply
 ) => {
-    try {
-        const created = await configs().createConfig(request.project!, request.body)
-        if (created.isErr()) {
-            reply.code(409)
-            return { error: encodeErrorCause('config_key_exists') }
-        }
-        const config = created.unwrap()
-        void recordAudit(request.user!, 'config.created', config.id, config.key, request.id)
-        reply.code(201)
-        return config
-    } catch (error) {
-        return sendError(reply, error)
+    const created = await configs().createConfig(request.project!, request.body)
+    if (created.isErr()) {
+        reply.code(409)
+        return { error: encodeErrorCause('config_key_exists') }
     }
+    const config = created.unwrap()
+    void recordAudit(request.user!, 'config.created', config.id, config.key, request.id)
+    reply.code(201)
+    return config
 }
 
 const patchConfigEndpoint = async (
     request: FastifyRequest<{ Params: { id: string; configId: string }; Body: { description?: string } }>,
     reply: FastifyReply
 ) => {
-    try {
-        return await configs().updateConfig(request.project!, request.params.configId, request.body.description ?? '')
-    } catch (error) {
-        return sendError(reply, error)
-    }
+    return await configs().updateConfig(request.project!, request.params.configId, request.body.description ?? '')
 }
 
 const deleteConfigEndpoint = async (
     request: FastifyRequest<{ Params: { id: string; configId: string } }>,
     reply: FastifyReply
 ) => {
-    try {
-        await configs().deleteConfig(request.project!, request.params.configId)
-        void recordAudit(request.user!, 'config.deleted', request.params.configId, request.project!.id, request.id)
-        reply.code(204)
-        return null
-    } catch (error) {
-        return sendError(reply, error)
-    }
+    await configs().deleteConfig(request.project!, request.params.configId)
+    void recordAudit(request.user!, 'config.deleted', request.params.configId, request.project!.id, request.id)
+    reply.code(204)
+    return null
 }
 
 const readVersionEndpoint = async (
     request: FastifyRequest<{ Params: { id: string; configId: string; tag: string } }>,
     reply: FastifyReply
 ) => {
-    try {
-        return await configs().readVersion(request.project!, request.params.configId, request.params.tag)
-    } catch (error) {
-        return sendError(reply, error)
-    }
+    return await configs().readVersion(request.project!, request.params.configId, request.params.tag)
 }
 
 const saveVersionEndpoint = async (
@@ -152,43 +127,31 @@ const saveVersionEndpoint = async (
     }>,
     reply: FastifyReply
 ) => {
-    try {
-        const version = await configs().saveVersion(
-            request.user!,
-            request.project!,
-            request.params.configId,
-            request.params.tag,
-            request.body.values
-        )
-        void recordAudit(request.user!, 'config.version_saved', request.params.configId, request.params.tag, request.id)
-        return version
-    } catch (error) {
-        return sendError(reply, error)
-    }
+    const version = await configs().saveVersion(
+        request.user!,
+        request.project!,
+        request.params.configId,
+        request.params.tag,
+        request.body.values
+    )
+    void recordAudit(request.user!, 'config.version_saved', request.params.configId, request.params.tag, request.id)
+    return version
 }
 
 const deleteVersionEndpoint = async (
     request: FastifyRequest<{ Params: { id: string; configId: string; tag: string } }>,
     reply: FastifyReply
 ) => {
-    try {
-        await configs().deleteVersion(request.project!, request.params.configId, request.params.tag)
-        reply.code(204)
-        return null
-    } catch (error) {
-        return sendError(reply, error)
-    }
+    await configs().deleteVersion(request.project!, request.params.configId, request.params.tag)
+    reply.code(204)
+    return null
 }
 
 const refreshSchemaEndpoint = async (
     request: FastifyRequest<{ Params: { id: string; configId: string } }>,
     reply: FastifyReply
 ) => {
-    try {
-        return await configs().refreshSchema(request.project!, request.params.configId)
-    } catch (error) {
-        return sendError(reply, error)
-    }
+    return await configs().refreshSchema(request.project!, request.params.configId)
 }
 
 export const configRouter: FastifyPluginAsync = async (app) => {

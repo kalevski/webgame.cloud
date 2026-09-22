@@ -11,19 +11,23 @@ import { NotFoundError, ValidationError } from '../domain/errors.js'
 import { getLogger } from '../logging.js'
 import { WebhookRepository } from '../repositories/webhooks/WebhookRepository.js'
 import { decodeCursor, takePage } from '../repositories/pagination.js'
+import { rejectWebhookTarget } from '../domain/webhookTarget.js'
 import { toWebhookDelivery, toWebhookEndpoint } from '../schema/webhooks.js'
 
 const log = getLogger('webhooks')
 
 const TIMEOUT_MS = 10_000
 
-const isHttpUrl = (value: string): boolean => {
-    try {
-        const url = new URL(value)
-        return url.protocol === 'http:' || url.protocol === 'https:'
-    } catch {
-        return false
+const assertReachableTarget = async (value: string): Promise<void> => {
+    const rejection = await rejectWebhookTarget(value)
+    if (rejection === null) return
+    if (rejection === 'private') {
+        throw new ValidationError('webhook_url_private', 'that host resolves to a private address')
     }
+    if (rejection === 'unresolvable') {
+        throw new ValidationError('webhook_url_unresolvable', 'that host could not be resolved')
+    }
+    throw new ValidationError('webhook_url_invalid', 'an https url is required')
 }
 
 export const signPayload = (secret: string, timestamp: string, body: string): string =>
@@ -39,7 +43,7 @@ export class WebhookService {
 
     async createEndpoint(draft: WebhookEndpointDraft): Promise<WebhookEndpoint> {
         const url = draft.url.trim()
-        if (!isHttpUrl(url)) throw new ValidationError('webhook_url_invalid', 'a http(s) url is required')
+        await assertReachableTarget(url)
 
         const created = await this.webhooks.insertEndpoint({
             id: randomUUID(),
@@ -54,9 +58,7 @@ export class WebhookService {
     }
 
     async updateEndpoint(id: string, patch: Partial<WebhookEndpointDraft>): Promise<WebhookEndpoint> {
-        if (patch.url !== undefined && !isHttpUrl(patch.url.trim())) {
-            throw new ValidationError('webhook_url_invalid', 'a http(s) url is required')
-        }
+        if (patch.url !== undefined) await assertReachableTarget(patch.url.trim())
 
         const updated = await this.webhooks.updateEndpoint(id, {
             url: patch.url?.trim() ?? null,
@@ -134,12 +136,20 @@ export class WebhookService {
         const delivery = await this.webhooks.findDelivery(deliveryId)
         if (!delivery) return
 
+        const rejection = await rejectWebhookTarget(delivery.endpoint_url ?? '')
+        if (rejection !== null) {
+            await this.webhooks.markFailed(deliveryId, null, `refusing to deliver: ${rejection}`)
+            log.error('webhook target refused', { deliveryId, rejection })
+            return
+        }
+
         const body = JSON.stringify(delivery.payload ?? {})
         const timestamp = String(Math.floor(Date.now() / 1000))
         const signature = signPayload(delivery.endpoint_secret ?? '', timestamp, body)
 
         const controller = new AbortController()
         const timer = setTimeout(() => controller.abort(), TIMEOUT_MS)
+        let recorded = false
         try {
             const response = await fetch(delivery.endpoint_url ?? '', {
                 method: 'POST',
@@ -154,6 +164,7 @@ export class WebhookService {
             })
 
             if (!response.ok) {
+                recorded = true
                 await this.webhooks.markFailed(deliveryId, response.status, `endpoint returned ${response.status}`)
                 throw new Error(`webhook endpoint returned ${response.status}`)
             }
@@ -161,7 +172,7 @@ export class WebhookService {
             await this.webhooks.markDelivered(deliveryId, response.status)
         } catch (error) {
             const message = error instanceof Error ? error.message : String(error)
-            await this.webhooks.markFailed(deliveryId, null, message)
+            if (!recorded) await this.webhooks.markFailed(deliveryId, null, message)
             log.error('webhook delivery failed', { deliveryId, message })
             throw error
         } finally {

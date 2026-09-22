@@ -6,6 +6,8 @@ export type AssetSourceRow = {
     type: AssetSourceType
     config: AssetSourceConfig
     secret: string
+    allowed_extensions: string[]
+    allowed_mime_types: string[]
     created_at: Date
     updated_at: Date
 }
@@ -29,6 +31,10 @@ export const toAssetSource = (row: AssetSourceRow): AssetSource => ({
     type: row.type,
     config: row.config ?? {},
     secretSet: row.secret !== '',
+    rules: {
+        extensions: Array.isArray(row.allowed_extensions) ? row.allowed_extensions : [],
+        mimeTypes: Array.isArray(row.allowed_mime_types) ? row.allowed_mime_types : [],
+    },
     createdAt: row.created_at.toISOString(),
     updatedAt: row.updated_at.toISOString(),
 })

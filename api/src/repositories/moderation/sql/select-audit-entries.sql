@@ -1,4 +1,4 @@
-SELECT a.id, a.actor_id, a.actor_name, a.action, a.target_id, a.detail, a.created_at
+SELECT a.id, a.actor_id, a.actor_name, a.action, a.target_id, a.detail, a.impersonated, a.created_at
 FROM audit_log a
 LEFT JOIN users u ON u.id = a.actor_id AND u.deleted_at IS NULL
 WHERE a.deleted_at IS NULL

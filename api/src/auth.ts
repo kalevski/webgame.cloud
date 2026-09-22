@@ -20,6 +20,8 @@ declare module 'fastify' {
         resolvedPermissions: ReadonlySet<Permission> | null
 
         apiKeyAuth: boolean
+
+        impersonatedBy: string | null
     }
 }
 
@@ -72,6 +74,8 @@ export const registerAuth = (app: FastifyInstance): void => {
     app.decorateRequest('user', null)
 
     app.decorateRequest('apiKeyAuth', false)
+    app.decorateRequest('impersonatedBy', null)
+
     app.decorateRequest('resolvedPermissions', null)
     app.decorateRequest('permissionSet', {
         getter(this: FastifyRequest): ReadonlySet<Permission> {
@@ -98,8 +102,10 @@ export const registerAuth = (app: FastifyInstance): void => {
 
         const sessionId = readSessionId(request)
         if (!sessionId) return
-        request.user = await container.resolve(SessionRepository).findSessionUser(sessionId)
-        if (!request.user) return
+        const session = await container.resolve(SessionRepository).findSessionUser(sessionId)
+        if (!session) return
+        request.user = session.user
+        request.impersonatedBy = session.impersonatedBy
 
         request.resolvedPermissions = await container
             .resolve(AccessPolicyService)

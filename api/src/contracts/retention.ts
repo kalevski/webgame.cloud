@@ -90,7 +90,6 @@ export const TABLE_LABELS: Record<string, string> = {
     api_keys: 'API keys',
     rate_limits: 'Rate limit buckets',
     idempotency_keys: 'Idempotency keys',
-    notification_preferences: 'Notification preferences',
     coupon_redemptions: 'Coupon redemptions',
     usage_events: 'Usage events',
     invoice_reminders: 'Invoice reminders',

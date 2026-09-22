@@ -12,7 +12,6 @@ export type {
     RoleSlot,
     LimitableResource,
     LimitMap,
-    Limits,
     LimitUsage,
     Permission,
     PermissionDelta,

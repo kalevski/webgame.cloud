@@ -1,6 +1,6 @@
 # Auth & sessions
 
-Opaque cookie-session auth (not JWT). The session id is a random token stored in the `sessions` table; the cookie is `starter_session` (HttpOnly).
+Opaque cookie-session auth (not JWT). The cookie is `starter_session` (HttpOnly) and carries a random token; the `sessions` table stores only **`sha256(token)`** in `token_hash`, so a database dump, replica or backup cannot be replayed as a live session. `sessions.id` is an ordinary UUID and doubles as the client-facing handle.
 
 ## Key files
 
@@ -9,7 +9,7 @@ Opaque cookie-session auth (not JWT). The session id is a random token stored in
 - `api/src/services/AuthService.ts` — the provider registry (Google, Discord), code exchange + profile fetch (`authenticate`), `resolveOAuthUser`/`resolveDevUser`, `linkIdentity`, session open/close, the `/me` envelope.
 - `api/src/repositories/users/UserRepository.ts` — user CRUD (`createWithAutoRole` holds the first-user advisory lock).
 - `api/src/repositories/users/IdentityRepository.ts` — the `user_identities` table: `findUserByIdentity`, `link` (transactional upsert returning a `linked_elsewhere` sentinel), `unlink`.
-- `api/src/repositories/users/SessionRepository.ts` — session CRUD (`create`, `findSessionUser`, `listForUser`, `touch`, `deletePublicForUser`, `deleteExpired`).
+- `api/src/repositories/users/SessionRepository.ts` — session CRUD (`create`, `findSessionUser`, `listForUser`, `touch`, `deleteOneForUser`, `deleteExpired`), the token→user cache and its invalidation. `hashSessionToken` is the one place the cookie value is hashed.
 - `api/src/domain/userAgent.ts` — `describeUserAgent`: a dependency-free regex table turning a raw `User-Agent` into `{ browser, os }`.
 - Web: `web/src/services/AuthService.ts`, `web/src/state/auth.slice.ts`, `web/src/modules/{LoginPanel,AuthGuard,ConsentGate,Init}.tsx`.
 
@@ -32,12 +32,40 @@ authenticates only with a bearer key (service-accounts.md), never with a session
 
 ## Active devices
 
-Each session row records the `User-Agent` and IP it was opened with (`sessionContext(request)` in `auth.ts`, threaded into `AuthService.createSession` and `UserService.impersonate`), plus a `public_id` — a random UUID that is the ONLY session handle ever sent to a client. The `id` column is the cookie value itself, so it never leaves the server.
+Each session row records the `User-Agent` and IP it was opened with (`sessionContext(request)` in `auth.ts`, threaded into `AuthService.createSession` and `UserService.impersonate`). The cookie token itself is never stored and never leaves the client; `sessions.id` is the handle sent to a client, and `token_hash` is what the server matches on.
 
-- `GET /api/account/sessions` → `UserSession[]`: `{ id (public_id), current, browser, os, ip, createdAt, lastSeenAt, expiresAt }`, unexpired only, most recently active first, with the current device sorted to the top. `browser`/`os` come from `describeUserAgent`; the raw UA string is not exposed.
-- `DELETE /api/account/sessions/:id` deletes one session by `public_id`, scoped to the caller's own user. Revoking the session backing the current request is refused with `current_session` (409) — signing yourself out is what `POST /api/auth/logout` is for. An unknown handle yields `session_not_found` (404).
+- `GET /api/account/sessions` → `UserSession[]`: `{ id, current, browser, os, ip, createdAt, lastSeenAt, expiresAt }`, unexpired only, most recently active first, with the current device sorted to the top. `browser`/`os` come from `describeUserAgent`; the raw UA string is not exposed.
+- `DELETE /api/account/sessions/:id` deletes one session by id, scoped to the caller's own user. Revoking the session backing the current request is refused with `current_session` (409) — signing yourself out is what `POST /api/auth/logout` is for. An unknown handle yields `session_not_found` (404).
 
-`AccountService.listSessions`/`revokeSession` hold the mapping and the rules; the current-device comparison is `row.id === readSessionId(request)`. On the web this is the **Devices** tab of `/profile` (`modules/DeviceSessions.tsx`, `/profile/devices`) — the current device renders as a card at the top with a "Current" badge and no sign-out control, every other device gets a row with a Sign out button. Revocation takes effect on the revoked device's next request (its cookie no longer resolves to a session, so `request.user` is null → 401).
+`AccountService.listSessions`/`revokeSession` hold the rules; the current-device comparison hashes the caller's cookie and compares `row.token_hash`, so it never needs the plaintext of any other session. On the web this is the **Devices** tab of `/profile` (`modules/DeviceSessions.tsx`, `/profile/devices`) — the current device renders as a card at the top with a "Current" badge and no sign-out control, every other device gets a row with a Sign out button. Revocation takes effect on the revoked device's next request (its cookie no longer resolves to a session, so `request.user` is null → 401).
+
+## The OAuth flow cookie
+
+State + PKCE verifier (+ the `link` flag) round-trip through one HttpOnly cookie, and that cookie is
+**HMAC-signed** with a workspace secret before it is written (`createHmac('sha256', flowSecret())` in
+`routers/authRouter.ts`). The secret is created once and kept in settings
+(`SettingsService.getOrCreateSecret`, key `oauth_flow_secret`), loaded at boot.
+
+Without the signature an attacker could plant a flow cookie in a victim's browser and drive the victim's
+callback — including setting the privileged `link` flag, which binds an identity to the *current session's*
+account. The signature makes a planted cookie unverifiable, so the callback rejects it.
+
+## Impersonation
+
+Impersonation is visible, not just audited. `sessions.impersonated_by` records the administrator who opened
+the session; `request.impersonatedBy` carries it per request, `AuthSession.impersonatedBy` reports it to the
+client as an `Impersonator` (`id`, `name`, `email`), and `recordRequestAudit` stamps `audit_log.impersonated`
+on every action taken while impersonating.
+
+`POST /api/auth/impersonation/end` returns the administrator to their own account in one step — it refuses
+with `not_impersonating` on an ordinary session.
+
+The consent gate is **skipped** while impersonating, and `POST /api/account/consent` refuses with
+`consent_while_impersonating` (`routers/accountRouter.ts`). An administrator must never be able to accept
+Terms or Privacy on someone else's behalf and have it recorded as that person's own consent.
+
+The web surface for this — the persistent banner and the one-click return — lands with the frontend work;
+the API contract above is what it reads.
 
 ## Linked identities
 

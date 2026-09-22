@@ -35,11 +35,10 @@ import {
 import { requireAuth, requirePermission } from '../auth.js'
 import { requireFeature } from '../features.js'
 import { rateLimit } from '../http/rateLimit.js'
-import { recordAudit } from '../audit.js'
+import { recordRequestAudit } from '../audit.js'
 import container from '../container.js'
 import { BillingService } from '../services/BillingService.js'
 import { AccessPolicyService } from '../services/AccessPolicyService.js'
-import { sendError } from './sendError.js'
 import { WORKSPACE_NAME } from '../env.js'
 
 const billing = () => container.resolve(BillingService)
@@ -73,12 +72,14 @@ const planSchema = {
         name: { type: 'string', minLength: 1, maxLength: 120 },
         description: { type: 'string', maxLength: 600 },
         roleId: { type: ['string', 'null'], maxLength: 60 },
+        visibleRoleIds: { type: 'array', maxItems: 50, items: { type: 'string', minLength: 1, maxLength: 60 } },
         mode: { type: 'string', enum: [...PLAN_MODES] },
         priceCents: { type: 'integer', minimum: 0, maximum: 100_000_000 },
         currency: { type: 'string', minLength: 3, maxLength: 3 },
         interval: { type: 'string', enum: [...BILLING_INTERVALS] },
         position: { type: 'integer', minimum: 0, maximum: 10_000 },
         active: { type: 'boolean' },
+        trialDays: { type: 'integer', minimum: 0, maximum: 365 },
         features: { type: 'array', maxItems: 20, items: { type: 'string', maxLength: 120 } },
         salesFields: {
             type: 'array',
@@ -209,49 +210,38 @@ const invoiceStatusSchema = {
     },
 } as const
 
-const listPlansEndpoint = async (): Promise<Plan[]> => billing().listPlans()
+const listPlansEndpoint = async (request: FastifyRequest): Promise<Plan[]> =>
+    billing().listPlans(request.user!)
 
 const listAllPlansEndpoint = async (): Promise<Plan[]> => billing().listAllPlans()
 
 const createPlanEndpoint = async (
     request: FastifyRequest<{ Body: PlanDraft }>,
     reply: FastifyReply
-): Promise<Plan | { error: string }> => {
-    try {
-        const created = await billing().createPlan(request.body)
-        void recordAudit(request.user!, 'create_plan', created.id, `${created.name} mode=${created.mode}`)
-        reply.code(201)
-        return created
-    } catch (error) {
-        return sendError(reply, error)
-    }
+): Promise<Plan> => {
+    const created = await billing().createPlan(request.body)
+    void recordRequestAudit(request, 'create_plan', created.id, `${created.name} mode=${created.mode}`)
+    reply.code(201)
+    return created
 }
 
 const updatePlanEndpoint = async (
     request: FastifyRequest<{ Params: { planId: string }; Body: Partial<PlanDraft> }>,
     reply: FastifyReply
-): Promise<Plan | { error: string }> => {
-    try {
-        const saved = await billing().updatePlan(request.params.planId, request.body)
-        void recordAudit(request.user!, 'update_plan', saved.id, `${saved.name} mode=${saved.mode} role=${saved.roleId ?? 'none'}`)
-        return saved
-    } catch (error) {
-        return sendError(reply, error)
-    }
+): Promise<Plan> => {
+    const saved = await billing().updatePlan(request.params.planId, request.body)
+    void recordRequestAudit(request, 'update_plan', saved.id, `${saved.name} mode=${saved.mode} role=${saved.roleId ?? 'none'}`)
+    return saved
 }
 
 const deletePlanEndpoint = async (
     request: FastifyRequest<{ Params: { planId: string } }>,
     reply: FastifyReply
 ) => {
-    try {
-        await billing().deletePlan(request.params.planId)
-        void recordAudit(request.user!, 'delete_plan', request.params.planId)
-        reply.code(204)
-        return null
-    } catch (error) {
-        return sendError(reply, error)
-    }
+    await billing().deletePlan(request.params.planId)
+    void recordRequestAudit(request, 'delete_plan', request.params.planId)
+    reply.code(204)
+    return null
 }
 
 const listInvoicesEndpoint = async (
@@ -261,42 +251,30 @@ const listInvoicesEndpoint = async (
 const createInvoiceEndpoint = async (
     request: FastifyRequest<{ Body: { userId: string } }>,
     reply: FastifyReply
-): Promise<Invoice | { error: string }> => {
-    try {
-        const created = await billing().createInvoice(request.body)
-        void recordAudit(request.user!, 'create_invoice', created.id, `${created.number} ${created.amountCents}`)
-        reply.code(201)
-        return created
-    } catch (error) {
-        return sendError(reply, error)
-    }
+): Promise<Invoice> => {
+    const created = await billing().createInvoice(request.body)
+    void recordRequestAudit(request, 'create_invoice', created.id, `${created.number} ${created.amountCents}`)
+    reply.code(201)
+    return created
 }
 
 const patchInvoiceEndpoint = async (
     request: FastifyRequest<{ Params: { invoiceId: string }; Body: { status: InvoiceStatus } }>,
     reply: FastifyReply
-): Promise<Invoice | { error: string }> => {
-    try {
-        const saved = await billing().setInvoiceStatus(request.params.invoiceId, request.body.status)
-        void recordAudit(request.user!, 'update_invoice', saved.id, `${saved.number} status=${saved.status}`)
-        return saved
-    } catch (error) {
-        return sendError(reply, error)
-    }
+): Promise<Invoice> => {
+    const saved = await billing().setInvoiceStatus(request.params.invoiceId, request.body.status)
+    void recordRequestAudit(request, 'update_invoice', saved.id, `${saved.number} status=${saved.status}`)
+    return saved
 }
 
 const createEnquiryEndpoint = async (
     request: FastifyRequest<{ Body: SalesEnquiryDraft }>,
     reply: FastifyReply
-): Promise<SalesEnquiry | { error: string }> => {
-    try {
-        const created = await billing().createEnquiry(request.user!.id, request.body)
-        void recordAudit(request.user!, 'submit_enquiry', created.id, created.planName ?? request.body.planId)
-        reply.code(201)
-        return created
-    } catch (error) {
-        return sendError(reply, error)
-    }
+): Promise<SalesEnquiry> => {
+    const created = await billing().createEnquiry(request.user!.id, request.body)
+    void recordRequestAudit(request, 'submit_enquiry', created.id, created.planName ?? request.body.planId)
+    reply.code(201)
+    return created
 }
 
 const listEnquiriesEndpoint = async (
@@ -306,57 +284,42 @@ const listEnquiriesEndpoint = async (
 const patchEnquiryEndpoint = async (
     request: FastifyRequest<{ Params: { enquiryId: string }; Body: { status: EnquiryStatus } }>,
     reply: FastifyReply
-): Promise<SalesEnquiry | { error: string }> => {
-    try {
-        const saved = await billing().setEnquiryStatus(request.params.enquiryId, request.body.status)
-        void recordAudit(request.user!, 'update_sales_enquiry', saved.id, `status=${saved.status}`)
-        return saved
-    } catch (error) {
-        return sendError(reply, error)
-    }
+): Promise<SalesEnquiry> => {
+    const saved = await billing().setEnquiryStatus(request.params.enquiryId, request.body.status)
+    void recordRequestAudit(request, 'update_sales_enquiry', saved.id, `status=${saved.status}`)
+    return saved
 }
 
-const publicConstantsEndpoint = async (): Promise<PublicConstants> => billing().publicConstants()
+const publicConstantsEndpoint = async (request: FastifyRequest): Promise<PublicConstants> =>
+    billing().publicConstants(request.user ?? null)
 
 const enquiryEventsEndpoint = async (
     request: FastifyRequest<{ Params: { enquiryId: string } }>,
     reply: FastifyReply
-): Promise<SalesEnquiryEvent[] | { error: string }> => {
-    try {
-        return await billing().listEnquiryEvents(request.params.enquiryId)
-    } catch (error) {
-        return sendError(reply, error)
-    }
+): Promise<SalesEnquiryEvent[]> => {
+    return await billing().listEnquiryEvents(request.params.enquiryId)
 }
 
 const enquiryActionEndpoint = async (
     request: FastifyRequest<{ Params: { enquiryId: string }; Body: EnquiryActionDraft }>,
     reply: FastifyReply
-): Promise<EnquiryActionResult | { error: string }> => {
-    try {
-        const result = await billing().applyEnquiryAction(request.user!, request.params.enquiryId, request.body)
-        void recordAudit(
-            request.user!,
-            'sales_enquiry_action',
-            request.params.enquiryId,
-            `${request.body.kind}${result.enquiry.status ? ` status=${result.enquiry.status}` : ''}${result.invoice ? ` invoice=${result.invoice.number}` : ''}`
-        )
-        reply.code(201)
-        return result
-    } catch (error) {
-        return sendError(reply, error)
-    }
+): Promise<EnquiryActionResult> => {
+    const result = await billing().applyEnquiryAction(request.user!, request.params.enquiryId, request.body)
+    void recordRequestAudit(
+        request,
+        'sales_enquiry_action',
+        request.params.enquiryId,
+        `${request.body.kind}${result.enquiry.status ? ` status=${result.enquiry.status}` : ''}${result.invoice ? ` invoice=${result.invoice.number}` : ''}`
+    )
+    reply.code(201)
+    return result
 }
 
 const publicInvoiceEndpoint = async (
     request: FastifyRequest<{ Params: { token: string } }>,
     reply: FastifyReply
-): Promise<PublicInvoice | { error: string }> => {
-    try {
-        return await billing().getPublicInvoice(request.params.token, WORKSPACE_NAME)
-    } catch (error) {
-        return sendError(reply, error)
-    }
+): Promise<PublicInvoice> => {
+    return await billing().getPublicInvoice(request.params.token, WORKSPACE_NAME)
 }
 
 const mySubscriptionEndpoint = async (request: FastifyRequest): Promise<Subscription> =>
@@ -374,27 +337,19 @@ const myInvoicesEndpoint = async (
 const checkoutEndpoint = async (
     request: FastifyRequest<{ Body: { planId: string } }>,
     reply: FastifyReply
-): Promise<CheckoutIntent | { error: string }> => {
-    try {
-        const intent = await billing().startCheckout(request.user!, request.body.planId)
-        void recordAudit(request.user!, 'start_checkout', request.body.planId, intent.outcome)
-        return intent
-    } catch (error) {
-        return sendError(reply, error)
-    }
+): Promise<CheckoutIntent> => {
+    const intent = await billing().startCheckout(request.user!, request.body.planId)
+    void recordRequestAudit(request, 'start_checkout', request.body.planId, intent.outcome)
+    return intent
 }
 
 const cancelEndpoint = async (
     request: FastifyRequest,
     reply: FastifyReply
-): Promise<Subscription | { error: string }> => {
-    try {
-        const canceled = await billing().cancel(request.user!)
-        void recordAudit(request.user!, 'cancel_subscription', request.user!.id, canceled.planId ?? '')
-        return canceled
-    } catch (error) {
-        return sendError(reply, error)
-    }
+): Promise<Subscription> => {
+    const canceled = await billing().cancel(request.user!)
+    void recordRequestAudit(request, 'cancel_subscription', request.user!.id, canceled.planId ?? '')
+    return canceled
 }
 
 const userSubscriptionEndpoint = async (
@@ -404,19 +359,15 @@ const userSubscriptionEndpoint = async (
 const patchUserSubscriptionEndpoint = async (
     request: FastifyRequest<{ Params: { userId: string }; Body: SubscriptionPatch }>,
     reply: FastifyReply
-): Promise<Subscription | { error: string }> => {
-    try {
-        const saved = await billing().applySubscription(request.params.userId, request.body)
-        void recordAudit(
-            request.user!,
-            'update_subscription',
-            request.params.userId,
-            `status=${saved.status} plan=${saved.planId ?? 'none'}`
-        )
-        return saved
-    } catch (error) {
-        return sendError(reply, error)
-    }
+): Promise<Subscription> => {
+    const saved = await billing().applySubscription(request.params.userId, request.body)
+    void recordRequestAudit(
+        request,
+        'update_subscription',
+        request.params.userId,
+        `status=${saved.status} plan=${saved.planId ?? 'none'}`
+    )
+    return saved
 }
 
 export const publicBillingRouter: FastifyPluginAsync = async (app) => {
@@ -434,40 +385,28 @@ const listCouponsEndpoint = async (): Promise<Coupon[]> => billing().listCoupons
 const createCouponEndpoint = async (
     request: FastifyRequest<{ Body: CouponDraft }>,
     reply: FastifyReply
-): Promise<Coupon | { error: string }> => {
-    try {
-        const created = await billing().createCoupon(request.body)
-        void recordAudit(request.user!, 'create_coupon', created.id, created.code, request.id)
-        reply.code(201)
-        return created
-    } catch (error) {
-        return sendError(reply, error)
-    }
+): Promise<Coupon> => {
+    const created = await billing().createCoupon(request.body)
+    void recordRequestAudit(request, 'create_coupon', created.id, created.code)
+    reply.code(201)
+    return created
 }
 
 const deleteCouponEndpoint = async (
     request: FastifyRequest<{ Params: { couponId: string } }>,
     reply: FastifyReply
-): Promise<null | { error: string }> => {
-    try {
-        await billing().deleteCoupon(request.params.couponId)
-        void recordAudit(request.user!, 'delete_coupon', request.params.couponId, '', request.id)
-        reply.code(204)
-        return null
-    } catch (error) {
-        return sendError(reply, error)
-    }
+): Promise<null> => {
+    await billing().deleteCoupon(request.params.couponId)
+    void recordRequestAudit(request, 'delete_coupon', request.params.couponId, '')
+    reply.code(204)
+    return null
 }
 
 const previewCouponEndpoint = async (
     request: FastifyRequest<{ Querystring: { code: string; amountCents?: number } }>,
     reply: FastifyReply
-): Promise<{ coupon: Coupon; discountCents: number } | { error: string }> => {
-    try {
-        return await billing().previewCoupon(request.query.code, request.query.amountCents ?? 0)
-    } catch (error) {
-        return sendError(reply, error)
-    }
+): Promise<{ coupon: Coupon; discountCents: number }> => {
+    return await billing().previewCoupon(request.query.code, request.query.amountCents ?? 0)
 }
 
 const myUsageEndpoint = async (
@@ -496,13 +435,9 @@ const planOverrideEndpoint = async (
     request: FastifyRequest<{ Params: { id: string }; Body: { planId: string | null } }>,
     reply: FastifyReply
 ) => {
-    try {
-        const saved = await billing().setPlanOverride(request.params.id, request.body.planId)
-        void recordAudit(request.user!, 'billing.plan_override', request.params.id, request.body.planId ?? '', request.id)
-        return saved
-    } catch (error) {
-        return sendError(reply, error)
-    }
+    const saved = await billing().setPlanOverride(request.params.id, request.body.planId)
+    void recordRequestAudit(request, 'billing.plan_override', request.params.id, request.body.planId ?? '')
+    return saved
 }
 
 const userUsageEndpoint = async (

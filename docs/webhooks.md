@@ -29,6 +29,20 @@ The actual HTTP call happens in the job worker, which is what gives retries with
 Payload is the audit entry — `deliveryId`, `action`, `actorId`, `actorName`, `targetId`, `detail`,
 `occurredAt` — so every event has the same shape regardless of what happened.
 
+## Target validation
+
+A webhook endpoint is a URL an admin supplies and the server then fetches — a server-side request forgery
+primitive if it is not constrained. `domain/webhookTarget.ts` refuses a target that is not `https`, or whose
+host resolves to a loopback, link-local, private, CGNAT or multicast address (`webhook_url_private`), or that
+cannot be resolved at all (`webhook_url_unresolvable`).
+
+The check runs **twice**: when the endpoint is saved, and again at delivery time. Re-resolving at delivery is
+what closes DNS rebinding — a host that answered with a public address at save time and a private one later
+is rejected on the call that matters.
+
+`WEBHOOK_ALLOW_PRIVATE=true` opts out for local development; unset, it follows `DEV_LOGIN`. Turning it on
+under `APP_ENV=production` refuses the boot (operations.md).
+
 ## Signing
 
 Three headers travel with each POST:

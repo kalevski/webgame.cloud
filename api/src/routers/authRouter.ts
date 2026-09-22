@@ -1,3 +1,4 @@
+import { createHmac, timingSafeEqual } from 'node:crypto'
 import type { FastifyPluginAsync, FastifyReply, FastifyRequest } from 'fastify'
 import type { AuthConfig, AuthSession, OAuthProvider, User } from '../contracts/index.js'
 import { OAUTH_PROVIDERS } from '../contracts/index.js'
@@ -10,9 +11,9 @@ import { generatePKCE, generateState, verifyCallback } from '@toolcase/node'
 import container from '../container.js'
 import { AuthService } from '../services/AuthService.js'
 import { FeatureService } from '../services/FeatureService.js'
+import { SettingsService } from '../services/SettingsService.js'
 import { ConflictError, ForbiddenError, NotFoundError, UnavailableError } from '../domain/errors.js'
-import { sendError } from './sendError.js'
-import { recordAudit } from '../audit.js'
+import { recordRequestAudit } from '../audit.js'
 
 const auth = () => container.resolve(AuthService)
 
@@ -21,6 +22,12 @@ const features = () => container.resolve(FeatureService)
 
 const STATE_COOKIE = 'starter_oauth_state'
 
+const FLOW_SECRET_KEY = 'oauth_flow_secret'
+
+let flowSecretValue = ''
+
+const flowSecret = (): string => flowSecretValue
+
 const STATE_COOKIE_ATTRS = `Path=/api/auth; HttpOnly; SameSite=Lax${DEV_LOGIN ? '' : '; Secure'}`
 
 const callbackUrl = (request: FastifyRequest, provider: OAuthProvider): string => {
@@ -28,13 +35,27 @@ const callbackUrl = (request: FastifyRequest, provider: OAuthProvider): string =
     return `${origin}/api/auth/${provider}/callback`
 }
 
-const encodeFlowCookie = (flow: { state: string; verifier: string; link?: boolean }): string =>
-    Buffer.from(JSON.stringify(flow)).toString('base64url')
+const signFlow = (payload: string): string =>
+    createHmac('sha256', flowSecret()).update(payload).digest('base64url')
+
+const encodeFlowCookie = (flow: { state: string; verifier: string; link?: boolean }): string => {
+    const payload = Buffer.from(JSON.stringify(flow)).toString('base64url')
+    return `${payload}.${signFlow(payload)}`
+}
 
 const parseFlowCookie = (value: string | null): { state: string; verifier: string; link: boolean } | null => {
     if (!value) return null
+
+    const separator = value.lastIndexOf('.')
+    if (separator < 0) return null
+
+    const payload = value.slice(0, separator)
+    const signature = Buffer.from(value.slice(separator + 1))
+    const expected = Buffer.from(signFlow(payload))
+    if (signature.length !== expected.length || !timingSafeEqual(signature, expected)) return null
+
     try {
-        const parsed = JSON.parse(Buffer.from(value, 'base64url').toString()) as {
+        const parsed = JSON.parse(Buffer.from(payload, 'base64url').toString()) as {
             state?: string
             verifier?: string
             link?: boolean
@@ -97,7 +118,7 @@ const oauthAuthorizeEndpoint = async (
     reply: FastifyReply
 ) => {
     const provider = request.params.provider
-    if (!auth().isConfigured(provider)) return sendError(reply, new UnavailableError('sso_not_configured'))
+    if (!auth().isConfigured(provider)) throw new UnavailableError('sso_not_configured')
     const link = request.query.link === '1'
     if (link && !request.user) return reply.redirect(`${WEB_URL}/login?error=unauthorized`)
     const state = generateState()
@@ -120,7 +141,7 @@ const oauthCallbackEndpoint = async (
     reply: FastifyReply
 ) => {
     const provider = request.params.provider
-    if (!auth().isConfigured(provider)) return sendError(reply, new UnavailableError('sso_not_configured'))
+    if (!auth().isConfigured(provider)) throw new UnavailableError('sso_not_configured')
     reply.header('set-cookie', `${STATE_COOKIE}=; ${STATE_COOKIE_ATTRS}; Max-Age=0`)
 
     const flow = parseFlowCookie(readCookie(request, STATE_COOKIE))
@@ -153,7 +174,7 @@ const oauthCallbackEndpoint = async (
         } catch (error) {
             return fail(error instanceof ConflictError ? error.code : 'link_failed')
         }
-        void recordAudit(request.user, 'link_identity', request.user.id, provider)
+        void recordRequestAudit(request, 'link_identity', request.user.id, provider, request.user)
         return reply.redirect(`${WEB_URL}/profile?linked=${provider}`)
     }
 
@@ -165,68 +186,74 @@ const oauthCallbackEndpoint = async (
     }
     if (!user.active) return fail('deactivated')
     setSessionCookie(reply, await auth().createSession(user.id, sessionContext(request)))
-    void recordAudit(user, 'sign_in', user.id, provider)
-    return reply.redirect(`${WEB_URL}/dashboard`)
+    void recordRequestAudit(request, 'sign_in', user.id, provider, user)
+    return reply.redirect(`${WEB_URL}/`)
 }
 
 const devLoginEndpoint = async (
     request: FastifyRequest<{ Body: { email: string; name?: string } }>,
     reply: FastifyReply
 ) => {
-    if (!DEV_LOGIN) return sendError(reply, new NotFoundError('dev_login_disabled'))
+    if (!DEV_LOGIN) throw new NotFoundError('dev_login_disabled')
     const email = request.body.email.trim().toLowerCase()
-    try {
-        const user = await auth().resolveDevUser(email, request.body.name?.trim() || email.split('@')[0])
-        if (!user.active) return sendError(reply, new ForbiddenError('account_deactivated'))
-        setSessionCookie(reply, await auth().createSession(user.id, sessionContext(request)))
-        void recordAudit(user, 'sign_in', user.id, 'dev')
-        return user
-    } catch (error) {
-        return sendError(reply, error)
-    }
+    const user = await auth().resolveDevUser(email, request.body.name?.trim() || email.split('@')[0])
+    if (!user.active) throw new ForbiddenError('account_deactivated')
+    setSessionCookie(reply, await auth().createSession(user.id, sessionContext(request)))
+    void recordRequestAudit(request, 'sign_in', user.id, 'dev', user)
+    return user
 }
 
 const magicLinkRequestEndpoint = async (
     request: FastifyRequest<{ Body: { email: string } }>,
     reply: FastifyReply
 ) => {
-    try {
-        await magicLinks().request(request.body.email, request.ip)
-        reply.code(202)
-        return { sent: true }
-    } catch (error) {
-        return sendError(reply, error)
-    }
+    await magicLinks().request(request.body.email, request.ip)
+    reply.code(202)
+    return { sent: true }
 }
 
 const magicLinkConsumeEndpoint = async (
     request: FastifyRequest<{ Params: { token: string } }>,
     reply: FastifyReply
 ) => {
-    try {
-        const user = await magicLinks().consume(request.params.token)
-        if (!user.active) return sendError(reply, new ForbiddenError('account_deactivated'))
-        setSessionCookie(reply, await auth().createSession(user.id, sessionContext(request)))
-        void recordAudit(user, 'sign_in', user.id, 'magic_link', request.id)
-        return user
-    } catch (error) {
-        return sendError(reply, error)
-    }
+    const user = await magicLinks().consume(request.params.token)
+    if (!user.active) throw new ForbiddenError('account_deactivated')
+    setSessionCookie(reply, await auth().createSession(user.id, sessionContext(request)))
+    void recordRequestAudit(request, 'sign_in', user.id, 'magic_link', user)
+    return user
 }
 
 const meEndpoint = async (request: FastifyRequest): Promise<AuthSession> =>
-    auth().sessionFor(request.user!, request.permissionSet)
+    auth().sessionFor(request.user!, request.permissionSet, request.impersonatedBy)
+
+const endImpersonationEndpoint = async (
+    request: FastifyRequest,
+    reply: FastifyReply
+): Promise<User> => {
+    const sessionId = readSessionId(request)
+    const { admin, sessionId: restored } = await auth().endImpersonation(
+        request.user!,
+        request.impersonatedBy,
+        sessionId,
+        sessionContext(request)
+    )
+    setSessionCookie(reply, restored)
+    void recordRequestAudit(request, 'end_impersonation', request.user!.id, request.user!.email, admin)
+    return admin
+}
 
 const logoutEndpoint = async (request: FastifyRequest, reply: FastifyReply) => {
     const sessionId = readSessionId(request)
     if (sessionId) await auth().logout(sessionId)
-    if (request.user) void recordAudit(request.user, 'sign_out', request.user.id)
+    if (request.user) void recordRequestAudit(request, 'sign_out', request.user.id, '', request.user)
     clearSessionCookie(reply)
     reply.code(204)
     return null
 }
 
 export const authRouter: FastifyPluginAsync = async (app) => {
+    flowSecretValue = await container.resolve(SettingsService).getOrCreateSecret(FLOW_SECRET_KEY)
+
     app.get('/api/config', authConfigEndpoint)
 
     app.get<{ Params: ProviderParams; Querystring: { link?: string } }>(
@@ -275,6 +302,8 @@ export const authRouter: FastifyPluginAsync = async (app) => {
     )
 
     app.get('/api/auth/me', { preHandler: [requireAuth] }, meEndpoint)
+
+    app.post('/api/auth/impersonation/end', { preHandler: [requireAuth] }, endImpersonationEndpoint)
 
     app.post('/api/auth/logout', logoutEndpoint)
 

@@ -3,8 +3,7 @@ import type { SigningKey } from '../contracts/index.js'
 import { SIGNING_KEYS } from '../contracts/index.js'
 import { requireAuth, requirePermission } from '../auth.js'
 import container from '../container.js'
-import { recordAudit } from '../audit.js'
-import { sendError } from './sendError.js'
+import { recordRequestAudit } from '../audit.js'
 import { SigningKeyService } from '../services/SigningKeyService.js'
 
 const signing = () => container.resolve(SigningKeyService)
@@ -25,14 +24,10 @@ const listSigningKeysEndpoint = async (): Promise<SigningKey[]> => signing().lis
 const rotateSigningKeyEndpoint = async (
     request: FastifyRequest<{ Params: NameParams }>,
     reply: FastifyReply
-): Promise<SigningKey | { error: string }> => {
-    try {
-        const key = await signing().rotate(request.params.name)
-        void recordAudit(request.user!, 'rotate_signing_key', key.name, key.kid, request.id)
-        return key
-    } catch (error) {
-        return sendError(reply, error)
-    }
+): Promise<SigningKey> => {
+    const key = await signing().rotate(request.params.name)
+    void recordRequestAudit(request, 'rotate_signing_key', key.name, key.kid)
+    return key
 }
 
 export const signingRouter: FastifyPluginAsync = async (app) => {

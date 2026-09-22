@@ -19,11 +19,14 @@ WITH deleted_sessions AS (
 ), deleted_reports AS (
     UPDATE reports SET deleted_at = now(), updated_at = now()
     WHERE reporter_id = $1 AND deleted_at IS NULL RETURNING id
-), deleted_tasks AS (
-    UPDATE tasks SET deleted_at = now(), updated_at = now()
-    WHERE owner_id = $1 AND deleted_at IS NULL RETURNING id
 ), deleted_projects AS (
     UPDATE projects SET deleted_at = now(), updated_at = now()
+    WHERE owner_id = $1 AND deleted_at IS NULL RETURNING id
+), deleted_ticket_messages AS (
+    UPDATE ticket_messages SET deleted_at = now(), updated_at = now()
+    WHERE author_id = $1 AND deleted_at IS NULL RETURNING id
+), deleted_tickets AS (
+    UPDATE tickets SET deleted_at = now(), updated_at = now()
     WHERE owner_id = $1 AND deleted_at IS NULL RETURNING id
 ), deleted_subscription AS (
     UPDATE subscriptions SET deleted_at = now(), updated_at = now()

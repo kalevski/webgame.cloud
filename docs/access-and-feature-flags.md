@@ -27,7 +27,9 @@ Keys are grouped by their first dot segment; the admin UI groups the chips by th
 
 | Group | Keys | Gates |
 | --- | --- | --- |
-| `project` / `task` | `project.write`, `project.share`, `project.export`, `task.write` | the example feature (`projectRouter`) |
+| `project` | `project.create` | creating a project; everything else inside a project is the second permission plane (projects-and-members.md) |
+| `realm` / `waitlist` | `realm.read`, `realm.write`, `admin.project.read`, `admin.project.move`, `waitlist.read` | the staff realm and cross-account screens (realms-and-migrations.md, platform-directories.md) |
+| `role.application` | `role.application.read`, `role.application.write` | the role-application queue and its decisions (role-applications.md) |
 | `moderation` / `audit` | `moderation.queue.read`, `moderation.report.resolve`, `audit.read` | `/moderation`, the audit log |
 | `admin` | `admin.overview.read`, `admin.user.read`, `admin.user.role.write`, `admin.user.impersonate`, `admin.role.read`, `admin.role.write`, `admin.settings.read`, `admin.settings.write`, `admin.feature.write`, `admin.service.read`, `admin.service.write` | the `/admin/*` tabs: overview, users, *Access & limits* (roles, limits, slots), *Settings* (platform settings, product flags), *Service accounts* (see service-accounts.md) |
 | `billing` | `billing.plan.read`, `billing.plan.write`, `billing.subscription.read`, `billing.subscription.write` | plan CRUD and reading/setting any account's subscription |
@@ -47,7 +49,9 @@ role's permission set (role_permissions)  →  per-user deltas (user_permissions
 
 Two things are applied OUTSIDE the data so no admin-writable row can violate them:
 - an inactive account resolves to the empty set;
-- `owner` resolves to the whole catalog minus `ACCOUNT_SHAPED`, **computed, never stored** — a permission added tomorrow is owner-granted the moment it exists.
+- `owner` resolves to the **whole catalog**, computed, never stored — a permission added tomorrow is owner-granted the moment it exists.
+
+That second rule is why no handler short-circuits on the owner role. A predicate like `user.role === OWNER_ROLE_ID || ownsIt` looks equivalent but is not: a scoped API key issued on the owner's account leaves `user.role` untouched, so the short-circuit stepped around the key's scopes entirely. Predicates carry the decision themselves — capability first, ownership second — and the owner passes them through its own grants.
 
 A service account resolves through this exact path — it is a `users` row with `kind = 'service'`, so its role
 grant and its `user_permissions` deltas are read by the same `resolvePermissions` (see service-accounts.md).
@@ -61,7 +65,7 @@ bordered box inside the tab; the cards carry that chrome now, so the list is not
 
 **In the editor, `0` means unlimited.** A role with no `role_limits` row is unlimited, and `tc-module-access` renders a missing quota as `0` — so the *Access & limits* screen shows `0` for "no cap". The save path in `AccessPolicyAdmin` mirrors that: it persists only values `> 0`, so a `0` left in the box is dropped and the resource stays uncapped. A `tc-helper-text` under the editor states the rule.
 
-The consequence worth knowing: **the UI cannot express a genuine quota of zero**, even though the API supports it (`assertWithinLimit` blocks at `0`, since `used >= 0` always holds). To forbid a resource outright, withhold the capability (`project.write`) rather than setting a `0` quota. Do not "fix" this by persisting `0` from the editor — every unlimited role currently displays `0`, so that change would silently convert them all into hard blocks on the next save.
+The consequence worth knowing: **the UI cannot express a genuine quota of zero**, even though the API supports it (`assertWithinLimit` blocks at `0`, since `used >= 0` always holds). To forbid a resource outright, withhold the capability (`project.create`) rather than setting a `0` quota. Do not "fix" this by persisting `0` from the editor — every unlimited role currently displays `0`, so that change would silently convert them all into hard blocks on the next save.
 
 ## The paywall (web)
 
@@ -70,9 +74,16 @@ The consequence worth knowing: **the UI cannot express a genuine quota of zero**
 ## Two different things called "feature flags"
 
 - **Capability flags** — everything on this page. Per-role/per-user permission keys and quotas, resolved per caller. "Can *this account* do X."
-- **Product flags** — `contracts/features.ts` + `FeatureService` (`billing`, `email`), toggled in `/admin/settings`. Workspace-wide on/off switches for whole slices of the product, resolved once per request and shipped to the client on `/api/config`. "Does this *deployment* have X at all." Server gate `requireFeature(flag)` (404), client gate `useFeature(flag)`. See subscriptions-and-billing.md.
+- **Product flags** — `contracts/features.ts` + `FeatureService` (`billing`, `email`, `magic_link`, `files`, `tickets`), toggled in `/admin/settings`. Workspace-wide on/off switches for whole slices of the product, resolved once per request and shipped to the client on `/api/config`. "Does this *deployment* have X at all." Server gate `requireFeature(flag)` (404), client gate `useFeature(flag)`. See subscriptions-and-billing.md.
 
 They compose: the billing flag decides whether subscriptions exist here; an active subscription then moves the account into the role bound to its plan, and the capability system takes over from there.
+
+## Applicable roles
+
+A role also carries `applicable` and `application_prompt`. A role marked applicable can be **asked for**: an
+account applies, staff approve or reject from a queue, and approval writes `users.role` through the same
+invalidation path a plan change uses. No seeded role is applicable — the seeded ladder is sold, not
+requested. See [role-applications.md](role-applications.md).
 
 ## Where the paid role comes from
 

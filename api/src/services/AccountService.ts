@@ -7,12 +7,12 @@ import { ProjectService } from './ProjectService.js'
 import { ConflictError, NotFoundError, ValidationError } from '../domain/errors.js'
 import { UserRepository } from '../repositories/users/UserRepository.js'
 import { IdentityRepository } from '../repositories/users/IdentityRepository.js'
-import { SessionRepository } from '../repositories/users/SessionRepository.js'
+import { hashSessionToken, SessionRepository } from '../repositories/users/SessionRepository.js'
 import { toUserIdentity, type SessionRow } from '../schema/users.js'
 
-const toUserSession = (row: SessionRow, currentSessionId: string | null): UserSession => ({
-    id: row.public_id,
-    current: row.id === currentSessionId,
+const toUserSession = (row: SessionRow, currentTokenHash: string | null): UserSession => ({
+    id: row.id,
+    current: row.token_hash === currentTokenHash,
     ...describeUserAgent(row.user_agent),
     ip: row.ip,
     createdAt: row.created_at.toISOString(),
@@ -45,19 +45,20 @@ export class AccountService {
         await this.identities.unlink(userId, provider)
     }
 
-    async listSessions(userId: string, currentSessionId: string | null): Promise<UserSession[]> {
+    async listSessions(userId: string, currentToken: string | null): Promise<UserSession[]> {
         const rows = await this.sessions.listForUser(userId)
-        const mapped = rows.map((row) => toUserSession(row, currentSessionId))
+        const currentHash = currentToken === null ? null : hashSessionToken(currentToken)
+        const mapped = rows.map((row) => toUserSession(row, currentHash))
         return mapped.sort((left, right) => Number(right.current) - Number(left.current))
     }
 
-    async revokeSession(userId: string, publicId: string, currentSessionId: string | null): Promise<void> {
-        const session = await this.sessions.findForUser(userId, publicId)
-        if (!session) throw new NotFoundError('session_not_found', 'session not found', [publicId])
-        if (session.id === currentSessionId) {
+    async revokeSession(userId: string, sessionId: string, currentToken: string | null): Promise<void> {
+        const session = await this.sessions.findForUser(userId, sessionId)
+        if (!session) throw new NotFoundError('session_not_found', 'session not found', [sessionId])
+        if (currentToken !== null && session.token_hash === hashSessionToken(currentToken)) {
             throw new ConflictError('current_session', 'cannot sign out the current device')
         }
-        await this.sessions.deletePublicForUser(userId, publicId)
+        await this.sessions.deleteOneForUser(userId, sessionId)
     }
 
     async consent(userId: string): Promise<User> {

@@ -95,6 +95,18 @@ Public, **no auth** (behind the feature flag):
 
 - `GET /api/billing/public/invoices/:token` → `PublicInvoice` — the printable invoice behind `invoices.public_token`. It exposes only what belongs on an invoice (number, account name/email, plan, amount, dates, workspace name from `WORKSPACE_NAME`), never internal ids.
 
+## Plan visibility
+
+A plan carries `visibleRoleIds` — **empty means public**, otherwise only holders of one of those roles see
+it. `isPlanVisibleTo(plan, roleId)` in `contracts/billing.ts` is the single predicate, used on both sides.
+
+`BillingService.listPlans` filters with it: an anonymous viewer sees only public plans, and a signed-in
+viewer sees the public ones plus those their role unlocks — **plus the plan they are currently subscribed
+to**, so a restricted plan never vanishes from under an existing subscriber. Checkout enforces the same rule
+and refuses an invisible plan with `plan_not_visible`, so the filter is not merely cosmetic.
+
+This is how an invite-only or legacy tier is expressed without a second plan table.
+
 ## Role sync — how a subscription grants anything
 
 `BillingService.syncRole` runs after every write:
@@ -143,7 +155,7 @@ The second call promotes that user to `member_plus`, issues an invoice, and `POS
 curl -s -b admin.txt 'localhost:6000/api/billing/invoices?status=open&q=member' | jq '.data'
 ```
 
-## Billing depth: trials, coupons, usage, proration, dunning
+## Billing depth: trials, coupons, usage, proration
 
 Five extras live in `BillingService`. They are at different stages of wiring, and the difference matters —
 some are live, some are building blocks a derived project has to call.
@@ -167,15 +179,15 @@ the missing step, and `coupon_redemptions` already has the one-per-user unique g
 hook a derived project calls when a billable action happens. Nothing populates the table on its own, so the
 endpoints return empty until you do.
 
-**Proration and dunning — implemented, not invoked.** `prorationCredit(userId)` computes the unused
-remainder of the current period, and `sendDunning()` walks `DUNNING_STAGES` (1, 7 and 14 days past due),
-mails the matching template through the email slice and records each notice in `invoice_reminders` so a
-stage never repeats. **Neither has a caller.** Proration needs to be applied wherever a derived project
-implements a plan switch; dunning wants a cron job — `registerJobHandler('dunning', …, { cron: '0 9 * * *' })`
-is the intended shape, and is one of the reasons the job registry takes a cron expression.
+**Dunning — live.** `sendDunning()` walks `DUNNING_STAGES` (1, 7 and 14 days past due), mails the matching
+template through the email slice and records each notice in `invoice_reminders` so a stage never repeats. It
+runs on the `invoice_dunning` cron job (`30 9 * * *`, background-jobs.md).
+
+**Proration — implemented, not invoked.** `prorationCredit(userId)` computes the unused remainder of the
+current period, but has no caller; it needs applying wherever a derived project implements a plan switch.
 
 Treated honestly, that means the billing surface ships a complete *manual* lifecycle plus the arithmetic
-for the rest. Don't assume an invoice chases itself.
+for the rest.
 
 
 ## Storage, the grace zone and staff overrides

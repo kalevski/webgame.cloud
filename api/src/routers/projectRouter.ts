@@ -24,7 +24,6 @@ import container from '../container.js'
 import { ProjectService } from '../services/ProjectService.js'
 import { AccessPolicyService } from '../services/AccessPolicyService.js'
 import { RealmService } from '../services/RealmService.js'
-import { sendError } from './sendError.js'
 import { recordAudit } from '../audit.js'
 
 const projects = () => container.resolve(ProjectService)
@@ -130,36 +129,24 @@ const getAdminProjectEndpoint = async (
     request: FastifyRequest<{ Params: { id: string } }>,
     reply: FastifyReply
 ) => {
-    try {
-        return await projects().getAdmin(request.params.id)
-    } catch (error) {
-        return sendError(reply, error)
-    }
+    return await projects().getAdmin(request.params.id)
 }
 
 const listAdminProjectMembersEndpoint = async (
     request: FastifyRequest<{ Params: { id: string } }>,
     reply: FastifyReply
 ) => {
-    try {
-        return await projects().listAdminMembers(request.params.id)
-    } catch (error) {
-        return sendError(reply, error)
-    }
+    return await projects().listAdminMembers(request.params.id)
 }
 
 const createProjectEndpoint = async (
     request: FastifyRequest<{ Body: ProjectDraft }>,
     reply: FastifyReply
 ) => {
-    try {
-        const created = await projects().create(request.user!, request.body)
-        void recordAudit(request.user!, 'project.created', created.id, created.name, request.id)
-        reply.code(201)
-        return created
-    } catch (error) {
-        return sendError(reply, error)
-    }
+    const created = await projects().create(request.user!, request.body)
+    void recordAudit(request.user!, 'project.created', created.id, created.name, request.id)
+    reply.code(201)
+    return created
 }
 
 const getProjectEndpoint = async (request: FastifyRequest) =>
@@ -169,40 +156,28 @@ const patchProjectEndpoint = async (
     request: FastifyRequest<{ Body: Partial<ProjectDraft> & { defaultCategoryId?: string | null } }>,
     reply: FastifyReply
 ) => {
-    try {
-        const updated = await projects().update(request.project!, request.user!, request.body)
-        void recordAudit(request.user!, 'project.updated', updated.id, updated.name, request.id)
-        return updated
-    } catch (error) {
-        return sendError(reply, error)
-    }
+    const updated = await projects().update(request.project!, request.user!, request.body)
+    void recordAudit(request.user!, 'project.updated', updated.id, updated.name, request.id)
+    return updated
 }
 
 const archiveProjectEndpoint = async (
     request: FastifyRequest<{ Body: { archived: boolean } }>,
     reply: FastifyReply
 ) => {
-    try {
-        const updated = await projects().setArchived(request.project!, request.user!, request.body.archived)
-        void recordAudit(request.user!, 'project.archived', updated.id, String(request.body.archived), request.id)
-        return updated
-    } catch (error) {
-        return sendError(reply, error)
-    }
+    const updated = await projects().setArchived(request.project!, request.user!, request.body.archived)
+    void recordAudit(request.user!, 'project.archived', updated.id, String(request.body.archived), request.id)
+    return updated
 }
 
 const transferProjectEndpoint = async (
     request: FastifyRequest<{ Body: { userId: string } }>,
     reply: FastifyReply
 ) => {
-    try {
-        await projects().transferOwnership(request.project!, request.body.userId)
-        void recordAudit(request.user!, 'project.transferred', request.project!.id, request.body.userId, request.id)
-        reply.code(204)
-        return null
-    } catch (error) {
-        return sendError(reply, error)
-    }
+    await projects().transferOwnership(request.project!, request.body.userId)
+    void recordAudit(request.user!, 'project.transferred', request.project!.id, request.body.userId, request.id)
+    reply.code(204)
+    return null
 }
 
 const deleteProjectEndpoint = async (request: FastifyRequest, reply: FastifyReply) => {
@@ -233,11 +208,7 @@ const putCategoriesAndTagsEndpoint = async (
     request: FastifyRequest<{ Body: CategoriesAndTagsDraft }>,
     reply: FastifyReply
 ) => {
-    try {
-        return await projects().replaceCategoriesAndTags(request.project!, request.body)
-    } catch (error) {
-        return sendError(reply, error)
-    }
+    return await projects().replaceCategoriesAndTags(request.project!, request.body)
 }
 
 const listMembersEndpoint = async (request: FastifyRequest) =>
@@ -247,75 +218,59 @@ const patchMemberEndpoint = async (
     request: FastifyRequest<{ Params: { id: string; memberId: string }; Body: { permissions: ProjectPermission[] } }>,
     reply: FastifyReply
 ) => {
-    try {
-        const member = await projects().setMemberPermissions(
-            request.project!,
-            request.user!,
-            request.projectPermissions,
-            request.params.memberId,
-            request.body.permissions
-        )
-        void recordAudit(
-            request.user!,
-            'member.permissions_changed',
-            member.userId,
-            request.project!.id,
-            request.id
-        )
-        return member
-    } catch (error) {
-        return sendError(reply, error)
-    }
+    const member = await projects().setMemberPermissions(
+        request.project!,
+        request.user!,
+        request.projectPermissions,
+        request.params.memberId,
+        request.body.permissions
+    )
+    void recordAudit(
+        request.user!,
+        'member.permissions_changed',
+        member.userId,
+        request.project!.id,
+        request.id
+    )
+    return member
 }
 
 const patchInviteEndpoint = async (
     request: FastifyRequest<{ Params: { id: string; inviteId: string }; Body: { permissions: ProjectPermission[] } }>,
     reply: FastifyReply
 ) => {
-    try {
-        const invite = await projects().updateInvitePermissions(
-            request.user!,
-            request.project!,
-            request.projectPermissions,
-            request.params.inviteId,
-            request.body.permissions
-        )
-        void recordAudit(
-            request.user!,
-            'invite.permissions_changed',
-            invite.id,
-            request.project!.id,
-            request.id
-        )
-        return invite
-    } catch (error) {
-        return sendError(reply, error)
-    }
+    const invite = await projects().updateInvitePermissions(
+        request.user!,
+        request.project!,
+        request.projectPermissions,
+        request.params.inviteId,
+        request.body.permissions
+    )
+    void recordAudit(
+        request.user!,
+        'invite.permissions_changed',
+        invite.id,
+        request.project!.id,
+        request.id
+    )
+    return invite
 }
 
 const deleteMemberEndpoint = async (
     request: FastifyRequest<{ Params: { id: string; memberId: string } }>,
     reply: FastifyReply
 ) => {
-    try {
-        await projects().removeMember(request.project!, request.params.memberId)
-        void recordAudit(request.user!, 'member.removed', request.params.memberId, request.project!.id, request.id)
-        reply.code(204)
-        return null
-    } catch (error) {
-        return sendError(reply, error)
-    }
+    await projects().removeMember(request.project!, request.params.memberId)
+    void recordAudit(request.user!, 'member.removed', request.params.memberId, request.project!.id, request.id)
+    reply.code(204)
+    return null
 }
 
 const leaveProjectEndpoint = async (request: FastifyRequest, reply: FastifyReply) => {
-    try {
-        await projects().leave(request.project!, request.user!)
-        void recordAudit(request.user!, 'member.left', request.user!.id, request.project!.id, request.id)
-        reply.code(204)
-        return null
-    } catch (error) {
-        return sendError(reply, error)
-    }
+    await projects().leave(request.project!, request.user!)
+    void recordAudit(request.user!, 'member.left', request.user!.id, request.project!.id, request.id)
+    reply.code(204)
+    return null
 }
 
 const listInvitesEndpoint = async (request: FastifyRequest) =>
@@ -325,38 +280,30 @@ const createInviteEndpoint = async (
     request: FastifyRequest<{ Body: InviteDraft }>,
     reply: FastifyReply
 ) => {
-    try {
-        const created = await projects().invite(
-            request.user!,
-            request.project!,
-            request.projectPermissions,
-            request.body
-        )
-        if (created.isErr()) {
-            reply.code(409)
-            return { error: encodeErrorCause('invite_exists') }
-        }
-        const invite = created.unwrap()
-        void recordAudit(request.user!, 'member.invited', invite.id, invite.email, request.id)
-        reply.code(201)
-        return invite
-    } catch (error) {
-        return sendError(reply, error)
+    const created = await projects().invite(
+        request.user!,
+        request.project!,
+        request.projectPermissions,
+        request.body
+    )
+    if (created.isErr()) {
+        reply.code(409)
+        return { error: encodeErrorCause('invite_exists') }
     }
+    const invite = created.unwrap()
+    void recordAudit(request.user!, 'member.invited', invite.id, invite.email, request.id)
+    reply.code(201)
+    return invite
 }
 
 const revokeInviteEndpoint = async (
     request: FastifyRequest<{ Params: { id: string; inviteId: string } }>,
     reply: FastifyReply
 ) => {
-    try {
-        await projects().revokeInvite(request.project!, request.params.inviteId)
-        void recordAudit(request.user!, 'invite.revoked', request.params.inviteId, request.project!.id, request.id)
-        reply.code(204)
-        return null
-    } catch (error) {
-        return sendError(reply, error)
-    }
+    await projects().revokeInvite(request.project!, request.params.inviteId)
+    void recordAudit(request.user!, 'invite.revoked', request.params.inviteId, request.project!.id, request.id)
+    reply.code(204)
+    return null
 }
 
 export const projectRouter: FastifyPluginAsync = async (app) => {

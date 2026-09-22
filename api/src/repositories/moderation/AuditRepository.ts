@@ -35,12 +35,13 @@ export class AuditRepository extends BaseRepository<AuditRow, QueryRunner> {
         targetId: string,
         detail = '',
         requestId = '',
+        impersonated = false,
         trx?: QueryRunner
     ): Promise<void> {
         try {
             await this.time('record', async () => {
                 await this.run(trx).query(INSERT_AUDIT_ENTRY, [
-                    randomUUID(), actorId, actorName, action, targetId, detail, requestId,
+                    randomUUID(), actorId, actorName, action, targetId, detail, requestId, impersonated,
                 ])
             })
         } catch {

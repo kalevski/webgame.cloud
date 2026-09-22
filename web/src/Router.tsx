@@ -39,7 +39,6 @@ const ToolsPhysicsPage = lazy(() => import('pages/ToolsPhysicsPage'))
 const ToolsTranslationsPage = lazy(() => import('pages/ToolsTranslationsPage'))
 const TicketQueuePage = lazy(() => import('pages/TicketQueuePage'))
 const TicketDetailPage = lazy(() => import('pages/TicketDetailPage'))
-const StudioPage = lazy(() => import('pages/StudioPage'))
 
 const ScrollRestore = () => {
     const { pathname } = useLocation()
@@ -130,8 +129,6 @@ export const Router = () => {
                                     <Route path="/tickets" element={<Navigate to="/profile/tickets" replace />} />
                                     <Route path="/tickets/:id" element={<TicketDetailPage />} />
                                     <Route path="/platform/tickets" element={<TicketQueuePage />} />
-                                    <Route path="/studio" element={<StudioPage />} />
-                                    <Route path="/studio/:tab" element={<StudioPage />} />
 
                                     <Route path="/users" element={<Navigate to="/admin" replace />} />
                                     <Route path="/account" element={<Navigate to="/profile" replace />} />

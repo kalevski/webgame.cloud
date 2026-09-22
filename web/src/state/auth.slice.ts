@@ -5,12 +5,11 @@ import { STRINGS } from 'configs/strings'
 import { downloadTextFile } from 'helpers/download'
 import { readFromStorage, removeFromStorage, writeToStorage } from 'helpers/storage'
 import { setForbiddenHandler } from 'helpers/api'
-import { AuthConfig, AuthSession, LIMITABLE_RESOURCES, Limits, OAuthProvider, OAUTH_PROVIDER_LABELS, Permission, ResolvedLimits, User, UserIdentity, UserSession } from 'types'
+import { AuthConfig, AuthSession, LIMITABLE_RESOURCES, OAuthProvider, OAUTH_PROVIDER_LABELS, Permission, ResolvedLimits, User, UserIdentity, UserSession } from 'types'
 import type { AppStore } from './index'
 
 const SESSION_HINT = 'has-session'
 
-const NO_LIMITS: Limits = { projects: null }
 
 const NO_RESOURCE_LIMITS = Object.fromEntries(
     LIMITABLE_RESOURCES.map((resource) => [resource, null])
@@ -23,7 +22,6 @@ export type AuthSlice = {
     me: User | null
 
     permissions: Permission[]
-    limits: Limits
 
     resourceLimits: ResolvedLimits
 
@@ -62,7 +60,6 @@ export type AuthSlice = {
 export const createAuthSlice: StateCreator<AppStore, [], [], AuthSlice> = (set, get) => ({
     me: null,
     permissions: [],
-    limits: NO_LIMITS,
     resourceLimits: NO_RESOURCE_LIMITS,
     slots: NO_SLOTS,
     roleName: null,
@@ -92,7 +89,6 @@ export const createAuthSlice: StateCreator<AppStore, [], [], AuthSlice> = (set, 
             authConfig,
             me: session?.user ?? null,
             permissions: session?.permissions ?? [],
-            limits: session?.limits ?? NO_LIMITS,
             resourceLimits: session?.resourceLimits ?? NO_RESOURCE_LIMITS,
             slots: session?.slots ?? NO_SLOTS,
             roleName: session?.roleName ?? null,
@@ -109,7 +105,6 @@ export const createAuthSlice: StateCreator<AppStore, [], [], AuthSlice> = (set, 
         set({
             me: session.user,
             permissions: session.permissions,
-            limits: session.limits,
             resourceLimits: session.resourceLimits ?? NO_RESOURCE_LIMITS,
             slots: session.slots,
             roleName: session.roleName ?? null,

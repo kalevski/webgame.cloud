@@ -5,7 +5,6 @@ import { requireAuth } from '../auth.js'
 import { loadProject, requireProjectPermission } from '../projectAuth.js'
 import container from '../container.js'
 import { BundleService } from '../services/BundleService.js'
-import { sendError } from './sendError.js'
 import { recordAudit } from '../audit.js'
 
 const bundles = () => container.resolve(BundleService)
@@ -43,51 +42,39 @@ const createBundleEndpoint = async (
     request: FastifyRequest<{ Body: BundleDraft }>,
     reply: FastifyReply
 ) => {
-    try {
-        const created = await bundles().create(request.project!, request.body)
-        if (created.isErr()) {
-            reply.code(409)
-            return { error: encodeErrorCause('bundle_name_exists') }
-        }
-        const bundle = created.unwrap()
-        void recordAudit(request.user!, 'bundle.created', bundle.id, bundle.name, request.id)
-        reply.code(201)
-        return bundle
-    } catch (error) {
-        return sendError(reply, error)
+    const created = await bundles().create(request.project!, request.body)
+    if (created.isErr()) {
+        reply.code(409)
+        return { error: encodeErrorCause('bundle_name_exists') }
     }
+    const bundle = created.unwrap()
+    void recordAudit(request.user!, 'bundle.created', bundle.id, bundle.name, request.id)
+    reply.code(201)
+    return bundle
 }
 
 const patchBundleEndpoint = async (
     request: FastifyRequest<{ Params: { id: string; bundleId: string }; Body: Partial<BundleDraft> }>,
     reply: FastifyReply
 ) => {
-    try {
-        const updated = await bundles().update(request.project!, request.params.bundleId, request.body)
-        if (updated.isErr()) {
-            reply.code(409)
-            return { error: encodeErrorCause('bundle_name_exists') }
-        }
-        const bundle = updated.unwrap()
-        void recordAudit(request.user!, 'bundle.updated', bundle.id, bundle.name, request.id)
-        return bundle
-    } catch (error) {
-        return sendError(reply, error)
+    const updated = await bundles().update(request.project!, request.params.bundleId, request.body)
+    if (updated.isErr()) {
+        reply.code(409)
+        return { error: encodeErrorCause('bundle_name_exists') }
     }
+    const bundle = updated.unwrap()
+    void recordAudit(request.user!, 'bundle.updated', bundle.id, bundle.name, request.id)
+    return bundle
 }
 
 const deleteBundleEndpoint = async (
     request: FastifyRequest<{ Params: { id: string; bundleId: string } }>,
     reply: FastifyReply
 ) => {
-    try {
-        await bundles().remove(request.project!, request.params.bundleId)
-        void recordAudit(request.user!, 'bundle.deleted', request.params.bundleId, request.project!.id, request.id)
-        reply.code(204)
-        return null
-    } catch (error) {
-        return sendError(reply, error)
-    }
+    await bundles().remove(request.project!, request.params.bundleId)
+    void recordAudit(request.user!, 'bundle.deleted', request.params.bundleId, request.project!.id, request.id)
+    reply.code(204)
+    return null
 }
 
 const previewEndpoint = async (request: FastifyRequest<{ Body: BundleRule }>) =>

@@ -6,7 +6,6 @@ import { rateLimit } from '../http/rateLimit.js'
 import container from '../container.js'
 import { WaitlistService } from '../services/WaitlistService.js'
 import { UserService } from '../services/UserService.js'
-import { sendError } from './sendError.js'
 import { recordAudit } from '../audit.js'
 
 const waitlist = () => container.resolve(WaitlistService)
@@ -36,14 +35,10 @@ const signupEndpoint = async (
     request: FastifyRequest<{ Body: WaitlistSignupDraft }>,
     reply: FastifyReply
 ) => {
-    try {
-        await waitlist().signup(request.body)
-        void recordAudit(null, 'waitlist.signup', '', request.body.source ?? 'landing', request.id)
-        reply.code(204)
-        return null
-    } catch (error) {
-        return sendError(reply, error)
-    }
+    await waitlist().signup(request.body)
+    void recordAudit(null, 'waitlist.signup', '', request.body.source ?? 'landing', request.id)
+    reply.code(204)
+    return null
 }
 
 const listEndpoint = async (
@@ -56,19 +51,15 @@ const grantEndpoint = async (
     request: FastifyRequest<{ Params: { id: string }; Body: { userId: string } }>,
     reply: FastifyReply
 ) => {
-    try {
-        const user = await users().findById(request.body.userId)
-        if (!user) {
-            reply.code(404)
-            return { error: encodeErrorCause('user_not_found') }
-        }
-        await waitlist().grantTo(request.params.id, user)
-        void recordAudit(request.user!, 'waitlist.granted', request.params.id, request.body.userId, request.id)
-        reply.code(204)
-        return null
-    } catch (error) {
-        return sendError(reply, error)
+    const user = await users().findById(request.body.userId)
+    if (!user) {
+        reply.code(404)
+        return { error: encodeErrorCause('user_not_found') }
     }
+    await waitlist().grantTo(request.params.id, user)
+    void recordAudit(request.user!, 'waitlist.granted', request.params.id, request.body.userId, request.id)
+    reply.code(204)
+    return null
 }
 
 export const publicWaitlistRouter: FastifyPluginAsync = async (app) => {

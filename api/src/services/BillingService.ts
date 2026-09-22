@@ -26,7 +26,13 @@ import type {
     UsageSummary,
     User,
 } from '../contracts/index.js'
-import { ACTIVE_SUBSCRIPTION_STATUSES, NO_SUBSCRIPTION, OWNER_ROLE_ID, toRoleId } from '../contracts/index.js'
+import {
+    ACTIVE_SUBSCRIPTION_STATUSES,
+    NO_SUBSCRIPTION,
+    OWNER_ROLE_ID,
+    isPlanVisibleTo,
+    toRoleId,
+} from '../contracts/index.js'
 import { WEB_URL, WORKSPACE_NAME } from '../env.js'
 import { getBillingPort, manualBillingPort, type ProviderSubscription } from '../domain/billing.js'
 import { ConflictError, NotFoundError, ValidationError } from '../domain/errors.js'
@@ -39,6 +45,7 @@ import {
     toSalesEnquiry,
     toSalesEnquiryEvent,
     toSubscription,
+    type PlanRow,
     type SubscriptionRow,
 } from '../schema/billing.js'
 import { AccessPolicyService } from './AccessPolicyService.js'
@@ -109,8 +116,15 @@ export class BillingService {
         return getBillingPort(configured) ? configured : null
     }
 
-    async listPlans(): Promise<Plan[]> {
-        return (await this.billing.listActivePlans()).map(toPlan)
+    async listPlans(viewer: User | null, known?: Subscription): Promise<Plan[]> {
+        const plans = (await this.billing.listActivePlans()).map(toPlan)
+        if (!viewer) return plans.filter((plan) => isPlanVisibleTo(plan, null))
+        if (viewer.role === OWNER_ROLE_ID) return plans
+
+        const subscription = known ?? await this.getSubscription(viewer.id)
+        return plans.filter(
+            (plan) => isPlanVisibleTo(plan, viewer.role) || plan.id === subscription.planId
+        )
     }
 
     async listAllPlans(): Promise<Plan[]> {
@@ -132,6 +146,7 @@ export class BillingService {
             name,
             description: draft.description?.trim() ?? '',
             roleId: draft.roleId ?? null,
+            visibleRoleIds: draft.visibleRoleIds ?? [],
             mode: draft.mode ?? 'manual',
             priceCents: draft.priceCents ?? 0,
             currency: draft.currency?.trim() || 'USD',
@@ -140,6 +155,7 @@ export class BillingService {
             active: draft.active ?? true,
             features: draft.features ?? [],
             salesFields: draft.salesFields ?? [],
+            trialDays: Math.max(0, Math.floor(draft.trialDays ?? 0)),
         })
         if (!created) throw new NotFoundError('plan_not_found', 'plan not found', [id])
         return toPlan(created)
@@ -153,6 +169,7 @@ export class BillingService {
             name: draft.name?.trim(),
             description: draft.description?.trim(),
             roleId: draft.roleId,
+            visibleRoleIds: draft.visibleRoleIds,
             mode: draft.mode,
             priceCents: draft.priceCents,
             currency: draft.currency?.trim(),
@@ -161,6 +178,7 @@ export class BillingService {
             active: draft.active,
             features: draft.features,
             salesFields: draft.salesFields,
+            trialDays: draft.trialDays === undefined ? undefined : Math.max(0, Math.floor(draft.trialDays)),
         })
         if (!updated) throw new NotFoundError('plan_not_found', 'plan not found', [id])
         return toPlan(updated)
@@ -190,6 +208,13 @@ export class BillingService {
     async startCheckout(user: User, planId: string): Promise<CheckoutIntent> {
         const plan = await this.getPlan(planId)
         const current = await this.getSubscription(user.id)
+        if (
+            user.role !== OWNER_ROLE_ID &&
+            !isPlanVisibleTo(plan, user.role) &&
+            current.planId !== plan.id
+        ) {
+            throw new NotFoundError('plan_not_visible', 'plan not available for this account', [plan.id])
+        }
         if (isActive(current.status) && current.planId === plan.id) {
             throw new ConflictError('already_subscribed', 'already subscribed to this plan')
         }
@@ -252,10 +277,12 @@ export class BillingService {
         return toSubscription(saved)
     }
 
-    async applySubscription(userId: string, patch: SubscriptionPatch): Promise<Subscription> {
+    async applySubscription(userId: string, patch: SubscriptionPatch, knownPlans?: PlanRow[]): Promise<Subscription> {
         const existing = await this.billing.findSubscription(userId)
         const planId = patch.planId === undefined ? existing?.plan_id ?? null : patch.planId
-        if (planId) await this.getPlan(planId)
+        if (planId && !(await this.billing.findPlan(planId))) {
+            throw new NotFoundError('plan_not_found', 'plan not found', [planId])
+        }
 
         const periodEnd = patch.currentPeriodEnd === undefined
             ? existing?.current_period_end ?? null
@@ -272,7 +299,7 @@ export class BillingService {
             currentPeriodEnd: periodEnd,
             startedAt: isActive(patch.status) ? existing?.started_at ?? new Date() : existing?.started_at ?? null,
         })
-        await this.syncRole(userId, saved)
+        await this.syncRole(userId, saved, knownPlans)
 
         const activating = isActive(patch.status) && !isActive(existing?.status ?? 'none')
         if (activating && planId) {
@@ -414,12 +441,12 @@ export class BillingService {
         return { enquiries: rows.map(toSalesEnquiry), total }
     }
 
-    async publicConstants(): Promise<PublicConstants> {
+    async publicConstants(viewer: User | null): Promise<PublicConstants> {
         const features = await this.features.getFlags()
         return {
             workspace: WORKSPACE_NAME,
             features,
-            plans: features.billing ? await this.listPlans() : [],
+            plans: features.billing ? await this.listPlans(viewer) : [],
         }
     }
 
@@ -497,11 +524,20 @@ export class BillingService {
 
     async expireDue(): Promise<number> {
         const due = await this.billing.listExpired()
+        if (due.length === 0) return 0
+
+        const plans = await this.billing.listActivePlans()
+        let expired = 0
         for (const row of due) {
-            await this.applySubscription(row.user_id, { status: 'canceled' })
+            try {
+                await this.applySubscription(row.user_id, { status: 'canceled' }, plans)
+                expired += 1
+            } catch (error) {
+                log.error('could not expire subscription', { userId: row.user_id, error: String(error) })
+            }
         }
-        if (due.length > 0) log.info('expired subscriptions', { expired: due.length })
-        return due.length
+        if (due.length > 0) log.info('expired subscriptions', { expired, skipped: due.length - expired })
+        return expired
     }
 
     async resolvePlan(userId: string): Promise<Plan | null> {
@@ -534,11 +570,11 @@ export class BillingService {
         await this.billing.flagStorageOverage(userId, bytes)
     }
 
-    private async syncRole(userId: string, row: SubscriptionRow): Promise<void> {
+    private async syncRole(userId: string, row: SubscriptionRow, known?: PlanRow[]): Promise<void> {
         const user = await this.users.findById(userId)
         if (!user || user.role === OWNER_ROLE_ID) return
 
-        const plans = await this.billing.listActivePlans()
+        const plans = known ?? await this.billing.listActivePlans()
         const planRoles = new Set(plans.map((plan) => plan.role_id).filter((id): id is string => Boolean(id)))
 
         if (row.staff_override_plan_id) {
@@ -659,6 +695,9 @@ export class BillingService {
     }
 
     async sendDunning(): Promise<number> {
+        const flags = await this.features.getFlags()
+        if (!flags.billing || !flags.email) return 0
+
         let sent = 0
 
         for (const stage of DUNNING_STAGES) {
@@ -679,6 +718,7 @@ export class BillingService {
             }
         }
 
+        if (sent > 0) log.info('dunning reminders queued', { sent })
         return sent
     }
 }

@@ -3,6 +3,7 @@ import 'reflect-metadata'
 import container from './container.js'
 import { Database } from './Database.js'
 import { AccessPolicyService } from './services/AccessPolicyService.js'
+import { SessionRepository } from './repositories/users/SessionRepository.js'
 import { SigningKeyService } from './services/SigningKeyService.js'
 import { Http } from './http.js'
 import { MaintenanceService } from './services/MaintenanceService.js'
@@ -10,10 +11,13 @@ import { EmailWorker } from './services/EmailWorker.js'
 import { JobWorker } from './services/JobWorker.js'
 import { PurgeWorker } from './services/PurgeWorker.js'
 import { registerJobHandlers } from './jobs.js'
+import { assertProductionConfig } from './domain/production.js'
 import { FeatureService } from './services/FeatureService.js'
 import { getLogger } from './logging.js'
 
 const log = getLogger('boot')
+
+assertProductionConfig()
 
 const database = container.resolve(Database)
 const http = container.resolve(Http)
@@ -24,6 +28,7 @@ const purgeWorker = container.resolve(PurgeWorker)
 
 await database.init()
 await container.resolve(AccessPolicyService).init()
+await container.resolve(SessionRepository).init()
 await container.resolve(SigningKeyService).init()
 await http.init()
 

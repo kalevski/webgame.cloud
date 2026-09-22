@@ -13,8 +13,7 @@ import { LIMITABLE_RESOURCES, PERMISSIONS } from '../contracts/index.js'
 import { requireAuth, requirePermission } from '../auth.js'
 import container from '../container.js'
 import { ServiceAccountService } from '../services/ServiceAccountService.js'
-import { recordAudit } from '../audit.js'
-import { sendError } from './sendError.js'
+import { recordRequestAudit } from '../audit.js'
 
 const accounts = () => container.resolve(ServiceAccountService)
 
@@ -74,135 +73,98 @@ const listServiceAccountsEndpoint = async (): Promise<ServiceAccount[]> => accou
 const createServiceAccountEndpoint = async (
     request: FastifyRequest<{ Body: ServiceAccountDraft }>,
     reply: FastifyReply
-): Promise<ServiceAccount | { error: string }> => {
-    try {
-        const created = await accounts().create(request.body)
-        void recordAudit(
-            request.user!,
-            'create_service_account',
-            created.id,
-            `${created.name}, role=${created.role}`,
-            request.id
-        )
-        reply.code(201)
-        return created
-    } catch (error) {
-        return sendError(reply, error)
-    }
+): Promise<ServiceAccount> => {
+    const created = await accounts().create(request.body)
+    void recordRequestAudit(
+        request,
+        'create_service_account',
+        created.id,
+        `${created.name}, role=${created.role}`
+    )
+    reply.code(201)
+    return created
 }
 
 const patchServiceAccountEndpoint = async (
     request: FastifyRequest<{ Params: { id: string }; Body: { name?: string; role?: UserRole; active?: boolean } }>,
     reply: FastifyReply
-): Promise<ServiceAccount | { error: string }> => {
-    try {
-        const updated = await accounts().update(request.params.id, request.body)
-        void recordAudit(
-            request.user!,
-            'update_service_account',
-            updated.id,
-            Object.entries(request.body).map(([key, value]) => `${key}=${value}`).join(', '),
-            request.id
-        )
-        return updated
-    } catch (error) {
-        return sendError(reply, error)
-    }
+): Promise<ServiceAccount> => {
+    const updated = await accounts().update(request.params.id, request.body)
+    void recordRequestAudit(
+        request,
+        'update_service_account',
+        updated.id,
+        Object.entries(request.body).map(([key, value]) => `${key}=${value}`).join(', ')
+    )
+    return updated
 }
 
 const deleteServiceAccountEndpoint = async (
     request: FastifyRequest<{ Params: { id: string } }>,
     reply: FastifyReply
-): Promise<null | { error: string }> => {
-    try {
-        await accounts().remove(request.params.id)
-        void recordAudit(request.user!, 'delete_service_account', request.params.id, '', request.id)
-        reply.code(204)
-        return null
-    } catch (error) {
-        return sendError(reply, error)
-    }
+): Promise<null> => {
+    await accounts().remove(request.params.id)
+    void recordRequestAudit(request, 'delete_service_account', request.params.id, '')
+    reply.code(204)
+    return null
 }
 
 const getServiceAccountAccessEndpoint = async (
     request: FastifyRequest<{ Params: { id: string } }>,
     reply: FastifyReply
-): Promise<UserAccessPayload | { error: string }> => {
-    try {
-        return await accounts().getAccess(request.params.id)
-    } catch (error) {
-        return sendError(reply, error)
-    }
+): Promise<UserAccessPayload> => {
+    return await accounts().getAccess(request.params.id)
 }
 
 const saveServiceAccountAccessEndpoint = async (
     request: FastifyRequest<{ Params: { id: string }; Body: UserAccessOverrides }>,
     reply: FastifyReply
-): Promise<UserAccessPayload | { error: string }> => {
-    try {
-        const saved = await accounts().saveAccess(request.params.id, request.body)
-        void recordAudit(
-            request.user!,
-            'update_service_account_access',
-            request.params.id,
-            `permissions=${Object.keys(saved.permissions).length} limits=${Object.keys(saved.limits).length}`,
-            request.id
-        )
-        return saved
-    } catch (error) {
-        return sendError(reply, error)
-    }
+): Promise<UserAccessPayload> => {
+    const saved = await accounts().saveAccess(request.params.id, request.body)
+    void recordRequestAudit(
+        request,
+        'update_service_account_access',
+        request.params.id,
+        `permissions=${Object.keys(saved.permissions).length} limits=${Object.keys(saved.limits).length}`
+    )
+    return saved
 }
 
 const listServiceKeysEndpoint = async (
     request: FastifyRequest<{ Params: { id: string } }>,
     reply: FastifyReply
-): Promise<ApiKey[] | { error: string }> => {
-    try {
-        return await accounts().listKeys(request.params.id)
-    } catch (error) {
-        return sendError(reply, error)
-    }
+): Promise<ApiKey[]> => {
+    return await accounts().listKeys(request.params.id)
 }
 
 const createServiceKeyEndpoint = async (
     request: FastifyRequest<{ Params: { id: string }; Body: ApiKeyDraft }>,
     reply: FastifyReply
-): Promise<ApiKeyIssued | { error: string }> => {
-    try {
-        const issued = await accounts().createKey(request.params.id, request.body)
-        void recordAudit(
-            request.user!,
-            'create_service_key',
-            issued.key.id,
-            `${issued.key.name} for ${request.params.id}`,
-            request.id
-        )
-        reply.code(201)
-        return issued
-    } catch (error) {
-        return sendError(reply, error)
-    }
+): Promise<ApiKeyIssued> => {
+    const issued = await accounts().createKey(request.params.id, request.body)
+    void recordRequestAudit(
+        request,
+        'create_service_key',
+        issued.key.id,
+        `${issued.key.name} for ${request.params.id}`
+    )
+    reply.code(201)
+    return issued
 }
 
 const revokeServiceKeyEndpoint = async (
     request: FastifyRequest<{ Params: { id: string; keyId: string } }>,
     reply: FastifyReply
-): Promise<null | { error: string }> => {
-    try {
-        await accounts().revokeKey(request.params.id, request.params.keyId)
-        void recordAudit(
-            request.user!,
-            'revoke_service_key',
-            request.params.keyId,
-            `for ${request.params.id}`,
-            request.id
-        )
-        reply.code(204)
-        return null
-    } catch (error) {
-        return sendError(reply, error)
-    }
+): Promise<null> => {
+    await accounts().revokeKey(request.params.id, request.params.keyId)
+    void recordRequestAudit(
+        request,
+        'revoke_service_key',
+        request.params.keyId,
+        `for ${request.params.id}`
+    )
+    reply.code(204)
+    return null
 }
 
 export const serviceAccountRouter: FastifyPluginAsync = async (app) => {

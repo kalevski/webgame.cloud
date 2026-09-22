@@ -1,7 +1,6 @@
 import type {
     AccessPolicy,
     LimitableResource,
-    Limits,
     Permission,
     ResolvedLimits,
     Role,
@@ -10,14 +9,13 @@ import type {
     User,
     UserAccessOverrides,
 } from '../contracts/index.js'
-import { ACCOUNT_LIMITED, ACCOUNT_SHAPED, OWNER_ROLE_ID, PERMISSIONS } from '../contracts/index.js'
+import { ACCOUNT_LIMITED, LIMITABLE_RESOURCES, OWNER_ROLE_ID, PERMISSIONS } from '../contracts/index.js'
+import type { RoleRow } from '../schema/roles.js'
 import { ForbiddenError } from './errors.js'
 
 const EMPTY: ReadonlySet<Permission> = new Set()
 
-const OWNER_GRANTS: ReadonlySet<Permission> = new Set(
-    PERMISSIONS.filter((permission) => !(ACCOUNT_SHAPED as readonly string[]).includes(permission))
-)
+const OWNER_GRANTS: ReadonlySet<Permission> = new Set(PERMISSIONS)
 
 export const EMPTY_POLICY: AccessPolicy = { roles: {}, roleLimits: {}, bindings: {
     default: null,
@@ -48,8 +46,6 @@ export const INTERNAL_SOFT_CAPS: Record<LimitableResource, number> = {
     projects: 100,
     storage_mb: 1_048_576,
     tickets: 1_000,
-    design_templates: 500,
-    designs: 5_000,
     bundles_per_project: 1_000,
     configs_per_project: 10_000,
     members_per_project: 500,
@@ -84,26 +80,20 @@ export const resolveLimitFor = (
 export const effectiveCeiling = (resource: LimitableResource, limit: number | null): number =>
     limit ?? INTERNAL_SOFT_CAPS[resource]
 
-export const legacyLimits = (resolved: ResolvedLimits): Limits => ({
-    projects: resolved.projects,
-})
-
 export const isInSlot = (role: string, slot: RoleSlot, bindings: RoleBindings): boolean =>
     bindings[slot] === role
 
 export const rolesInSlot = (slot: RoleSlot, bindings: RoleBindings): string[] =>
     bindings[slot] === null ? [] : [bindings[slot] as string]
 
-export const assertPermitted = (
-    permissions: ReadonlySet<Permission>,
-    permission: Permission
-): void => {
-    if (!permissions.has(permission)) {
-        throw new ForbiddenError('forbidden', 'insufficient permissions')
-    }
-}
-
-export const permissionsOfRole = (role: Role, policy: AccessPolicy): Permission[] =>
-    role.id === OWNER_ROLE_ID ? [...OWNER_GRANTS] : [...(policy.roles[role.id] ?? [])]
+export const toRole = (row: RoleRow, policy: AccessPolicy): Role => ({
+    id: row.id,
+    name: row.name,
+    builtin: row.builtin,
+    position: row.position,
+    applicable: row.id === OWNER_ROLE_ID ? false : row.applicable,
+    applicationPrompt: row.application_prompt,
+    permissions: row.id === OWNER_ROLE_ID ? [...OWNER_GRANTS] : [...(policy.roles[row.id] ?? [])],
+})
 
 export type { LimitableResource }

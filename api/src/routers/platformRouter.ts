@@ -1,8 +1,7 @@
 import type { FastifyPluginAsync, FastifyReply, FastifyRequest } from 'fastify'
 import container from '../container.js'
 import { requireAuth, requirePermission } from '../auth.js'
-import { recordAudit } from '../audit.js'
-import { sendError } from './sendError.js'
+import { recordRequestAudit } from '../audit.js'
 import { JobService } from '../services/JobService.js'
 import { RetentionService } from '../services/RetentionService.js'
 import { WebhookService } from '../services/WebhookService.js'
@@ -132,28 +131,20 @@ const listSchedulesEndpoint = async (): Promise<JobSchedule[]> => jobs().listSch
 const runSchedulesEndpoint = async (
     request: FastifyRequest<{ Body: Partial<JobRunRequest> }>,
     reply: FastifyReply
-): Promise<JobRunResult | { error: string }> => {
-    try {
-        const triggered = await jobs().runNow(request.body?.kinds ?? [])
-        void recordAudit(request.user!, 'run_jobs', '', triggered.join(', '), request.id)
-        reply.code(202)
-        return { triggered }
-    } catch (error) {
-        return sendError(reply, error)
-    }
+): Promise<JobRunResult> => {
+    const triggered = await jobs().runNow(request.body?.kinds ?? [])
+    void recordRequestAudit(request, 'run_jobs', '', triggered.join(', '))
+    reply.code(202)
+    return { triggered }
 }
 
 const patchJobEndpoint = async (
     request: FastifyRequest<{ Params: { jobId: string }; Body: { status: JobStatus } }>,
     reply: FastifyReply
-): Promise<Job | { error: string }> => {
-    try {
-        const updated = await jobs().setStatus(request.params.jobId, request.body.status)
-        void recordAudit(request.user!, 'update_job', updated.id, request.body.status, request.id)
-        return updated
-    } catch (error) {
-        return sendError(reply, error)
-    }
+): Promise<Job> => {
+    const updated = await jobs().setStatus(request.params.jobId, request.body.status)
+    void recordRequestAudit(request, 'update_job', updated.id, request.body.status)
+    return updated
 }
 
 const listEndpointsEndpoint = async (): Promise<WebhookEndpoint[]> => webhooks().listEndpoints()
@@ -161,42 +152,30 @@ const listEndpointsEndpoint = async (): Promise<WebhookEndpoint[]> => webhooks()
 const createEndpointEndpoint = async (
     request: FastifyRequest<{ Body: WebhookEndpointDraft }>,
     reply: FastifyReply
-): Promise<WebhookEndpoint | { error: string }> => {
-    try {
-        const created = await webhooks().createEndpoint(request.body)
-        void recordAudit(request.user!, 'create_webhook', created.id, created.url, request.id)
-        reply.code(201)
-        return created
-    } catch (error) {
-        return sendError(reply, error)
-    }
+): Promise<WebhookEndpoint> => {
+    const created = await webhooks().createEndpoint(request.body)
+    void recordRequestAudit(request, 'create_webhook', created.id, created.url)
+    reply.code(201)
+    return created
 }
 
 const updateEndpointEndpoint = async (
     request: FastifyRequest<{ Params: { endpointId: string }; Body: Partial<WebhookEndpointDraft> }>,
     reply: FastifyReply
-): Promise<WebhookEndpoint | { error: string }> => {
-    try {
-        const updated = await webhooks().updateEndpoint(request.params.endpointId, request.body)
-        void recordAudit(request.user!, 'update_webhook', updated.id, updated.url, request.id)
-        return updated
-    } catch (error) {
-        return sendError(reply, error)
-    }
+): Promise<WebhookEndpoint> => {
+    const updated = await webhooks().updateEndpoint(request.params.endpointId, request.body)
+    void recordRequestAudit(request, 'update_webhook', updated.id, updated.url)
+    return updated
 }
 
 const deleteEndpointEndpoint = async (
     request: FastifyRequest<{ Params: { endpointId: string } }>,
     reply: FastifyReply
-): Promise<null | { error: string }> => {
-    try {
-        await webhooks().deleteEndpoint(request.params.endpointId)
-        void recordAudit(request.user!, 'delete_webhook', request.params.endpointId, '', request.id)
-        reply.code(204)
-        return null
-    } catch (error) {
-        return sendError(reply, error)
-    }
+): Promise<null> => {
+    await webhooks().deleteEndpoint(request.params.endpointId)
+    void recordRequestAudit(request, 'delete_webhook', request.params.endpointId, '')
+    reply.code(204)
+    return null
 }
 
 const webhookEventsEndpoint = async (): Promise<string[]> =>
@@ -213,7 +192,7 @@ const saveRetentionEndpoint = async (
     request: FastifyRequest<{ Body: RetentionPolicy }>
 ): Promise<RetentionReport> => {
     await retention().savePolicy(request.body)
-    void recordAudit(request.user!, 'update_retention', '', JSON.stringify(request.body), request.id)
+    void recordRequestAudit(request, 'update_retention', '', JSON.stringify(request.body))
     return retention().report()
 }
 
@@ -221,13 +200,13 @@ const savePurgeSettingsEndpoint = async (
     request: FastifyRequest<{ Body: Partial<PurgeSettings> }>
 ): Promise<PurgeSettings> => {
     const saved = await retention().saveSettings(request.body)
-    void recordAudit(request.user!, 'update_purge_settings', '', JSON.stringify(saved), request.id)
+    void recordRequestAudit(request, 'update_purge_settings', '', JSON.stringify(saved))
     return saved
 }
 
 const runPurgeEndpoint = async (request: FastifyRequest): Promise<PurgeRun> => {
     const run = await retention().purgeOnce()
-    void recordAudit(request.user!, 'run_purge', '', `${run.deleted} rows`, request.id)
+    void recordRequestAudit(request, 'run_purge', '', `${run.deleted} rows`)
     return run
 }
 

@@ -37,8 +37,6 @@ export const registerBillingPort = (port: BillingPort): void => {
 
 export const getBillingPort = (id: BillingProvider): BillingPort | undefined => registry.get(id)
 
-export const listBillingPorts = (): BillingPort[] => [...registry.values()]
-
 export const manualBillingPort: BillingPort = {
     id: 'manual',
 

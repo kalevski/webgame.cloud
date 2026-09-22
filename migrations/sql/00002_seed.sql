@@ -21,6 +21,8 @@ INSERT INTO role_permissions (role_id, permission) VALUES ('studio', 'file.uploa
 INSERT INTO role_permissions (role_id, permission) VALUES ('studio', 'ticket.create');
 
 INSERT INTO role_permissions (role_id, permission) VALUES ('maintainer', 'project.create');
+INSERT INTO role_permissions (role_id, permission) VALUES ('maintainer', 'role.application.read');
+INSERT INTO role_permissions (role_id, permission) VALUES ('maintainer', 'role.application.write');
 INSERT INTO role_permissions (role_id, permission) VALUES ('maintainer', 'moderation.queue.read');
 INSERT INTO role_permissions (role_id, permission) VALUES ('maintainer', 'moderation.report.resolve');
 INSERT INTO role_permissions (role_id, permission) VALUES ('maintainer', 'audit.read');
@@ -38,8 +40,6 @@ INSERT INTO role_permissions (role_id, permission) VALUES ('maintainer', 'signin
 INSERT INTO role_permissions (role_id, permission) VALUES ('maintainer', 'ticket.create');
 INSERT INTO role_permissions (role_id, permission) VALUES ('maintainer', 'ticket.queue.read');
 INSERT INTO role_permissions (role_id, permission) VALUES ('maintainer', 'ticket.queue.write');
-INSERT INTO role_permissions (role_id, permission) VALUES ('maintainer', 'design.template.read');
-INSERT INTO role_permissions (role_id, permission) VALUES ('maintainer', 'design.template.write');
 
 INSERT INTO role_limits (role, resource, max_count) VALUES ('indie', 'projects', 1);
 INSERT INTO role_limits (role, resource, max_count) VALUES ('indie', 'storage_mb', 100);
@@ -90,7 +90,6 @@ INSERT INTO settings (key, value) VALUES ('signups_open', 'true');
 INSERT INTO settings (key, value) VALUES ('feature_billing', 'true');
 INSERT INTO settings (key, value) VALUES ('feature_email', 'true');
 INSERT INTO settings (key, value) VALUES ('feature_tickets', 'true');
-INSERT INTO settings (key, value) VALUES ('feature_designs', 'true');
 
 INSERT INTO settings (key, value) VALUES ('email_provider', 'log');
 INSERT INTO settings (key, value) VALUES ('email_from_name', 'WebGame Cloud');
@@ -111,6 +110,7 @@ DELETE FROM subscriptions;
 DELETE FROM billing_plans;
 DELETE FROM role_limits;
 DELETE FROM settings;
+DELETE FROM role_applications;
 DELETE FROM role_permissions;
 DELETE FROM users;
 DELETE FROM roles;

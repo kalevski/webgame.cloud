@@ -23,5 +23,6 @@ export type AuditRow = {
     action: string
     target_id: string
     detail: string
+    impersonated: boolean
     created_at: Date
 }

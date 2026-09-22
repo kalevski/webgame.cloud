@@ -26,6 +26,7 @@ import { SettingsService } from './SettingsService.js'
 import { AccessPolicyRepository } from '../repositories/access/AccessPolicyRepository.js'
 import { BillingRepository } from '../repositories/billing/BillingRepository.js'
 import { UserRepository } from '../repositories/users/UserRepository.js'
+import type { RoleRow } from '../schema/roles.js'
 import { Database } from '../Database.js'
 
 export const ACCESS_POLICY_CHANNEL = 'access_policy_changed'
@@ -33,38 +34,28 @@ import {
     EMPTY_OVERRIDES,
     effectiveCeiling,
     isInSlot,
-    permissionsOfRole,
     resolveLimitFor,
     resolveLimits,
     resolvePermissions,
     rolesInSlot,
+    toRole,
 } from '../domain/access.js'
 import { ConflictError as Conflict, NotFoundError, ValidationError } from '../domain/errors.js'
+import { KeyedCache, dropSlot, fromSlot, slot } from '../domain/cache.js'
 
 const POLICY_TTL_MS = 30_000
 
 const USER_CACHE_MAX = 5_000
 
-const EMPTY_POLICY: AccessPolicy = {
-    roles: {},
-    roleLimits: {},
-    bindings: { default: null },
-}
-
 const slotKey = (slot: RoleSlot) => `role_slot_${slot}`
 
 @injectable()
 export class AccessPolicyService {
-    private cached: AccessPolicy | null = null
-    private cachedAt = 0
+    private policySlot = slot<AccessPolicy>()
 
-    private loading: Promise<AccessPolicy> | null = null
+    private roleRowsSlot = slot<RoleRow[]>()
 
-    private cachedRoleRows: Array<{ id: string; name: string; builtin: boolean; position: number }> | null = null
-    private roleRowsAt = 0
-    private roleRowsLoading: Promise<Array<{ id: string; name: string; builtin: boolean; position: number }>> | null = null
-
-    private userCache = new Map<string, { value: UserAccessOverrides; at: number }>()
+    private userCache = new KeyedCache<UserAccessOverrides>(POLICY_TTL_MS, USER_CACHE_MAX)
 
     constructor(
         @inject(AccessPolicyRepository) private repository: AccessPolicyRepository,
@@ -74,20 +65,11 @@ export class AccessPolicyService {
         @inject(Database) private database: Database
     ) {}
 
-    async policy(now = Date.now()): Promise<AccessPolicy> {
-        if (this.cached && now - this.cachedAt < POLICY_TTL_MS) return this.cached
-        this.loading ??= Promise.all([this.repository.loadPolicy(), this.loadBindings()])
-            .then(([loaded, bindings]) => {
-                const policy: AccessPolicy = { ...loaded, bindings }
-                this.cached = policy
-                this.cachedAt = Date.now()
-                return policy
-            })
-            .catch(() => this.cached ?? EMPTY_POLICY)
-            .finally(() => {
-                this.loading = null
-            })
-        return this.loading
+    async policy(): Promise<AccessPolicy> {
+        return fromSlot(this.policySlot, POLICY_TTL_MS, async () => {
+            const [loaded, bindings] = await Promise.all([this.repository.loadPolicy(), this.loadBindings()])
+            return { ...loaded, bindings }
+        })
     }
 
     invalidate(): void {
@@ -96,36 +78,23 @@ export class AccessPolicyService {
     }
 
     private invalidateLocal(): void {
-        this.cached = null
-        this.cachedAt = 0
-        this.cachedRoleRows = null
-        this.roleRowsAt = 0
+        dropSlot(this.policySlot)
+        dropSlot(this.roleRowsSlot)
     }
 
     async init(): Promise<void> {
         await this.database.listen(ACCESS_POLICY_CHANNEL, (payload) => {
             if (payload === '*') this.invalidateLocal()
-            else this.userCache.delete(payload)
+            else this.userCache.drop(payload)
         })
     }
 
-    private async roleRows(now = Date.now()): Promise<Array<{ id: string; name: string; builtin: boolean; position: number }>> {
-        if (this.cachedRoleRows && now - this.roleRowsAt < POLICY_TTL_MS) return this.cachedRoleRows
-        this.roleRowsLoading ??= this.repository.listRoles()
-            .then((rows) => {
-                this.cachedRoleRows = rows
-                this.roleRowsAt = Date.now()
-                return rows
-            })
-            .catch(() => this.cachedRoleRows ?? [])
-            .finally(() => {
-                this.roleRowsLoading = null
-            })
-        return this.roleRowsLoading
+    private async roleRows(): Promise<RoleRow[]> {
+        return fromSlot(this.roleRowsSlot, POLICY_TTL_MS, () => this.repository.listRoles())
     }
 
     invalidateUser(userId: string): void {
-        this.userCache.delete(userId)
+        this.userCache.drop(userId)
         void this.database.notify(ACCESS_POLICY_CHANNEL, userId)
     }
 
@@ -135,10 +104,7 @@ export class AccessPolicyService {
 
     async listRoles(): Promise<Role[]> {
         const [rows, policy] = await Promise.all([this.roleRows(), this.policy()])
-        return rows.map((row) => ({
-            ...row,
-            permissions: permissionsOfRole({ ...row, permissions: [] }, policy),
-        }))
+        return rows.map((row) => toRole(row, policy))
     }
 
     async saveRole(draft: RoleDraft, existingId?: string): Promise<Role> {
@@ -166,6 +132,8 @@ export class AccessPolicyService {
                 id,
                 name,
                 position: existing?.position ?? 60,
+                applicable: draft.applicable ?? existing?.applicable ?? false,
+                applicationPrompt: (draft.applicationPrompt ?? existing?.application_prompt ?? '').trim().slice(0, 500),
                 permissions: draft.permissions.filter((key) => permitted.has(key)),
             },
             !existing
@@ -188,6 +156,18 @@ export class AccessPolicyService {
         const bound = ROLE_SLOTS.filter((slot) => bindings[slot] === roleId)
         if (bound.length > 0) {
             throw new Conflict('role_bound', 'this role is bound to a slot in settings')
+        }
+
+        const dependents = await this.repository.countRoleDependents(roleId)
+        if (dependents.plans > 0 || dependents.visibility > 0) {
+            throw new Conflict('role_plan_bound', 'a billing plan still grants or targets this role', [
+                dependents.plans + dependents.visibility,
+            ])
+        }
+        if (dependents.applications > 0) {
+            throw new Conflict('role_has_applications', 'applications for this role are still pending', [
+                dependents.applications,
+            ])
         }
         const removed = await this.repository.deleteRole(roleId)
         if (!removed) throw new NotFoundError('role_not_found', `role ${roleId} not found`, [roleId])
@@ -269,14 +249,8 @@ export class AccessPolicyService {
         return out
     }
 
-    async getUserOverrides(userId: string, now = Date.now()): Promise<UserAccessOverrides> {
-        const hit = this.userCache.get(userId)
-        if (hit && now - hit.at < POLICY_TTL_MS) return hit.value
-        const value = await this.repository.loadUserOverrides(userId).catch(() => EMPTY_OVERRIDES)
-
-        if (this.userCache.size > USER_CACHE_MAX) this.userCache.clear()
-        this.userCache.set(userId, { value, at: Date.now() })
-        return value
+    async getUserOverrides(userId: string): Promise<UserAccessOverrides> {
+        return this.userCache.get(userId, () => this.repository.loadUserOverrides(userId))
     }
 
     async saveUserOverrides(userId: string, overrides: UserAccessOverrides): Promise<UserAccessOverrides> {
@@ -344,13 +318,13 @@ export class AccessPolicyService {
     }
 
     async countOf(user: User, resource: AccountLimitedResource): Promise<number> {
-        return this.repository.count(resource, user.id)
+        return this.repository.countResource(resource, user.id)
     }
 
     async assertWithinLimit(user: User, resource: AccountLimitedResource): Promise<void> {
         const limits = await this.limitsFor(user)
         const ceiling = effectiveCeiling(resource, limits[resource])
-        const used = await this.repository.count(resource, user.id)
+        const used = await this.repository.countResource(resource, user.id)
         if (used >= ceiling) {
             throw new Conflict(
                 'limit_reached',
@@ -386,7 +360,7 @@ export class AccessPolicyService {
         const [policy, overrides, usedBytes, plan] = await Promise.all([
             this.policy(),
             this.getUserOverrides(ownerId),
-            this.repository.count('storage_mb', ownerId),
+            this.repository.countResource('storage_mb', ownerId),
             this.planOf(ownerId),
         ])
         const limitMb = owner ? resolveLimitFor('storage_mb', owner.role, policy, overrides) : null

@@ -10,6 +10,8 @@ import { PushService } from './services/PushService.js'
 import { SettingsRepository } from './repositories/settings/SettingsRepository.js'
 import { AccessPolicyService } from './services/AccessPolicyService.js'
 import { AccessPolicyRepository } from './repositories/access/AccessPolicyRepository.js'
+import { RoleApplicationRepository } from './repositories/access/RoleApplicationRepository.js'
+import { RoleApplicationService } from './services/RoleApplicationService.js'
 import { SettingsService } from './services/SettingsService.js'
 import { FeatureService } from './services/FeatureService.js'
 import { BillingRepository } from './repositories/billing/BillingRepository.js'
@@ -33,11 +35,15 @@ import { MagicLinkService } from './services/MagicLinkService.js'
 import { ApiKeyService } from './services/ApiKeyService.js'
 import { ServiceAccountService } from './services/ServiceAccountService.js'
 import { SigningKeyService } from './services/SigningKeyService.js'
+import { HealthService } from './services/HealthService.js'
+import { AlarmService } from './services/AlarmService.js'
+import { DemoDataService } from './services/DemoDataService.js'
 import { AccountRepository } from './repositories/account/AccountRepository.js'
 import { AccountService } from './services/AccountService.js'
 import { AuditRepository } from './repositories/moderation/AuditRepository.js'
 import { ReportRepository } from './repositories/moderation/ReportRepository.js'
 import { ModerationService } from './services/ModerationService.js'
+import { AdminOverviewRepository } from './repositories/admin/AdminOverviewRepository.js'
 import { AdminOverviewService } from './services/AdminOverviewService.js'
 import { ProjectRepository } from './repositories/projects/ProjectRepository.js'
 import { MemberRepository } from './repositories/projects/MemberRepository.js'
@@ -67,101 +73,99 @@ import { UserService } from './services/UserService.js'
 import { TicketRepository } from './repositories/tickets/TicketRepository.js'
 import { TicketMessageRepository } from './repositories/tickets/TicketMessageRepository.js'
 import { TicketService } from './services/TicketService.js'
-import { FrameTemplateRepository } from './repositories/designs/FrameTemplateRepository.js'
-import { VideoTemplateRepository } from './repositories/designs/VideoTemplateRepository.js'
-import { DesignRepository } from './repositories/designs/DesignRepository.js'
-import { DesignService } from './services/DesignService.js'
 
 const container = globalContainer.createChildContainer()
 
-container.registerSingleton(Database, Database)
-container.registerSingleton(Http, Http)
-container.registerSingleton(MaintenanceService, MaintenanceService)
+container.registerSingleton(Database)
+container.registerSingleton(Http)
+container.registerSingleton(MaintenanceService)
 
-container.registerSingleton(NotificationRepository, NotificationRepository)
-container.registerSingleton(NotificationService, NotificationService)
-container.registerSingleton(PushSubscriptionRepository, PushSubscriptionRepository)
-container.registerSingleton(PushService, PushService)
+container.registerSingleton(NotificationRepository)
+container.registerSingleton(NotificationService)
+container.registerSingleton(PushSubscriptionRepository)
+container.registerSingleton(PushService)
 
-container.registerSingleton(SettingsRepository, SettingsRepository)
-container.registerSingleton(AccessPolicyRepository, AccessPolicyRepository)
-container.registerSingleton(AccessPolicyService, AccessPolicyService)
-container.registerSingleton(SettingsService, SettingsService)
-container.registerSingleton(FeatureService, FeatureService)
+container.registerSingleton(SettingsRepository)
+container.registerSingleton(AccessPolicyRepository)
+container.registerSingleton(AccessPolicyService)
+container.registerSingleton(RoleApplicationRepository)
+container.registerSingleton(RoleApplicationService)
+container.registerSingleton(SettingsService)
+container.registerSingleton(FeatureService)
 
-container.registerSingleton(SessionRepository, SessionRepository)
-container.registerSingleton(UserRepository, UserRepository)
-container.registerSingleton(IdentityRepository, IdentityRepository)
-container.registerSingleton(AuthService, AuthService)
-container.registerSingleton(UserService, UserService)
+container.registerSingleton(SessionRepository)
+container.registerSingleton(UserRepository)
+container.registerSingleton(IdentityRepository)
+container.registerSingleton(AuthService)
+container.registerSingleton(UserService)
 
-container.registerSingleton(AccountRepository, AccountRepository)
-container.registerSingleton(AccountService, AccountService)
+container.registerSingleton(AccountRepository)
+container.registerSingleton(AccountService)
 
-container.registerSingleton(AuditRepository, AuditRepository)
-container.registerSingleton(ReportRepository, ReportRepository)
-container.registerSingleton(ModerationService, ModerationService)
-container.registerSingleton(AdminOverviewService, AdminOverviewService)
+container.registerSingleton(AuditRepository)
+container.registerSingleton(ReportRepository)
+container.registerSingleton(ModerationService)
+container.registerSingleton(AdminOverviewRepository)
+container.registerSingleton(AdminOverviewService)
 
-container.registerSingleton(ProjectRepository, ProjectRepository)
-container.registerSingleton(MemberRepository, MemberRepository)
-container.registerSingleton(InviteRepository, InviteRepository)
-container.registerSingleton(RealmRepository, RealmRepository)
-container.registerSingleton(RealmRegionRepository, RealmRegionRepository)
-container.registerSingleton(ProjectMigrationRepository, ProjectMigrationRepository)
-container.registerSingleton(RealmService, RealmService)
-container.registerSingleton(AssetFileRepository, AssetFileRepository)
-container.registerSingleton(UploadService, UploadService)
-container.registerSingleton(BundleRepository, BundleRepository)
-container.registerSingleton(BundleService, BundleService)
-container.registerSingleton(BuildRepository, BuildRepository)
-container.registerSingleton(BuildService, BuildService)
-container.registerSingleton(ConfigRepository, ConfigRepository)
-container.registerSingleton(ConfigService, ConfigService)
+container.registerSingleton(ProjectRepository)
+container.registerSingleton(MemberRepository)
+container.registerSingleton(InviteRepository)
+container.registerSingleton(RealmRepository)
+container.registerSingleton(RealmRegionRepository)
+container.registerSingleton(ProjectMigrationRepository)
+container.registerSingleton(RealmService)
+container.registerSingleton(AssetFileRepository)
+container.registerSingleton(UploadService)
+container.registerSingleton(BundleRepository)
+container.registerSingleton(BundleService)
+container.registerSingleton(BuildRepository)
+container.registerSingleton(BuildService)
+container.registerSingleton(ConfigRepository)
+container.registerSingleton(ConfigService)
 
-container.registerSingleton(TranslationRepository, TranslationRepository)
-container.registerSingleton(TranslationService, TranslationService)
-container.registerSingleton(WaitlistRepository, WaitlistRepository)
-container.registerSingleton(WaitlistService, WaitlistService)
-container.registerSingleton(ProjectService, ProjectService)
+container.registerSingleton(TranslationRepository)
+container.registerSingleton(TranslationService)
+container.registerSingleton(WaitlistRepository)
+container.registerSingleton(WaitlistService)
+container.registerSingleton(ProjectService)
 
-container.registerSingleton(BillingRepository, BillingRepository)
-container.registerSingleton(BillingService, BillingService)
+container.registerSingleton(TicketRepository)
+container.registerSingleton(TicketMessageRepository)
+container.registerSingleton(TicketService)
 
-container.registerSingleton(EmailRepository, EmailRepository)
-container.registerSingleton(EmailService, EmailService)
-container.registerSingleton(EmailWorker, EmailWorker)
+container.registerSingleton(BillingRepository)
+container.registerSingleton(BillingService)
 
-container.registerSingleton(JobRepository, JobRepository)
-container.registerSingleton(JobService, JobService)
-container.registerSingleton(JobWorker, JobWorker)
+container.registerSingleton(EmailRepository)
+container.registerSingleton(EmailService)
+container.registerSingleton(EmailWorker)
 
-container.registerSingleton(WebhookRepository, WebhookRepository)
-container.registerSingleton(WebhookService, WebhookService)
+container.registerSingleton(JobRepository)
+container.registerSingleton(JobService)
+container.registerSingleton(JobWorker)
 
-container.registerSingleton(RetentionRepository, RetentionRepository)
-container.registerSingleton(RetentionService, RetentionService)
-container.registerSingleton(PurgeWorker, PurgeWorker)
+container.registerSingleton(WebhookRepository)
+container.registerSingleton(WebhookService)
 
-container.registerSingleton(FileRepository, FileRepository)
-container.registerSingleton(FileService, FileService)
+container.registerSingleton(RetentionRepository)
+container.registerSingleton(RetentionService)
+container.registerSingleton(PurgeWorker)
 
-container.registerSingleton(PlatformRepository, PlatformRepository)
+container.registerSingleton(FileRepository)
+container.registerSingleton(FileService)
 
-container.registerSingleton(AuthTokenRepository, AuthTokenRepository)
-container.registerSingleton(MagicLinkService, MagicLinkService)
-container.registerSingleton(ApiKeyService, ApiKeyService)
-container.registerSingleton(ServiceAccountService, ServiceAccountService)
+container.registerSingleton(PlatformRepository)
 
-container.registerSingleton(SigningKeyService, SigningKeyService)
+container.registerSingleton(AuthTokenRepository)
+container.registerSingleton(MagicLinkService)
+container.registerSingleton(ApiKeyService)
+container.registerSingleton(ServiceAccountService)
 
-container.registerSingleton(TicketRepository, TicketRepository)
-container.registerSingleton(TicketMessageRepository, TicketMessageRepository)
-container.registerSingleton(TicketService, TicketService)
+container.registerSingleton(SigningKeyService)
 
-container.registerSingleton(FrameTemplateRepository, FrameTemplateRepository)
-container.registerSingleton(VideoTemplateRepository, VideoTemplateRepository)
-container.registerSingleton(DesignRepository, DesignRepository)
-container.registerSingleton(DesignService, DesignService)
+container.registerSingleton(HealthService)
+container.registerSingleton(AlarmService)
+container.registerSingleton(DemoDataService)
 
 export default container

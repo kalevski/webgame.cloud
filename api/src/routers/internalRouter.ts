@@ -3,7 +3,6 @@ import type { FinalizeUpload } from '../contracts/index.js'
 import { requireRealm } from '../realmAuth.js'
 import container from '../container.js'
 import { UploadService } from '../services/UploadService.js'
-import { sendError } from './sendError.js'
 
 const uploads = () => container.resolve(UploadService)
 
@@ -24,11 +23,7 @@ const finalizeEndpoint = async (
     request: FastifyRequest<{ Params: { assetId: string }; Body: FinalizeUpload }>,
     reply: FastifyReply
 ) => {
-    try {
-        return await uploads().finalize(request.realm!, request.params.assetId, request.body)
-    } catch (error) {
-        return sendError(reply, error)
-    }
+    return await uploads().finalize(request.realm!, request.params.assetId, request.body)
 }
 
 export const internalRouter: FastifyPluginAsync = async (app) => {

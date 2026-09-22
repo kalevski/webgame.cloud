@@ -1,3 +1,5 @@
+import { isIP } from 'node:net'
+
 export const isAllowedPushEndpoint = (endpoint: string): boolean => {
     let url: URL
     try {
@@ -9,6 +11,7 @@ export const isAllowedPushEndpoint = (endpoint: string): boolean => {
     const host = url.hostname.toLowerCase()
     if (host === 'localhost' || host.endsWith('.localhost') || host.endsWith('.local') || host.endsWith('.internal')) return false
 
-    if (/^\d{1,3}(\.\d{1,3}){3}$/.test(host) || host.includes(':')) return false
+    const literal = host.startsWith('[') && host.endsWith(']') ? host.slice(1, -1) : host
+    if (isIP(literal) !== 0) return false
     return host.includes('.')
 }

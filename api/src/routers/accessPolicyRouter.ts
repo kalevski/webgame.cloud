@@ -12,8 +12,8 @@ import { requireAuth, requirePermission } from '../auth.js'
 import container from '../container.js'
 import { AccessPolicyService } from '../services/AccessPolicyService.js'
 import { UserService } from '../services/UserService.js'
-import { recordAudit } from '../audit.js'
-import { sendError } from './sendError.js'
+import { recordRequestAudit } from '../audit.js'
+import { NotFoundError, ValidationError } from '../domain/errors.js'
 
 const access = () => container.resolve(AccessPolicyService)
 const users = () => container.resolve(UserService)
@@ -45,6 +45,8 @@ const roleDraftSchema = {
         id: { type: 'string', minLength: 1, maxLength: 60 },
         name: { type: 'string', minLength: 1, maxLength: 80 },
         permissions: { type: 'array', maxItems: 200, items: { type: 'string', enum: [...PERMISSIONS] } },
+        applicable: { type: 'boolean' },
+        applicationPrompt: { type: 'string', maxLength: 500 },
     },
 } as const
 
@@ -80,59 +82,43 @@ const limitsBodySchema = {
 const listRolesEndpoint = async (): Promise<Role[]> => access().listRoles()
 
 const createRoleEndpoint = async (request: FastifyRequest<{ Body: RoleDraft }>, reply: FastifyReply) => {
-    try {
-        const role = await access().saveRole(request.body)
-        void recordAudit(request.user!, 'create_role', role.id, `${role.name} · ${role.permissions.length} permissions`)
-        reply.code(201)
-        return role
-    } catch (error) {
-        return sendError(reply, error)
-    }
+    const role = await access().saveRole(request.body)
+    void recordRequestAudit(request, 'create_role', role.id, `${role.name} · ${role.permissions.length} permissions`)
+    reply.code(201)
+    return role
 }
 
 const updateRoleEndpoint = async (
     request: FastifyRequest<{ Params: { roleId: string }; Body: RoleDraft }>,
     reply: FastifyReply
 ) => {
-    try {
-        const role = await access().saveRole(request.body, request.params.roleId)
-        void recordAudit(request.user!, 'update_role', role.id, `${role.name} · ${role.permissions.length} permissions`)
-        return role
-    } catch (error) {
-        return sendError(reply, error)
-    }
+    const role = await access().saveRole(request.body, request.params.roleId)
+    void recordRequestAudit(request, 'update_role', role.id, `${role.name} · ${role.permissions.length} permissions`)
+    return role
 }
 
 const deleteRoleEndpoint = async (
     request: FastifyRequest<{ Params: { roleId: string } }>,
     reply: FastifyReply
 ) => {
-    try {
-        await access().deleteRole(request.params.roleId)
-        void recordAudit(request.user!, 'delete_role', request.params.roleId, '')
-        reply.code(204)
-        return null
-    } catch (error) {
-        return sendError(reply, error)
-    }
+    await access().deleteRole(request.params.roleId)
+    void recordRequestAudit(request, 'delete_role', request.params.roleId, '')
+    reply.code(204)
+    return null
 }
 
 const reassignRoleEndpoint = async (
     request: FastifyRequest<{ Params: { roleId: string }; Body: { toRoleId: string } }>,
     reply: FastifyReply
 ) => {
-    try {
-        const moved = await access().reassignRole(request.params.roleId, request.body.toRoleId)
-        void recordAudit(
-            request.user!,
-            'reassign_role',
-            request.params.roleId,
-            `${moved} accounts → ${request.body.toRoleId}`
-        )
-        return { moved }
-    } catch (error) {
-        return sendError(reply, error)
-    }
+    const moved = await access().reassignRole(request.params.roleId, request.body.toRoleId)
+    void recordRequestAudit(
+        request,
+        'reassign_role',
+        request.params.roleId,
+        `${moved} accounts → ${request.body.toRoleId}`
+    )
+    return { moved }
 }
 
 const getPolicyEndpoint = async (): Promise<AccessPolicy> => access().getPolicy()
@@ -141,41 +127,32 @@ const saveLimitsEndpoint = async (
     request: FastifyRequest<{ Body: { roleLimits: AccessPolicy['roleLimits'] } }>,
     reply: FastifyReply
 ) => {
-    try {
-        const saved = await access().saveLimits(request.body.roleLimits)
-        void recordAudit(request.user!, 'update_role_limits', '', `roles=${Object.keys(saved.roleLimits).length}`)
-        return saved
-    } catch (error) {
-        return sendError(reply, error)
-    }
+    const saved = await access().saveLimits(request.body.roleLimits)
+    void recordRequestAudit(request, 'update_role_limits', '', `roles=${Object.keys(saved.roleLimits).length}`)
+    return saved
 }
 
 const saveBindingsEndpoint = async (
     request: FastifyRequest<{ Body: Partial<RoleBindings> }>,
     reply: FastifyReply
 ) => {
-    try {
-        const saved = await access().saveBindings(request.body)
-        void recordAudit(
-            request.user!,
-            'update_role_bindings',
-            '',
-            ROLE_SLOTS.map((slot) => `${slot}=${saved[slot] ?? '—'}`).join(' ')
-        )
-        return saved
-    } catch (error) {
-        return sendError(reply, error)
-    }
+    const saved = await access().saveBindings(request.body)
+    void recordRequestAudit(
+        request,
+        'update_role_bindings',
+        '',
+        ROLE_SLOTS.map((slot) => `${slot}=${saved[slot] ?? '—'}`).join(' ')
+    )
+    return saved
 }
 
 const getUserAccessEndpoint = async (
     request: FastifyRequest<{ Params: { userId: string } }>,
     reply: FastifyReply
-): Promise<UserAccessPayload | { error: string }> => {
+): Promise<UserAccessPayload> => {
     const target = await users().findById(request.params.userId)
-    if (!target) {
-        reply.code(404)
-        return { error: encodeErrorCause('user_not_found', request.params.userId) }
+    if (!target || target.kind === 'service') {
+        throw new NotFoundError('user_not_found', undefined, [request.params.userId])
     }
     const overrides = await access().getUserOverrides(target.id)
     return { ...overrides, usage: await access().usageFor(target) }
@@ -186,27 +163,21 @@ const saveUserAccessEndpoint = async (
     reply: FastifyReply
 ) => {
     const target = await users().findById(request.params.userId)
-    if (!target) {
-        reply.code(404)
-        return { error: encodeErrorCause('user_not_found', request.params.userId) }
+    if (!target || target.kind === 'service') {
+        throw new NotFoundError('user_not_found', undefined, [request.params.userId])
     }
 
     if (target.id === request.user!.id) {
-        reply.code(400)
-        return { error: encodeErrorCause('self_access_change') }
+        throw new ValidationError('self_access_change')
     }
-    try {
-        const saved = await access().saveUserOverrides(target.id, request.body)
-        void recordAudit(
-            request.user!,
-            'update_user_access',
-            target.id,
-            `permissions=${Object.keys(saved.permissions).length} limits=${Object.keys(saved.limits).length}`
-        )
-        return { ...saved, usage: await access().usageFor(target) }
-    } catch (error) {
-        return sendError(reply, error)
-    }
+    const saved = await access().saveUserOverrides(target.id, request.body)
+    void recordRequestAudit(
+        request,
+        'update_user_access',
+        target.id,
+        `permissions=${Object.keys(saved.permissions).length} limits=${Object.keys(saved.limits).length}`
+    )
+    return { ...saved, usage: await access().usageFor(target) }
 }
 
 export const accessPolicyRouter: FastifyPluginAsync = async (app) => {

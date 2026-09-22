@@ -1,5 +1,6 @@
 export const NOTIFICATION_KINDS = [
     'welcome',
+    'role_application',
     'system',
     'project_invite',
     'project_moved',
@@ -37,7 +38,9 @@ export const REPORT_TARGET_KINDS = ['project', 'user'] as const
 
 export type ReportTargetKind = typeof REPORT_TARGET_KINDS[number]
 
-export type ReportStatus = 'pending' | 'resolved'
+export const REPORT_STATUSES = ['pending', 'resolved'] as const
+
+export type ReportStatus = typeof REPORT_STATUSES[number]
 
 export type Report = {
     id: string
@@ -78,5 +81,8 @@ export type AuditEntry = {
     action: string
     targetId: string
     detail: string
+
+    impersonated: boolean
+
     createdAt: string
 }

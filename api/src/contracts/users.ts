@@ -7,10 +7,6 @@ import type { AuditEntry } from './notifications.js'
 
 export type { UserRole }
 
-export type ApiError = {
-    error: string
-}
-
 export const OAUTH_PROVIDERS = [
     'google',
     'discord',
@@ -66,15 +62,15 @@ export type User = {
     createdAt: string
 }
 
-export type Limits = {
-    projects: number | null
+export type Impersonator = {
+    id: string
+    name: string
+    email: string
 }
 
 export type AuthSession = {
     user: User
     permissions: Permission[]
-
-    limits: Limits
 
     resourceLimits: ResolvedLimits
 
@@ -83,6 +79,8 @@ export type AuthSession = {
     slots: Record<RoleSlot | 'owner', boolean>
 
     roleName: string | null
+
+    impersonatedBy: Impersonator | null
 
     paid: boolean
 

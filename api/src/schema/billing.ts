@@ -20,6 +20,7 @@ export type PlanRow = {
     name: string
     description: string
     role_id: string | null
+    visible_role_ids: string[]
     mode: PlanMode
     price_cents: number
     currency: string
@@ -38,6 +39,7 @@ export const toPlan = (row: PlanRow): Plan => ({
     name: row.name,
     description: row.description,
     roleId: row.role_id,
+    visibleRoleIds: Array.isArray(row.visible_role_ids) ? row.visible_role_ids : [],
     mode: row.mode,
     priceCents: row.price_cents,
     currency: row.currency,

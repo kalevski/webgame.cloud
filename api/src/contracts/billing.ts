@@ -66,6 +66,8 @@ export type Plan = {
 
     roleId: string | null
 
+    visibleRoleIds: string[]
+
     mode: PlanMode
 
     priceCents: number
@@ -90,6 +92,7 @@ export type PlanDraft = {
     trialDays?: number
     description?: string
     roleId?: string | null
+    visibleRoleIds?: string[]
     mode?: PlanMode
     priceCents?: number
     currency?: string
@@ -99,6 +102,9 @@ export type PlanDraft = {
     features?: string[]
     salesFields?: SalesField[]
 }
+
+export const isPlanVisibleTo = (plan: Pick<Plan, 'visibleRoleIds'>, roleId: string | null): boolean =>
+    plan.visibleRoleIds.length === 0 || (roleId !== null && plan.visibleRoleIds.includes(roleId))
 
 export type Subscription = {
     status: SubscriptionStatus

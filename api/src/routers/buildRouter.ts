@@ -7,7 +7,6 @@ import { requireRealm } from '../realmAuth.js'
 import container from '../container.js'
 import { BuildService } from '../services/BuildService.js'
 import { RealmService } from '../services/RealmService.js'
-import { sendError } from './sendError.js'
 import { recordAudit } from '../audit.js'
 
 const builds = () => container.resolve(BuildService)
@@ -75,62 +74,42 @@ const buildDetailEndpoint = async (
     request: FastifyRequest<{ Params: { id: string; buildId: string } }>,
     reply: FastifyReply
 ) => {
-    try {
-        return await builds().detail(request.project!.id, request.params.buildId)
-    } catch (error) {
-        return sendError(reply, error)
-    }
+    return await builds().detail(request.project!.id, request.params.buildId)
 }
 
 const triggerBuildEndpoint = async (
     request: FastifyRequest<{ Params: { id: string; bundleId: string } }>,
     reply: FastifyReply
 ) => {
-    try {
-        const build = await builds().trigger(request.user!, request.project!, request.params.bundleId)
-        void recordAudit(request.user!, 'build.triggered', build.id, build.bundleName, request.id)
-        reply.code(201)
-        return build
-    } catch (error) {
-        return sendError(reply, error)
-    }
+    const build = await builds().trigger(request.user!, request.project!, request.params.bundleId)
+    void recordAudit(request.user!, 'build.triggered', build.id, build.bundleName, request.id)
+    reply.code(201)
+    return build
 }
 
 const setTagEndpoint = async (
     request: FastifyRequest<{ Params: { id: string; buildId: string }; Body: { buildTag: string } }>,
     reply: FastifyReply
 ) => {
-    try {
-        const build = await builds().setTag(request.project!, request.params.buildId, request.body.buildTag)
-        void recordAudit(request.user!, 'build.tagged', build.id, build.buildTag, request.id)
-        return build
-    } catch (error) {
-        return sendError(reply, error)
-    }
+    const build = await builds().setTag(request.project!, request.params.buildId, request.body.buildTag)
+    void recordAudit(request.user!, 'build.tagged', build.id, build.buildTag, request.id)
+    return build
 }
 
 const deleteBuildEndpoint = async (
     request: FastifyRequest<{ Params: { id: string; buildId: string } }>,
     reply: FastifyReply
 ) => {
-    try {
-        await builds().remove(request.project!, request.params.buildId)
-        void recordAudit(request.user!, 'build.deleted', request.params.buildId, request.project!.id, request.id)
-        reply.code(204)
-        return null
-    } catch (error) {
-        return sendError(reply, error)
-    }
+    await builds().remove(request.project!, request.params.buildId)
+    void recordAudit(request.user!, 'build.deleted', request.params.buildId, request.project!.id, request.id)
+    reply.code(204)
+    return null
 }
 
 const purgeBuildsEndpoint = async (request: FastifyRequest, reply: FastifyReply) => {
-    try {
-        const purged = await builds().purgeUntagged(request.project!)
-        void recordAudit(request.user!, 'build.purged', request.project!.id, String(purged), request.id)
-        return { purged }
-    } catch (error) {
-        return sendError(reply, error)
-    }
+    const purged = await builds().purgeUntagged(request.project!)
+    void recordAudit(request.user!, 'build.purged', request.project!.id, String(purged), request.id)
+    return { purged }
 }
 
 const claimJobEndpoint = async (
@@ -160,13 +139,9 @@ const jobResultEndpoint = async (
     request: FastifyRequest<{ Params: { jobId: string }; Body: RealmJobResult }>,
     reply: FastifyReply
 ) => {
-    try {
-        await builds().complete(request.realm!, request.params.jobId, request.body)
-        reply.code(204)
-        return null
-    } catch (error) {
-        return sendError(reply, error)
-    }
+    await builds().complete(request.realm!, request.params.jobId, request.body)
+    reply.code(204)
+    return null
 }
 
 export const buildRouter: FastifyPluginAsync = async (app) => {

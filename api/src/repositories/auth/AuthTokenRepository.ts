@@ -1,5 +1,7 @@
 import { inject, injectable } from 'tsyringe'
 import { Database, type QueryRunner } from '../../Database.js'
+import { BaseRepository } from '@toolcase/node'
+import { repositoryOptions } from '../../logging.js'
 
 import CONSUME_LOGIN_TOKEN from './sql/consume-login-token.sql'
 import FIND_API_KEY from './sql/find-api-key.sql'
@@ -35,31 +37,35 @@ export type ApiKeyRow = {
 }
 
 @injectable()
-export class AuthTokenRepository {
-    constructor(@inject(Database) private database: Database) {}
-
-    private run(trx?: QueryRunner) {
-        return trx ?? this.database.pool
+export class AuthTokenRepository extends BaseRepository<unknown, QueryRunner> {
+    constructor(@inject(Database) database: Database) {
+        super(database.pool, 'auth_tokens', 'id', repositoryOptions)
     }
 
     async insertLoginToken(
         write: { id: string; email: string; tokenHash: string; ip: string; minutes: number },
         trx?: QueryRunner
     ): Promise<LoginTokenRow> {
-        const { rows } = await this.run(trx).query<LoginTokenRow>(INSERT_LOGIN_TOKEN, [
-            write.id, write.email, write.tokenHash, write.ip, write.minutes,
-        ])
-        return rows[0]
+        return this.time('insertLoginToken', async () => {
+            const { rows } = await this.run(trx).query<LoginTokenRow>(INSERT_LOGIN_TOKEN, [
+                write.id, write.email, write.tokenHash, write.ip, write.minutes,
+            ])
+            return rows[0]
+        })
     }
 
     async consumeLoginToken(tokenHash: string, trx?: QueryRunner): Promise<LoginTokenRow | undefined> {
-        const { rows } = await this.run(trx).query<LoginTokenRow>(CONSUME_LOGIN_TOKEN, [tokenHash])
-        return rows[0]
+        return this.time('consumeLoginToken', async () => {
+            const { rows } = await this.run(trx).query<LoginTokenRow>(CONSUME_LOGIN_TOKEN, [tokenHash])
+            return rows[0]
+        })
     }
 
     async purgeLoginTokens(trx?: QueryRunner): Promise<number> {
-        const result = await this.run(trx).query(PURGE_LOGIN_TOKENS)
-        return result.rowCount ?? 0
+        return this.time('purgeLoginTokens', async () => {
+            const result = await this.run(trx).query(PURGE_LOGIN_TOKENS)
+            return result.rowCount ?? 0
+        })
     }
 
     async insertApiKey(
@@ -82,21 +88,29 @@ export class AuthTokenRepository {
     }
 
     async listApiKeys(ownerId: string, trx?: QueryRunner): Promise<ApiKeyRow[]> {
-        const { rows } = await this.run(trx).query<ApiKeyRow>(SELECT_API_KEYS, [ownerId])
-        return rows
+        return this.time('listApiKeys', async () => {
+            const { rows } = await this.run(trx).query<ApiKeyRow>(SELECT_API_KEYS, [ownerId])
+            return rows
+        })
     }
 
     async findApiKey(tokenHash: string, trx?: QueryRunner): Promise<ApiKeyRow | undefined> {
-        const { rows } = await this.run(trx).query<ApiKeyRow>(FIND_API_KEY, [tokenHash])
-        return rows[0]
+        return this.time('findApiKey', async () => {
+            const { rows } = await this.run(trx).query<ApiKeyRow>(FIND_API_KEY, [tokenHash])
+            return rows[0]
+        })
     }
 
     async revokeApiKey(id: string, ownerId: string, trx?: QueryRunner): Promise<boolean> {
-        const result = await this.run(trx).query(REVOKE_API_KEY, [id, ownerId])
-        return (result.rowCount ?? 0) > 0
+        return this.time('revokeApiKey', async () => {
+            const result = await this.run(trx).query(REVOKE_API_KEY, [id, ownerId])
+            return (result.rowCount ?? 0) > 0
+        })
     }
 
     async touchApiKey(id: string, trx?: QueryRunner): Promise<void> {
-        await this.run(trx).query(TOUCH_API_KEY, [id])
+        return this.time('touchApiKey', async () => {
+            await this.run(trx).query(TOUCH_API_KEY, [id])
+        })
     }
 }

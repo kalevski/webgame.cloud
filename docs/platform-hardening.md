@@ -53,6 +53,19 @@ It is applied where abuse is cheap and costly, not globally:
 with the same key replays it verbatim, with `idempotent-replay: true` and the original status. Failures
 (`>= 400`) are not stored, so a retry after an error genuinely retries.
 
+The key is **reserved before the handler runs**, not written after it. Writing it afterwards left a window
+in which eight concurrent `POST`s sharing one key all passed the check and all created a row. The reservation
+is a single `INSERT … ON CONFLICT` (`reserve-idempotency-key.sql`) that also stores a **fingerprint** of the
+route plus body:
+
+- A second request arriving while the first is still in flight gets `idempotency_in_flight`.
+- A request reusing a key with a *different* body gets `idempotency_key_reused`, rather than silently
+  replaying an unrelated response.
+- A handler that fails releases the reservation (`release-idempotency-key.sql`), so the retry is real.
+- A reservation older than five minutes is taken over, so a crashed process cannot wedge a key forever.
+
+Keys are scoped per user and per route, so two accounts cannot collide on the same key value.
+
 The header is optional and unused by the SPA today — it exists for API clients, and is the mechanism a
 derived project should reach for before making `apiFetch` retry mutations (frontend-architecture.md).
 
@@ -61,11 +74,38 @@ derived project should reach for before making `apiFetch` retry mutations (front
 Three unauthenticated endpoints in `routers/healthRouter.ts`:
 
 - `GET /api/health` — liveness. Runs `SELECT 1`; proves the process answers and the pool works.
-- `GET /api/ready` — readiness for an orchestrator. Reports the applied goose migration version and every
-  registered worker's last heartbeat, and answers **503** unless the database is reachable, migrations have
-  run, and no worker is stale. Workers register themselves through `api/src/health.ts` with their tick
-  interval; "stale" is three missed intervals.
+- `GET /api/ready` — readiness for an orchestrator. Answers **503** unless every `READINESS_BLOCKING`
+  component is healthy. It returns only `{ ready }` to an anonymous caller; the full component report is
+  behind `admin.overview.read`, so a public prober learns whether to route traffic here and nothing more.
+  The component model, the alarms and `GET /api/ops/status` are in [operations.md](operations.md).
 - `GET /api/version` — name, version, `BUILD_SHA` and process start time, so a deploy can be identified.
+
+## Error responses
+
+`http.ts`'s `errorHandler` is the single place a thrown error becomes a response. It recognises `AppError`
+(`domain/errors.ts`) and renders `{ error: encodeErrorCause(code, ...params) }` at the error's own status, so
+handlers **throw** rather than hand-building an envelope, and routers carry no pure-passthrough `try`/`catch`.
+
+Three other cases it separates:
+
+- Fastify validation errors become `400 invalid_body` naming the offending field.
+- Any other **4xx** Fastify raises — `415`, `413`, its own `400` — is honoured as a 4xx and logged at `warn`.
+  It used to be flattened into a logged `internal_error`, which meant a client looping on a bad content-type
+  read as a server incident and reached the observability sink.
+- Only genuine **5xx** is logged at `error` and reported through `reportError`.
+
+## Production config guard
+
+`assertProductionConfig()` (`domain/production.ts`) refuses to boot under `APP_ENV=production` with
+`DEV_LOGIN` on, no SSO provider, `WEBHOOK_ALLOW_PRIVATE` on, `DATABASE_SSLMODE=disable`, or a missing
+`WEB_URL`/`API_URL`. See [operations.md](operations.md).
+
+## Database connection
+
+`DATABASE_SSLMODE` is honoured by the pool (`env.ts`), not only by goose. It was previously read by the
+migration scripts alone, so migrations ran over TLS while the application connected in clear text to the same
+managed Postgres — silently. The pool also sets `DATABASE_POOL_MAX`, a connection timeout and
+`DATABASE_STATEMENT_TIMEOUT_MS`, so one pathological query cannot hold a connection open indefinitely.
 
 ## Request IDs
 

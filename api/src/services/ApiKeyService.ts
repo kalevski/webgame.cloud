@@ -1,14 +1,24 @@
 import { inject, injectable } from 'tsyringe'
-import { createHash, randomBytes, randomUUID } from 'node:crypto'
+import { randomBytes, randomUUID } from 'node:crypto'
 import type { ApiKey, ApiKeyDraft, ApiKeyIssued, Permission, User } from '../contracts/index.js'
 import { PERMISSIONS } from '../contracts/index.js'
 import { NotFoundError, ValidationError } from '../domain/errors.js'
+import { KeyedCache, Throttle } from '../domain/cache.js'
+import { hashSecret } from '../domain/secrets.js'
 import { AuthTokenRepository, type ApiKeyRow } from '../repositories/auth/AuthTokenRepository.js'
 import { UserRepository } from '../repositories/users/UserRepository.js'
 
 const PREFIX = 'ak'
 
-export const hashApiKey = (token: string): string => createHash('sha256').update(token).digest('hex')
+const RESOLVE_CACHE_MS = 5_000
+
+const RESOLVE_CACHE_MAX = 500
+
+const TOUCH_INTERVAL_MS = 60_000
+
+export const hashApiKey = (token: string): string => hashSecret(token)
+
+type ResolvedKey = { user: User; scopes: Permission[] }
 
 const toApiKey = (row: ApiKeyRow): ApiKey => ({
     id: row.id,
@@ -22,6 +32,10 @@ const toApiKey = (row: ApiKeyRow): ApiKey => ({
 
 @injectable()
 export class ApiKeyService {
+    private resolved = new KeyedCache<ResolvedKey | null>(RESOLVE_CACHE_MS, RESOLVE_CACHE_MAX)
+
+    private touches = new Throttle(TOUCH_INTERVAL_MS)
+
     constructor(
         @inject(AuthTokenRepository) private tokens: AuthTokenRepository,
         @inject(UserRepository) private users: UserRepository
@@ -60,16 +74,20 @@ export class ApiKeyService {
     async revoke(ownerId: string, id: string): Promise<void> {
         const removed = await this.tokens.revokeApiKey(id, ownerId)
         if (!removed) throw new NotFoundError('api_key_not_found', 'api key not found', [id])
+        this.resolved.clear()
     }
 
-    async resolve(token: string): Promise<{ user: User; scopes: Permission[] } | null> {
-        const row = await this.tokens.findApiKey(hashApiKey(token))
-        if (!row) return null
+    async resolve(token: string): Promise<ResolvedKey | null> {
+        const hash = hashApiKey(token)
+        return this.resolved.get(hash, async () => {
+            const row = await this.tokens.findApiKey(hash)
+            if (!row) return null
 
-        const user = await this.users.findById(row.owner_id)
-        if (!user || !user.active) return null
+            const user = await this.users.findById(row.owner_id)
+            if (!user || !user.active) return null
 
-        void this.tokens.touchApiKey(row.id)
-        return { user, scopes: (row.scopes ?? []) as Permission[] }
+            if (this.touches.due(row.id)) void this.tokens.touchApiKey(row.id)
+            return { user, scopes: (row.scopes ?? []) as Permission[] }
+        })
     }
 }

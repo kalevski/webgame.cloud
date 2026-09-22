@@ -1,7 +1,8 @@
 import { inject, injectable } from 'tsyringe'
-import { createHash, randomBytes, randomUUID } from 'node:crypto'
+import { randomBytes, randomUUID } from 'node:crypto'
 import type { User } from '../contracts/index.js'
 import { UnauthorizedError, ValidationError } from '../domain/errors.js'
+import { hashSecret } from '../domain/secrets.js'
 import { WEB_URL, WORKSPACE_NAME } from '../env.js'
 import { getLogger } from '../logging.js'
 import { AuthTokenRepository } from '../repositories/auth/AuthTokenRepository.js'
@@ -16,7 +17,7 @@ const TOKEN_MINUTES = 15
 
 const EMAIL_PATTERN = /^[^@\s]+@[^@\s]+\.[^@\s]+$/
 
-export const hashToken = (token: string): string => createHash('sha256').update(token).digest('hex')
+export const hashToken = (token: string): string => hashSecret(token)
 
 @injectable()
 export class MagicLinkService {

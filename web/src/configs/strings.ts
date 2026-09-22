@@ -31,15 +31,6 @@ const ERROR_MESSAGES = {
     ticket_subject_required: 'Give the ticket a subject.',
     ticket_message_required: 'Write a message before sending.',
     ticket_closed: 'This ticket is closed — reopen it to add a reply.',
-    frame_template_not_found: 'That frame template could not be found.',
-    video_template_not_found: 'That video template could not be found.',
-    design_name_required: 'Give it a name.',
-    design_format_mismatch: (name = '', frame = '', video = '') =>
-        `“${name}” is a ${frame} frame — this video is ${video}. Every frame must match the video's format.`,
-    design_frames_required: 'Add at least one frame.',
-    frame_template_in_use: (count = '') => `${count} video frame(s) still use this template.`,
-    design_not_found: 'That design could not be found.',
-    design_source_not_found: 'That data source is not available.',
     target_not_found: 'The reported content could not be found.',
     report_exists: 'You already have an open report for this.',
     report_not_found: 'That report could not be found.',
@@ -166,6 +157,36 @@ const ERROR_MESSAGES = {
     asset_type_unassigned: 'No storage source is configured for this file type yet.',
     signing_key_not_found: 'Unknown signing key.',
     signing_key_unavailable: 'The signing key could not be read. Check the key directory on the server.',
+    unsupported_media_type: 'That request used a content type this endpoint does not accept.',
+    payload_too_large: 'That request was too large. Try again with less data.',
+    not_impersonating: 'This session was not opened by an administrator, so there is nothing to return to.',
+    consent_while_impersonating: 'Legal documents can only be accepted by the account holder, not by an administrator signed in as them.',
+    demo_refused_production: 'The demo dataset is never seeded into production.',
+    demo_refused_no_owner: 'Sign in once first — the demo dataset is written by the owner account.',
+    demo_refused_populated: 'This database already holds accounts. Forcing a seed layers a second dataset on top rather than replacing the first.',
+    role_plan_bound: (count = 'Some') =>
+        `${count} billing plan(s) still grant this role or are restricted to it — change them first.`,
+    role_has_applications: (count = 'Some') =>
+        `${count} application(s) for this role are still waiting for review — decide them first.`,
+    role_not_applicable: 'That role is not open to applications.',
+    role_already_held: 'You already hold that role.',
+    role_application_not_found: 'That application could not be found.',
+    role_application_exists: 'You already have an application waiting for review.',
+    role_application_not_pending: 'This application has already been decided.',
+    role_application_owner: 'The reserved role cannot apply for or be replaced by another role.',
+    plan_not_visible: 'That plan is not available for your account.',
+    idempotency_in_flight: 'That request is still being processed — try again in a moment.',
+    idempotency_key_reused: 'That idempotency key was already used for a different request.',
+    webhook_url_private: 'That host resolves to a private address and cannot receive webhooks.',
+    webhook_url_unresolvable: 'That host could not be resolved.',
+    asset_extension_not_allowed: (extension = '', allowed = '') =>
+        allowed
+            ? `“.${extension}” files are not accepted here — allowed extensions: ${allowed.split(' ').join(', ')}.`
+            : `“.${extension}” files are not accepted here.`,
+    asset_mime_not_allowed: (mime = '', allowed = '') =>
+        allowed
+            ? `“${mime}” files are not accepted here — allowed types: ${allowed.split(' ').join(', ')}.`
+            : `“${mime}” files are not accepted here.`,
     fallback: 'Something went wrong. Please try again.',
 } satisfies Record<ApiErrorCode | 'fallback', string | ((...params: string[]) => string)>
 

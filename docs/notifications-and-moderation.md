@@ -31,7 +31,7 @@ Web push VAPID keys are self-provisioned on first use and stored in `settings` (
 
 **Reports** (`reports` table): any signed-in user reports a target — `REPORT_TARGET_KINDS = ['project', 'user']`. The `target_label` is denormalized at insert so the queue survives the target's deletion. A partial unique index enforces one open report per (reporter, target); the repo returns an `'exists'` sentinel the router maps to 409. `moderation.report.resolve` closes a report.
 
-**Audit log** (`audit_log` table): append-only, no update/delete route anywhere. `recordAudit(actor, action, targetId, detail)` is called `void`-style (it swallows its own errors — an audit write must never fail the request) after every consequential action **by any account, not just admins**:
+**Audit log** (`audit_log` table): append-only, no update/delete route anywhere. `recordAudit(actor, action, targetId, detail)` — or `recordRequestAudit(request, …)`, which additionally stamps the request id and the `impersonated` flag when the session was opened by an administrator (auth-and-sessions.md) — is called `void`-style (it swallows its own errors — an audit write must never fail the request) after every consequential action **by any account, not just admins**:
 
 - Auth: `sign_in` (with the provider or `dev`), `sign_out`, `link_identity`.
 - Account: `accept_consent`, `rename_account`, `unlink_identity`, `revoke_session`, `export_account`, `delete_account`.

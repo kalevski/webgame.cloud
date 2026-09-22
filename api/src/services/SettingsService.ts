@@ -1,3 +1,4 @@
+import { randomBytes } from 'node:crypto'
 import { inject, injectable } from 'tsyringe'
 import type { PlatformSettings } from '../contracts/index.js'
 import { SettingsRepository } from '../repositories/settings/SettingsRepository.js'
@@ -18,12 +19,29 @@ export class SettingsService {
         return value === '' ? undefined : value
     }
 
+    async getRawMany(keys: readonly string[]): Promise<Map<string, string>> {
+        const values = await this.settings.getMany(keys)
+        for (const [key, value] of values) {
+            if (value === '') values.delete(key)
+        }
+        return values
+    }
+
     async getRawByPrefix(prefix: string): Promise<Map<string, string>> {
         return this.settings.getByPrefix(prefix)
     }
 
     async setRaw(key: string, value: string): Promise<void> {
         await this.settings.set(key, value)
+    }
+
+    async getOrCreateSecret(key: string): Promise<string> {
+        const existing = await this.settings.get(key)
+        if (existing) return existing
+
+        const secret = randomBytes(32).toString('hex')
+        await this.settings.setIfAbsent(key, secret)
+        return (await this.settings.get(key)) ?? secret
     }
 
     async getPlatformSettings(): Promise<PlatformSettings> {

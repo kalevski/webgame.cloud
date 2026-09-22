@@ -83,6 +83,7 @@ export class UserService {
                 action: row.action,
                 targetId: row.target_id,
                 detail: row.detail,
+                impersonated: row.impersonated,
                 createdAt: row.created_at.toISOString(),
             })),
         }
@@ -133,7 +134,7 @@ export class UserService {
         void this.audit.record(actor.id, actor.name || actor.email, 'impersonate_user', target.id, target.email)
 
         if (currentSessionId) await this.sessions.delete(currentSessionId)
-        return { target, sessionId: await this.sessions.create(target.id, context) }
+        return { target, sessionId: await this.sessions.create(target.id, context, actor.id) }
     }
 
     async update(

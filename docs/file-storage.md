@@ -106,6 +106,19 @@ Two implementation notes that are easy to regress:
   into the items array (`useMemo` over `assetSources` + `fileBindings`) rather than read from a closure, so
   saving a binding updates the count without a reload.
 
+## Per-source upload rules
+
+Each asset source carries its own `rules` — `allowed_extensions` and `allowed_mime_types`, both jsonb arrays
+on `asset_sources`, empty meaning "allow anything". They are enforced in `FileService.upload` before a byte
+reaches a storage port, using the pure helpers in `contracts/files.ts` (`extensionOf`, `extensionAllowed`,
+`mimeMatches`, `mimeTypeAllowed`), so the same predicate is available to the client.
+
+MIME patterns accept `*`, `*/*` and a trailing `image/*`. Both lists are normalised on write
+(`normalizeExtension`, `normalizeMimeType`), lowercased and de-duplicated, and capped at 40 entries.
+
+A rejected upload answers `asset_extension_not_allowed` or `asset_mime_not_allowed`, each carrying the
+offending value and the allowed list as params, so the web renders a sentence naming what *is* accepted.
+
 ## What is deliberately out of scope
 
 No image processing, no signed upload URLs, no per-type size/mime allow-lists, no quota on the `files`

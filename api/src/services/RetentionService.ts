@@ -118,23 +118,22 @@ export class RetentionService {
             this.purgeSettings(),
         ])
 
-        const rows: TableRetention[] = []
-        for (const table of tables) {
+        const rows = await Promise.all(tables.map(async (table): Promise<TableRetention> => {
             const days = this.resolveDays(stored, table)
             try {
                 const counts = await this.retention.counts(table, days)
-                rows.push({
+                return {
                     table,
                     days,
                     totalRows: counts.total,
                     softDeleted: counts.softDeleted,
                     duePurge: counts.due,
-                })
+                }
             } catch (error) {
                 log.warning('retention count failed', { table, error: String(error) })
-                rows.push({ table, days, totalRows: 0, softDeleted: 0, duePurge: 0 })
+                return { table, days, totalRows: 0, softDeleted: 0, duePurge: 0 }
             }
-        }
+        }))
 
         return { tables: rows, settings, lastRun: this.lastRun }
     }

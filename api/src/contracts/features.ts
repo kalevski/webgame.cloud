@@ -4,7 +4,6 @@ export const FEATURE_FLAGS = [
     'magic_link',
     'files',
     'tickets',
-    'designs',
 ] as const
 
 export type FeatureFlag = typeof FEATURE_FLAGS[number]
@@ -17,7 +16,6 @@ export const FEATURE_FLAG_DEFAULTS: FeatureFlags = {
     magic_link: false,
     files: false,
     tickets: false,
-    designs: false,
 }
 
 export const FEATURE_FLAG_REQUIRES: Partial<Record<FeatureFlag, FeatureFlag>> = {

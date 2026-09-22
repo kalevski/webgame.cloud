@@ -10,15 +10,15 @@ export const PERMISSIONS = [
     'ticket.queue.read',       // see and answer every open ticket as a moderator
     'ticket.queue.write',      // change a ticket's state or assign it
 
-    'design.template.read',    // open the design studio and read its templates
-    'design.template.write',   // create / edit / delete frame and video templates, and render designs from them
-
     'moderation.queue.read',   'moderation.report.resolve', 'audit.read',
 
     'admin.overview.read',     'admin.user.read',           'admin.user.role.write',
     'admin.user.impersonate',  'admin.role.read',           'admin.role.write',
     'admin.settings.read',     'admin.settings.write',      'admin.feature.write',
     'admin.service.read',      'admin.service.write',
+
+    'role.application.read',   // see the queue of accounts asking for a role
+    'role.application.write',  // approve or reject a role application
 
     'billing.plan.read',       'billing.plan.write',
     'billing.subscription.read', 'billing.subscription.write',
@@ -38,7 +38,5 @@ export const PERMISSIONS = [
 ] as const
 
 export type Permission = typeof PERMISSIONS[number]
-
-export const ACCOUNT_SHAPED: readonly Permission[] = []
 
 export type UserRole = string

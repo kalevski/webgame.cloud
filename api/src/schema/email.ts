@@ -40,6 +40,11 @@ export type EmailTriggerRow = {
     created_at: Date
 }
 
+export type TriggerWithTemplateRow = EmailTriggerRow & {
+    template_subject: string
+    template_body: string
+}
+
 export const toEmailTrigger = (row: EmailTriggerRow): EmailTrigger => ({
     id: row.id,
     action: row.action,

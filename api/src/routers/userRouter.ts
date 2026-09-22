@@ -7,8 +7,7 @@ import { UserService } from '../services/UserService.js'
 import { AdminOverviewService } from '../services/AdminOverviewService.js'
 import { SettingsService } from '../services/SettingsService.js'
 import { FeatureService } from '../services/FeatureService.js'
-import { recordAudit } from '../audit.js'
-import { sendError } from './sendError.js'
+import { recordRequestAudit } from '../audit.js'
 
 const users = () => container.resolve(UserService)
 const overview = () => container.resolve(AdminOverviewService)
@@ -60,8 +59,8 @@ const saveFeatureFlagsEndpoint = async (
     request: FastifyRequest<{ Body: Partial<FeatureFlags> }>
 ): Promise<FeatureFlags> => {
     const saved = await features().saveFlags(request.body)
-    void recordAudit(
-        request.user!,
+    void recordRequestAudit(
+        request,
         'update_feature_flags',
         '',
         FEATURE_FLAGS.map((flag) => `${flag}=${saved[flag]}`).join(' ')
@@ -75,42 +74,30 @@ const userProfileEndpoint = async (
     request: FastifyRequest<{ Params: { userId: string } }>,
     reply: FastifyReply
 ) => {
-    try {
-        return await users().profile(request.params.userId)
-    } catch (error) {
-        return sendError(reply, error)
-    }
+    return await users().profile(request.params.userId)
 }
 
 const createUserEndpoint = async (
     request: FastifyRequest<{ Body: { email: string; name?: string; role?: string } }>,
     reply: FastifyReply
 ) => {
-    try {
-        const created = await users().createProvisioned(request.user!, request.body)
-        reply.code(201)
-        return created
-    } catch (error) {
-        return sendError(reply, error)
-    }
+    const created = await users().createProvisioned(request.user!, request.body)
+    reply.code(201)
+    return created
 }
 
 const impersonateEndpoint = async (
     request: FastifyRequest<{ Params: { userId: string } }>,
     reply: FastifyReply
-): Promise<User | { error: string }> => {
-    try {
-        const { target, sessionId } = await users().impersonate(
-            request.user!,
-            readSessionId(request),
-            request.params.userId,
-            sessionContext(request)
-        )
-        setSessionCookie(reply, sessionId)
-        return target
-    } catch (error) {
-        return sendError(reply, error)
-    }
+): Promise<User> => {
+    const { target, sessionId } = await users().impersonate(
+        request.user!,
+        readSessionId(request),
+        request.params.userId,
+        sessionContext(request)
+    )
+    setSessionCookie(reply, sessionId)
+    return target
 }
 
 const adminOverviewEndpoint = async () => overview().overview()
@@ -124,8 +111,8 @@ const saveSettingsEndpoint = async (
         ...request.body,
         salesContact: request.body.salesContact ?? '',
     })
-    void recordAudit(
-        request.user!,
+    void recordRequestAudit(
+        request,
         'update_settings',
         '',
         `signupsOpen=${saved.signupsOpen} announcement=${saved.announcement ? 'set' : 'empty'}`
@@ -137,11 +124,7 @@ const patchUserEndpoint = async (
     request: FastifyRequest<{ Params: { userId: string }; Body: { role?: UserRole; active?: boolean; verified?: boolean } }>,
     reply: FastifyReply
 ) => {
-    try {
-        return await users().update(request.user!, request.params.userId, request.body)
-    } catch (error) {
-        return sendError(reply, error)
-    }
+    return await users().update(request.user!, request.params.userId, request.body)
 }
 
 export const userRouter: FastifyPluginAsync = async (app) => {

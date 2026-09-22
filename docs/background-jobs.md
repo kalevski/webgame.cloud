@@ -90,6 +90,8 @@ the endpoint useful for smoke-testing a handler. An unregistered kind is rejecte
 | `realms.prune_samples` | `30 2 * * *` | Soft-deletes realm heartbeat samples older than `REALM_SAMPLE_RETENTION_DAYS` (7 days). |
 | `realm.migrate` | — | Drives one project migration between realms. Queued by a staff move, re-enqueued at boot. |
 | `realm.purge` | — | Deletes files on a realm after the rows they belong to were deleted. |
+| `invoice_dunning` | `30 9 * * *` | Emails a reminder for every invoice still open (subscriptions-and-billing.md). |
+| `health_sweep` | `*/5 * * * *` | Evaluates the health alarms, logs each firing one and digests it to the owners (operations.md). |
 
 Build work is deliberately **not** a `jobs` row: the realm long-polls and claims from the `builds` table
 directly, because the claim, the status and the result all belong to the build row the user is watching.

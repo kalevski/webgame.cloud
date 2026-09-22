@@ -1,15 +1,20 @@
 import Fastify from 'fastify'
-import type { FastifyError, FastifyInstance } from 'fastify'
+import type { FastifyError, FastifyInstance, FastifyReply, FastifyRequest } from 'fastify'
 import { injectable } from 'tsyringe'
 import { registerAuth } from './auth.js'
 import { registerProjectAuth } from './projectAuth.js'
 import { REALM_ROUTE_PREFIXES, registerRealmAuth } from './realmAuth.js'
+import type { ApiErrorCode } from './contracts/index.js'
 import { encodeErrorCause } from './contracts/index.js'
-import { CORS_ORIGIN, DEV_LOGIN, PORT } from './env.js'
+import { CONTROL_PORT, CORS_ORIGIN, DEV_LOGIN, PORT } from './env.js'
+import { AppError } from './domain/errors.js'
 
+import { reportError } from './domain/observability.js'
 import { registerEnvelope } from './http/envelope.js'
 import { registerSecurityHeaders } from './http/headers.js'
+import { registerHttpCache } from './http/httpCache.js'
 import { registerIdempotency } from './http/idempotency.js'
+import { controlRouter } from './routers/controlRouter.js'
 import { healthRouter } from './routers/healthRouter.js'
 import { accountRouter } from './routers/accountRouter.js'
 import { moderationRouter } from './routers/moderationRouter.js'
@@ -26,6 +31,8 @@ import { configRouter } from './routers/configRouter.js'
 import { translationRouter } from './routers/translationRouter.js'
 import { publicGameRouter } from './routers/publicGameRouter.js'
 import { publicWaitlistRouter, waitlistRouter } from './routers/waitlistRouter.js'
+import { roleApplicationRouter } from './routers/roleApplicationRouter.js'
+import { ticketRouter } from './routers/ticketRouter.js'
 import { billingRouter, publicBillingRouter } from './routers/billingRouter.js'
 import { emailRouter } from './routers/emailRouter.js'
 import { platformRouter } from './routers/platformRouter.js'
@@ -34,8 +41,6 @@ import { signingRouter } from './routers/signingRouter.js'
 import { authRouter } from './routers/authRouter.js'
 import { userRouter } from './routers/userRouter.js'
 import { serviceAccountRouter } from './routers/serviceAccountRouter.js'
-import { ticketRouter } from './routers/ticketRouter.js'
-import { designRouter } from './routers/designRouter.js'
 
 const ROUTE_PLUGINS = [
     healthRouter,
@@ -44,6 +49,7 @@ const ROUTE_PLUGINS = [
     userRouter,
     serviceAccountRouter,
     accessPolicyRouter,
+    roleApplicationRouter,
     notificationRouter,
     moderationRouter,
     projectRouter,
@@ -56,7 +62,6 @@ const ROUTE_PLUGINS = [
     configRouter,
     translationRouter,
     ticketRouter,
-    designRouter,
     publicGameRouter,
     publicWaitlistRouter,
     waitlistRouter,
@@ -68,6 +73,14 @@ const ROUTE_PLUGINS = [
     signingRouter,
 ]
 
+const CONTROL_PLUGINS = [
+    controlRouter,
+]
+
+const ALLOWED_HEADERS = 'content-type, authorization, idempotency-key'
+
+const EXPOSED_HEADERS = 'x-request-id, retry-after, idempotent-replay'
+
 const MUTATING = new Set(['POST', 'PUT', 'PATCH', 'DELETE'])
 const LOCALHOST_ORIGIN = /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/
 
@@ -76,9 +89,46 @@ const originAllowed = (origin: string, selfOrigin: string): boolean =>
     (CORS_ORIGIN !== '' && origin === CORS_ORIGIN) ||
     (DEV_LOGIN && LOCALHOST_ORIGIN.test(origin))
 
+const CLIENT_ERROR_CAUSES: Partial<Record<number, ApiErrorCode>> = {
+    400: 'invalid_body',
+    404: 'not_found',
+    413: 'payload_too_large',
+    415: 'unsupported_media_type',
+    429: 'request_failed',
+}
+
+const errorHandler = (error: FastifyError, request: FastifyRequest, reply: FastifyReply): void => {
+    if (error instanceof AppError) {
+        reply.code(error.status).send({ error: encodeErrorCause(error.code, ...error.params) })
+        return
+    }
+    if (error.validation) {
+        const detail = error.validation[0]
+        const field = detail?.instancePath?.slice(1).replaceAll('/', '.')
+            || String((detail?.params as Record<string, unknown> | undefined)?.missingProperty ?? 'body')
+        reply.code(400).send({ error: encodeErrorCause('invalid_body', field) })
+        return
+    }
+    const status = error.statusCode ?? 500
+    if (status >= 400 && status < 500) {
+        request.log.warn(error)
+        reply.code(status).send({ error: encodeErrorCause(CLIENT_ERROR_CAUSES[status] ?? 'invalid_input') })
+        return
+    }
+
+    request.log.error(error)
+    reportError(error, {
+        source: `${request.method} ${request.routeOptions?.url ?? request.url}`,
+        requestId: String(request.id),
+    })
+    reply.code(500).send({ error: encodeErrorCause('internal_error') })
+}
+
 @injectable()
 export class Http {
     public server!: FastifyInstance
+
+    public control!: FastifyInstance
 
     async init(): Promise<void> {
         this.server = Fastify({ logger: true, trustProxy: true })
@@ -88,10 +138,11 @@ export class Http {
                 reply.header('access-control-allow-origin', CORS_ORIGIN)
                 reply.header('access-control-allow-credentials', 'true')
                 reply.header('vary', 'Origin')
+                reply.header('access-control-expose-headers', EXPOSED_HEADERS)
                 if (request.method === 'OPTIONS') {
                     reply
                         .header('access-control-allow-methods', 'GET,POST,PUT,PATCH,DELETE')
-                        .header('access-control-allow-headers', 'content-type')
+                        .header('access-control-allow-headers', ALLOWED_HEADERS)
                         .header('access-control-max-age', '86400')
                         .code(204)
                         .send()
@@ -118,29 +169,32 @@ export class Http {
         registerProjectAuth(this.server)
         registerRealmAuth(this.server)
         registerIdempotency(this.server)
+        registerHttpCache(this.server)
 
-        this.server.setErrorHandler((error: FastifyError, request, reply) => {
-            if (error.validation) {
-                const detail = error.validation[0]
-                const field = detail?.instancePath?.slice(1).replaceAll('/', '.')
-                    || String((detail?.params as Record<string, unknown> | undefined)?.missingProperty ?? 'body')
-                reply.code(400).send({ error: encodeErrorCause('invalid_body', field) })
-                return
-            }
-            request.log.error(error)
-            reply.code(500).send({ error: encodeErrorCause('internal_error') })
-        })
+        this.server.setErrorHandler(errorHandler)
 
         for (const plugin of ROUTE_PLUGINS) {
             await this.server.register(plugin)
+        }
+
+        this.control = Fastify({ logger: true })
+
+        registerEnvelope(this.control)
+
+        this.control.setErrorHandler(errorHandler)
+
+        for (const plugin of CONTROL_PLUGINS) {
+            await this.control.register(plugin)
         }
     }
 
     async run(): Promise<void> {
         await this.server.listen({ port: PORT, host: '0.0.0.0' })
+        await this.control.listen({ port: CONTROL_PORT, host: '127.0.0.1' })
     }
 
     async dispose(): Promise<void> {
         await this.server?.close()
+        await this.control?.close()
     }
 }

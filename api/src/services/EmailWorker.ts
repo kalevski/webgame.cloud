@@ -1,6 +1,7 @@
 import { inject, injectable } from 'tsyringe'
 import { formatDuration } from '@toolcase/base'
 import { getLogger } from '../logging.js'
+import { drain } from '../domain/drain.js'
 import { recordHeartbeat, registerWorker, unregisterWorker } from '../health.js'
 import { toEmailMessage } from '../schema/email.js'
 import { EmailService } from './EmailService.js'
@@ -31,6 +32,9 @@ export class EmailWorker {
     async dispose(): Promise<void> {
         if (this.timer) clearInterval(this.timer)
         this.timer = null
+        if (!(await drain(() => this.running))) {
+            log.warning('email worker still busy at shutdown, abandoning the batch')
+        }
         unregisterWorker('email')
     }
 

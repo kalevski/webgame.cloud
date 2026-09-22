@@ -5,7 +5,6 @@ import { requireAuth } from '../auth.js'
 import { loadProject, requireProjectPermission } from '../projectAuth.js'
 import container from '../container.js'
 import { TranslationService } from '../services/TranslationService.js'
-import { sendError } from './sendError.js'
 import { recordAudit } from '../audit.js'
 
 const translations = () => container.resolve(TranslationService)
@@ -67,24 +66,16 @@ const getTranslationsEndpoint = async (
     request: FastifyRequest<{ Params: { id: string } }>,
     reply: FastifyReply
 ) => {
-    try {
-        return await translations().get(request.project!.id)
-    } catch (error) {
-        return sendError(reply, error)
-    }
+    return await translations().get(request.project!.id)
 }
 
 const saveTranslationsEndpoint = async (
     request: FastifyRequest<{ Params: { id: string }; Body: { doc: TranslationDoc } }>,
     reply: FastifyReply
 ) => {
-    try {
-        const saved = await translations().save(request.project!.id, request.body.doc)
-        void recordAudit(request.user!, 'translations.saved', request.project!.id, '', request.id)
-        return saved
-    } catch (error) {
-        return sendError(reply, error)
-    }
+    const saved = await translations().save(request.project!.id, request.body.doc)
+    void recordAudit(request.user!, 'translations.saved', request.project!.id, '', request.id)
+    return saved
 }
 
 export const translationRouter: FastifyPluginAsync = async (app) => {

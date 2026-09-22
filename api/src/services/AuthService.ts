@@ -8,8 +8,8 @@ import {
 import { buildAuthorizeURL, defineOAuth2Provider, exchangeCode, fetchUserinfo } from '@toolcase/node'
 import { Async } from '@toolcase/base'
 import type { OAuth2ProviderConfig } from '@toolcase/node'
-import { isInSlot, legacyLimits } from '../domain/access.js'
-import { ConflictError } from '../domain/errors.js'
+import { isInSlot } from '../domain/access.js'
+import { ConflictError, NotFoundError } from '../domain/errors.js'
 import { notify } from '../notify.js'
 import { UserRepository } from '../repositories/users/UserRepository.js'
 import { IdentityRepository } from '../repositories/users/IdentityRepository.js'
@@ -174,7 +174,7 @@ export class AuthService {
                 picture: profile.picture,
                 defaultRoleId: bindings.default ?? 'indie',
             })
-            void notify(user.id, 'welcome', WELCOME_TITLE, '/dashboard')
+            void notify(user.id, 'welcome', WELCOME_TITLE, '/profile')
         }
         await this.identities.link(user.id, id, profile.subject, profile.email)
         void this.waitlist.claimGrant(user).catch(() => undefined)
@@ -222,15 +222,40 @@ export class AuthService {
         await this.sessions.delete(sessionId)
     }
 
-    async sessionFor(user: User, permissionSet: ReadonlySet<Permission>): Promise<AuthSession> {
-        const [resolved, bindings, roles, usage, subscription, plans] = await Promise.all([
+    async endImpersonation(
+        current: User,
+        impersonatedById: string | null,
+        sessionId: string | null,
+        context: SessionContext
+    ): Promise<{ admin: User; sessionId: string }> {
+        if (!impersonatedById) {
+            throw new ConflictError('not_impersonating', 'this session was not opened by an administrator')
+        }
+
+        const admin = await this.users.findById(impersonatedById)
+        if (!admin || !admin.active) {
+            throw new NotFoundError('user_not_found', 'the impersonating account no longer exists', [impersonatedById])
+        }
+
+        if (sessionId) await this.sessions.delete(sessionId)
+        return { admin, sessionId: await this.sessions.create(admin.id, context) }
+    }
+
+    async sessionFor(
+        user: User,
+        permissionSet: ReadonlySet<Permission>,
+        impersonatedById: string | null = null
+    ): Promise<AuthSession> {
+        const [resolved, bindings, roles, usage, subscription] = await Promise.all([
             this.access.limitsFor(user),
             this.access.getBindings(),
             this.access.listRoles(),
             this.access.usageFor(user),
             this.billing.getSubscription(user.id),
-            this.billing.listPlans(),
         ])
+        const plans = await this.billing.listPlans(user, subscription)
+
+        const impersonator = impersonatedById ? await this.users.findById(impersonatedById) : null
 
         const subscriptionActive = ACTIVE_SUBSCRIPTION_STATUSES.includes(subscription.status)
         const upgradePlan = plans.find((plan) => plan.id !== subscription.planId) ?? null
@@ -240,7 +265,6 @@ export class AuthService {
             user,
 
             permissions: [...permissionSet],
-            limits: legacyLimits(resolved),
             resourceLimits: resolved,
             usage,
             slots: {
@@ -248,6 +272,9 @@ export class AuthService {
                 default: isInSlot(user.role, 'default', bindings),
             },
             roleName: nameOf(user.role),
+            impersonatedBy: impersonator
+                ? { id: impersonator.id, name: impersonator.name, email: impersonator.email }
+                : null,
             paid: subscriptionActive,
             upgradePlanName: upgradePlan?.name ?? null,
         }

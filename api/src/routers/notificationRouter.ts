@@ -4,7 +4,6 @@ import { requireAuth } from '../auth.js'
 import container from '../container.js'
 import { NotificationService } from '../services/NotificationService.js'
 import { PushService } from '../services/PushService.js'
-import { sendError } from './sendError.js'
 
 const notifications = () => container.resolve(NotificationService)
 const push = () => container.resolve(PushService)
@@ -49,13 +48,9 @@ const markReadEndpoint = async (request: FastifyRequest<{ Body: { ids?: string[]
 const pushPublicKeyEndpoint = async () => ({ publicKey: await push().getVapidPublicKey() })
 
 const subscribePushEndpoint = async (request: FastifyRequest<{ Body: PushSubscriptionDraft }>, reply: FastifyReply) => {
-    try {
-        await push().subscribe(request.user!.id, request.body)
-        reply.code(201)
-        return { ok: true }
-    } catch (error) {
-        return sendError(reply, error)
-    }
+    await push().subscribe(request.user!.id, request.body)
+    reply.code(201)
+    return { ok: true }
 }
 
 const unsubscribePushEndpoint = async (request: FastifyRequest<{ Body: { endpoint: string } }>, reply: FastifyReply) => {

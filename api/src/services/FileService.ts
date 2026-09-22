@@ -1,7 +1,22 @@
 import { inject, injectable } from 'tsyringe'
 import { randomUUID } from 'node:crypto'
-import type { AssetSource, AssetSourceDraft, AssetType, AssetTypeBindings, StoredFile } from '../contracts/index.js'
-import { ASSET_SOURCE_TYPES, ASSET_TYPES } from '../contracts/index.js'
+import type {
+    AssetSource,
+    AssetSourceDraft,
+    AssetSourceRules,
+    AssetType,
+    AssetTypeBindings,
+    StoredFile,
+} from '../contracts/index.js'
+import {
+    ASSET_SOURCE_TYPES,
+    ASSET_TYPES,
+    extensionAllowed,
+    extensionOf,
+    mimeTypeAllowed,
+    normalizeExtension,
+    normalizeMimeType,
+} from '../contracts/index.js'
 import { ConflictError, NotFoundError, UnavailableError, ValidationError } from '../domain/errors.js'
 import { getStoragePort } from '../domain/storage.js'
 import { FileRepository } from '../repositories/files/FileRepository.js'
@@ -9,6 +24,16 @@ import { toAssetSource, toStoredFile } from '../schema/files.js'
 import { SettingsService } from './SettingsService.js'
 
 const bindingKey = (assetType: AssetType): string => `asset_type_source_${assetType}`
+
+const RULE_MAX_ENTRIES = 40
+
+const normalizeList = (values: readonly string[], normalize: (raw: string) => string): string[] =>
+    [...new Set(values.map(normalize).filter(Boolean))].slice(0, RULE_MAX_ENTRIES)
+
+const normalizeRules = (rules: Partial<AssetSourceRules> | undefined): AssetSourceRules => ({
+    extensions: normalizeList(rules?.extensions ?? [], normalizeExtension),
+    mimeTypes: normalizeList(rules?.mimeTypes ?? [], normalizeMimeType),
+})
 
 @injectable()
 export class FileService {
@@ -33,12 +58,15 @@ export class FileService {
             throw new ValidationError('asset_source_config_invalid', 'a bucket is required for s3 sources')
         }
 
+        const rules = normalizeRules(draft.rules)
         const created = await this.files.insertSource({
             id: randomUUID(),
             name,
             type: draft.type,
             config,
             secret: draft.secret?.trim() ?? '',
+            extensions: rules.extensions,
+            mimeTypes: rules.mimeTypes,
         })
         if (!created) throw new NotFoundError('asset_source_not_found', 'file source not found')
         return toAssetSource(created)
@@ -52,10 +80,13 @@ export class FileService {
             throw new ValidationError('asset_source_config_invalid', 'a bucket is required for s3 sources')
         }
 
+        const rules = patch.rules === undefined ? null : normalizeRules(patch.rules)
         const updated = await this.files.updateSource(id, {
             name: patch.name?.trim() ?? null,
             config: patch.config ?? null,
             secret: patch.secret?.trim() || null,
+            extensions: rules?.extensions ?? null,
+            mimeTypes: rules?.mimeTypes ?? null,
         })
         if (!updated) throw new NotFoundError('asset_source_not_found', 'file source not found', [id])
         return toAssetSource(updated)
@@ -122,6 +153,22 @@ export class FileService {
 
         const source = await this.files.findSource(sourceId)
         if (!source) throw new NotFoundError('asset_source_not_found', 'file source not found', [sourceId])
+
+        const rules = toAssetSource(source).rules
+        if (!extensionAllowed(rules, meta.originalName)) {
+            throw new ValidationError(
+                'asset_extension_not_allowed',
+                'this source does not accept that file extension',
+                [extensionOf(meta.originalName) || '?', rules.extensions.join(' ')]
+            )
+        }
+        if (!mimeTypeAllowed(rules, meta.mime)) {
+            throw new ValidationError(
+                'asset_mime_not_allowed',
+                'this source does not accept that file type',
+                [meta.mime || '?', rules.mimeTypes.join(' ')]
+            )
+        }
 
         const port = getStoragePort(source.type)
         if (!port) throw new UnavailableError('asset_type_unassigned', 'no storage backend for this source type')

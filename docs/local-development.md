@@ -32,7 +32,18 @@ The web workspace reads no environment file — Vite proxies `/api` to `127.0.0.
 | `DATABASE_PASS` | none | |
 | `DATABASE_NAME` | `starter` | `goose.sh up` runs `createdb` first, so it does not need to exist. |
 | `WORKSPACE_NAME` | `WebGame Cloud` | Shown on public invoices and in `/api/public/constants`. |
-| `DATABASE_SSLMODE` | `disable` | Read by the shell scripts only; `api/src/env.ts` does not set `ssl` on the pool. |
+| `DATABASE_SSLMODE` | `disable` | Read by the shell scripts **and** by the pool in `api/src/env.ts`. `disable`/`allow`/`prefer` mean no TLS; `require`/`no-verify` connect without verifying the certificate; anything else verifies it. |
+| `DATABASE_POOL_MAX` | `10` | Pool size. Fan-out routes are the ones that feel it. |
+| `DATABASE_STATEMENT_TIMEOUT_MS` | `15000` | Server-side statement timeout, so one pathological query cannot hold a connection open. |
+| `DATABASE_SLOW_MS` | `1000` | The budget the `database` health component measures `SELECT 1` against. |
+
+### Other variables worth knowing
+
+| Variable | Default | Notes |
+| --- | --- | --- |
+| `APP_ENV` | `development` | Setting it to `production` turns on `assertProductionConfig()`, which refuses to boot on an unsafe combination (operations.md). |
+| `CONTROL_PORT` | `6010` | The localhost-only control API each service serves alongside its public one. `npm run cli -w @webgame-cloud/api -- status` talks to it. |
+| `WEBHOOK_ALLOW_PRIVATE` | follows `DEV_LOGIN` | Allows webhook targets that resolve to private addresses. Local only — it is one of the things the production guard refuses (webhooks.md). |
 
 ## Postgres in Docker
 

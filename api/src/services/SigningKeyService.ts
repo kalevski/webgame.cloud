@@ -104,11 +104,7 @@ export class SigningKeyService {
     }
 
     async list(): Promise<SigningKey[]> {
-        const keys: SigningKey[] = []
-        for (const name of SIGNING_KEYS) {
-            keys.push(await this.describe(name))
-        }
-        return keys
+        return Promise.all(SIGNING_KEYS.map((name) => this.describe(name)))
     }
 
     async rotate(name: string): Promise<SigningKey> {
