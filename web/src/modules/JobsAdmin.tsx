@@ -3,6 +3,7 @@ import { useStore } from 'state'
 import useStrings from 'hooks/useStrings'
 import useCan from 'hooks/useCan'
 import Loading from 'components/Loading'
+import ModuleActions from 'components/ModuleActions'
 import { useTc } from '@toolcase/web-components/react'
 import { escapeHtml } from 'helpers/html'
 import { Job, JobSchedule, JobStatus } from 'types'
@@ -62,7 +63,7 @@ const JobsAdmin: React.FC = () => {
             `</span>` +
             (canWrite
                 ? `<span class="table-actions">` +
-                  `<tc-button variant="secondary" size="small" outline data-action="run">${escapeHtml(j.runOne)}</tc-button>` +
+                  `<tc-button variant="secondary" size="sm" outline data-action="run">${escapeHtml(j.runOne)}</tc-button>` +
                   `</span>`
                 : '') +
             `</li>`
@@ -99,13 +100,16 @@ const JobsAdmin: React.FC = () => {
 
     return (
         <div className="module module-jobs">
-            <tc-section-card title={j.title} icon="CalendarClock">
+            <ModuleActions>
                 {canWrite && (
-                    <tc-button slot="action" variant="primary" size="sm" onClick={() => void runJobs()}>
+                    <tc-button variant="primary" size="sm" onClick={() => void runJobs()}>
                         {j.runAll}
                     </tc-button>
                 )}
-                <tc-stack direction="column" gap="0.85rem">
+            </ModuleActions>
+
+            <tc-section-card title={j.title} icon="CalendarClock">
+                <tc-stack direction="vertical" gap="0.85rem">
                     <tc-text variant="muted">{j.intro}</tc-text>
 
                     {jobSchedulesLoaded && jobSchedules.length === 0 && (
@@ -117,7 +121,7 @@ const JobsAdmin: React.FC = () => {
             </tc-section-card>
 
             <tc-section-card title={j.runsTitle} icon="History">
-                <tc-stack direction="column" gap="0.85rem">
+                <tc-stack direction="vertical" gap="0.85rem">
                     <tc-text variant="muted">{j.runsIntro}</tc-text>
 
                     {jobStats && (

@@ -1,11 +1,5 @@
 @use '../abstracts' as *;
 
-.layout-main__navbar-right {
-    display: flex;
-    align-items: center;
-    gap: $space-sm;
-}
-
 .module-command {
     &__hint {
         display: inline-flex;
@@ -17,7 +11,7 @@
         color: var(--tc-text-muted);
         background: var(--tc-surface-muted);
         border: 1px solid var(--tc-border);
-        border-radius: $radius-md;
+        border-radius: var(--bs-border-radius);
         cursor: pointer;
 
         &:hover {

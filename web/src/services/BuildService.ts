@@ -1,4 +1,5 @@
 import { apiFetch } from 'helpers/api'
+import { queryString } from 'helpers/query'
 import { Build, BuildDetail, BuildFilters } from 'types'
 
 const base = (projectId: string) => `/api/projects/${encodeURIComponent(projectId)}`
@@ -13,12 +14,7 @@ class BuildService {
     }
 
     async list(projectId: string, filters: BuildFilters = {}): Promise<Build[]> {
-        const query = new URLSearchParams()
-        if (filters.status) query.set('status', filters.status)
-        if (filters.bundleId) query.set('bundleId', filters.bundleId)
-        if (filters.cursor) query.set('cursor', filters.cursor)
-        const suffix = query.toString() ? `?${query.toString()}` : ''
-        return apiFetch<Build[]>(`${base(projectId)}/builds${suffix}`)
+        return apiFetch<Build[]>(`${base(projectId)}/builds${queryString(filters)}`)
     }
 
     async detail(projectId: string, buildId: string): Promise<BuildDetail> {

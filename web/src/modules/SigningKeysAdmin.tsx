@@ -33,7 +33,7 @@ const SigningKeysAdmin: React.FC = () => {
     return (
         <div className="module module-signing-keys">
             <tc-section-card title={s.title}>
-                <tc-stack direction="column" gap="0.85rem">
+                <tc-stack direction="vertical" gap="0.85rem">
                     <tc-text variant="muted">{s.intro}</tc-text>
 
                     {signingKeysLoaded && signingKeys.length === 0 && (
@@ -43,11 +43,11 @@ const SigningKeysAdmin: React.FC = () => {
                     {signingKeys.map((entry) => (
                         <div className="module-signing-keys__key" key={entry.name}>
                             <div className="module-signing-keys__head">
-                                <tc-text as="strong">{entry.label}</tc-text>
+                                <strong>{entry.label}</strong>
                                 <div className="module-signing-keys__actions">
                                     <tc-button
                                         variant="secondary"
-                                        size="small"
+                                        size="sm"
                                         outline
                                         onClick={() => showPublicKey(entry)}
                                     >
@@ -56,7 +56,7 @@ const SigningKeysAdmin: React.FC = () => {
                                     {canRotate && (
                                         <tc-button
                                             variant="secondary"
-                                            size="small"
+                                            size="sm"
                                             outline
                                             onClick={() => confirmRotate(entry)}
                                         >

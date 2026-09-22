@@ -264,7 +264,7 @@
     .member-table__perm-count {
         padding: 1px $space-1;
         border: 1px solid var(--tc-border, #e3e0f2);
-        border-radius: $radius-sm;
+        border-radius: var(--bs-border-radius);
         font-family: var(--tc-font-mono, ui-monospace, monospace);
         font-size: 0.6875rem;
         font-variant-numeric: tabular-nums;

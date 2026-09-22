@@ -1,4 +1,5 @@
 export type {
+    EmailPlaceholder,
     EmailAudience,
     EmailComposeDraft,
     EmailComposeResult,
@@ -19,6 +20,7 @@ export type {
 export {
     EMAIL_AUDIENCES,
     EMAIL_PROVIDERS,
+    EMAIL_PLACEHOLDERS,
     EMAIL_RECIPIENT_MODES,
     EMAIL_STATUSES,
 } from '@webgame-cloud/api/contracts'

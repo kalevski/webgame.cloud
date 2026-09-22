@@ -24,7 +24,7 @@ const EnquiryTrailModal: React.FC = () => {
 
     return (
         <div className="modal-trail">
-            <tc-stack direction="column" gap="0.75rem">
+            <tc-stack direction="vertical" gap="0.75rem">
                 {enquiry && (
                     <tc-text variant="muted">
                         {`${enquiry.userName || enquiry.userEmail} · ${enquiry.planName ?? '—'}`}

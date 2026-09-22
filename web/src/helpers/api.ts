@@ -57,7 +57,10 @@ export const apiFetch = async <T>(path: string, init?: RequestInit): Promise<T> 
     let response: Response
     try {
         response = await fetchWithRetry(`${API_BASE}${path}`, {
-            headers: init?.body ? { 'content-type': 'application/json' } : undefined,
+            headers:
+                init?.body && !(init.body instanceof FormData)
+                    ? { 'content-type': 'application/json' }
+                    : undefined,
 
             credentials: API_BASE ? 'include' : 'same-origin',
             ...init,

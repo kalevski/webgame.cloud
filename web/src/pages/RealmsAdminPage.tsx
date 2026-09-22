@@ -1,12 +1,11 @@
 import React, { useEffect } from 'react'
 import { useLocation, useParams } from 'react-router'
-import { wrapInMainLayout } from 'layouts/MainLayout'
 import { usePageContext } from 'contexts/PageContext'
 import useStrings from 'hooks/useStrings'
 import useCan from 'hooks/useCan'
 import { useStore } from 'state'
 import { MODAL, useModalOpen } from 'modals'
-import RouteTabs from 'components/RouteTabs'
+import usePageTabs from 'hooks/usePageTabs'
 import AuthGuard from 'modules/AuthGuard'
 import RealmsAdmin from 'modules/RealmsAdmin'
 import RealmRegionsAdmin from 'modules/RealmRegionsAdmin'
@@ -36,9 +35,11 @@ const RealmsAdminPage: React.FC = () => {
     const openRegion = useModalOpen<boolean, RealmRegion | undefined>(MODAL.REALM_REGION)
 
     const tabs = [
-        { id: 'realms', label: t.realms.tabRealms, icon: 'server', path: '/platform/realms' },
-        { id: 'regions', label: t.realms.tabRegions, icon: 'globe', path: REGIONS_PATH },
+        { id: 'realms', label: t.realms.tabRealms, href: '/platform/realms' },
+        { id: 'regions', label: t.realms.tabRegions, href: REGIONS_PATH },
     ]
+
+    usePageTabs(tabs)
 
     useEffect(() => {
         setPageTitle(t.pages.realmsTitle)
@@ -73,12 +74,10 @@ const RealmsAdminPage: React.FC = () => {
                     </span>
                 </tc-rich-page-header>
 
-                {!id && <RouteTabs tabs={tabs} activeId={onRegions ? 'regions' : 'realms'} />}
-
                 {id ? <RealmDetail /> : onRegions ? <RealmRegionsAdmin /> : <RealmsAdmin />}
             </section>
         </AuthGuard>
     )
 }
 
-export default wrapInMainLayout(RealmsAdminPage)
+export default RealmsAdminPage

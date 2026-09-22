@@ -115,7 +115,7 @@ const RealmRegionsAdmin: React.FC = () => {
                                     <footer className="module-realm-regions__actions">
                                         <tc-button
                                             variant="secondary"
-                                            size="small"
+                                            size="sm"
                                             outline
                                             onClick={() => void updateRegion(region.id, { active: !region.active })}
                                         >
@@ -123,7 +123,7 @@ const RealmRegionsAdmin: React.FC = () => {
                                         </tc-button>
                                         <tc-button
                                             variant="secondary"
-                                            size="small"
+                                            size="sm"
                                             outline
                                             onClick={() => openEditor(region)}
                                         >
@@ -131,7 +131,7 @@ const RealmRegionsAdmin: React.FC = () => {
                                         </tc-button>
                                         <tc-button
                                             variant="danger"
-                                            size="small"
+                                            size="sm"
                                             outline
                                             disabled={blocked || undefined}
                                             title={blocked ? r.regionDeleteBlocked(region.realmCount) : undefined}

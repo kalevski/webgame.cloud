@@ -4,6 +4,7 @@ import { useStore } from 'state'
 import useStrings from 'hooks/useStrings'
 import useCan from 'hooks/useCan'
 import Loading from 'components/Loading'
+import ModuleActions from 'components/ModuleActions'
 import { useTcEvents, detailValue } from '@toolcase/web-components/react'
 import { TICKET_STATUSES, TicketMessage, TicketStatus, isTicketOpen } from 'types'
 import { formatDateTime, formatRelative } from 'helpers/dates'
@@ -105,16 +106,16 @@ const TicketThread: React.FC<{ id: string }> = ({ id }) => {
             className="module module-ticket-thread"
             style={{ '--tk-state': `var(--tk-${ticket.status})` } as React.CSSProperties}
         >
-            <tc-section-card title={ticket.subject} icon="LifeBuoy">
-                <span slot="action" className="section-card-actions">
-                    {(canManage || ticket.ownerId === me?.id) && (
-                        <tc-button variant="danger" size="sm" outline onClick={handleDelete}>
-                            {k.delete}
-                        </tc-button>
-                    )}
-                </span>
+            <ModuleActions>
+                {(canManage || ticket.ownerId === me?.id) && (
+                    <tc-button variant="danger" size="sm" outline onClick={handleDelete}>
+                        {k.delete}
+                    </tc-button>
+                )}
+            </ModuleActions>
 
-                <tc-stack direction="column" gap="0.85rem">
+            <tc-section-card title={ticket.subject} icon="LifeBuoy">
+                <tc-stack direction="vertical" gap="0.85rem">
                     <div className="module-ticket-thread__summary">
                         <span className="ticket-state">{k.statusLabels[ticket.status]}</span>
                         <span className="module-ticket-thread__opened" title={formatDateTime(ticket.createdAt)}>
@@ -163,13 +164,13 @@ const TicketThread: React.FC<{ id: string }> = ({ id }) => {
                     </div>
 
                     {replyable ? (
-                        <tc-stack direction="column" gap="0.6rem" className="module-ticket-thread__reply">
+                        <tc-stack direction="vertical" gap="0.6rem" className="module-ticket-thread__reply">
                             <tc-textarea
                                 ref={bodyEl}
                                 label={k.replyLabel}
                                 placeholder={k.replyPlaceholder}
                                 rows="4"
-                                onInput={(event: React.FormEvent<ValueElement>) => {
+                                onInput={(event) => {
                                     setBody(String((event.target as ValueElement).value ?? ''))
                                 }}
                             ></tc-textarea>

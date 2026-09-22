@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react'
 import useStrings from 'hooks/useStrings'
 import { useTc } from '@toolcase/web-components/react'
 import { MODAL } from './keys'
-import { useModalClose, useModalInput } from './registry'
+import { useModalClose, useModalInput, SheetFooter } from './registry'
 
 export type FilterFieldOption = { key: string; label: string; keywords?: string[] }
 
@@ -199,15 +199,17 @@ const FiltersModal: React.FC = () => {
                     </div>
                 ))}
             </div>
-            <tc-button slot="footer" variant="primary" onClick={() => closeModal(state)}>
-                {f.apply}
-            </tc-button>
-            <tc-button slot="footer" variant="secondary" outline onClick={clearAll}>
-                {f.clear}
-            </tc-button>
-            <tc-button slot="footer" variant="secondary" outline onClick={() => closeModal(null)}>
-                {t.modal.cancel}
-            </tc-button>
+            <SheetFooter>
+                <tc-button variant="primary" onClick={() => closeModal(state)}>
+                    {f.apply}
+                </tc-button>
+                <tc-button variant="secondary" outline onClick={clearAll}>
+                    {f.clear}
+                </tc-button>
+                <tc-button variant="secondary" outline onClick={() => closeModal(null)}>
+                    {t.modal.cancel}
+                </tc-button>
+            </SheetFooter>
         </>
     )
 }

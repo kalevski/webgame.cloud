@@ -1,4 +1,5 @@
 import { apiFetch } from 'helpers/api'
+import { queryString } from 'helpers/query'
 import {
     AdminProject,
     AdminProjectFilters,
@@ -36,13 +37,7 @@ class ProjectService {
     }
 
     async listAdmin(filters: AdminProjectFilters): Promise<AdminProjectPage> {
-        const query = new URLSearchParams()
-        for (const [key, value] of Object.entries(filters)) {
-            if (value === undefined || value === null || value === '') continue
-            query.set(key, String(value))
-        }
-        const suffix = query.toString()
-        return apiFetch<AdminProjectPage>(`/api/admin/projects${suffix ? `?${suffix}` : ''}`)
+        return apiFetch<AdminProjectPage>(`/api/admin/projects${queryString(filters)}`)
     }
 
     async getAdmin(id: string): Promise<AdminProject> {

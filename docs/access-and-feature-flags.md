@@ -129,7 +129,7 @@ refuse, and the usage panel shows the overage.
 
 ## The usage panel (web)
 
-`modules/UsageSummary.tsx` renders a gauge button in `MainLayout`'s `navbar-right` slot, between the
+`modules/UsageSummary.tsx` renders a gauge button in `AppBar`'s `actions` slot, between the
 command-palette hint and the notification bell, and opens a dropdown built the same way
 `NotificationsBell` is — local `open` state, an outside-click/Escape listener on `document`, and a
 `tc-scroll-area` around the body. It is the read-only counterpart to `assertWithinLimit`: the paywall

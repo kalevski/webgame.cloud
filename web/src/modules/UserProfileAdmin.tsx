@@ -6,7 +6,7 @@ import useCan from 'hooks/useCan'
 import { MODAL, useModalOpen } from 'modals'
 import { ManageAccessInput, ManageAccessResult } from 'modals/ManageAccessModal'
 import AdvancedTable from 'components/AdvancedTable'
-import RouteTabs from 'components/RouteTabs'
+import usePageTabs from 'hooks/usePageTabs'
 import { ProjectColumnKey, projectColumns, projectRow } from 'helpers/platformTables'
 import { formatBytes } from 'helpers/format'
 import { formatDate, formatDateTime } from 'helpers/dates'
@@ -82,6 +82,24 @@ const UserProfileAdmin: React.FC = () => {
         void fetchUsers()
     }, [fetchUsers])
 
+    const tabs = profile
+        ? [
+            { id: 'profile', label: u.tabProfile, href: `/platform/users/${profile.user.id}` },
+            {
+                id: 'projects',
+                label: u.tabProjects(profile.projects.length),
+                href: `/platform/users/${profile.user.id}/projects`,
+            },
+            {
+                id: 'activity',
+                label: u.tabActivity(profile.activity.length),
+                href: `/platform/users/${profile.user.id}/activity`,
+            },
+        ]
+        : []
+
+    usePageTabs(tabs)
+
     if (!profile) {
         return (
             <div className="module module-user-profile-admin">
@@ -121,22 +139,6 @@ const UserProfileAdmin: React.FC = () => {
     const projectRows = profile.projects
         .map((project) => projectRow(project, t.projectsAdmin, PROJECT_COLUMN_KEYS, { viewerId: user.id }))
         .join('')
-
-    const tabs = [
-        { id: 'profile', label: u.tabProfile, icon: 'user', path: `/platform/users/${user.id}` },
-        {
-            id: 'projects',
-            label: u.tabProjects(profile.projects.length),
-            icon: 'folder',
-            path: `/platform/users/${user.id}/projects`,
-        },
-        {
-            id: 'activity',
-            label: u.tabActivity(profile.activity.length),
-            icon: 'history',
-            path: `/platform/users/${user.id}/activity`,
-        },
-    ]
 
     return (
         <div className="module module-user-profile-admin">
@@ -202,8 +204,6 @@ const UserProfileAdmin: React.FC = () => {
                     )}
                 </span>
             </tc-rich-page-header>
-
-            <RouteTabs tabs={tabs} activeId={activeTab} />
 
             {activeTab === 'profile' && (
                 <div className="console-section">

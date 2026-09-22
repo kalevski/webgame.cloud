@@ -1,5 +1,4 @@
 import React, { useEffect } from 'react'
-import { wrapInMainLayout } from 'layouts/MainLayout'
 import { usePageContext } from 'contexts/PageContext'
 import useStrings from 'hooks/useStrings'
 import AuthGuard from 'modules/AuthGuard'
@@ -15,12 +14,10 @@ const ModerationPage: React.FC = () => {
     }, [setPageTitle, setPageDescription, t.pages.moderationTitle, t.pages.moderationDescription])
 
     return (
-        <AuthGuard secured permission="moderation.queue.read">
-            <section className="console-page">
-                <Moderation />
-            </section>
+        <AuthGuard secured permission={['moderation.queue.read', 'role.application.read']}>
+            <Moderation />
         </AuthGuard>
     )
 }
 
-export default wrapInMainLayout(ModerationPage)
+export default ModerationPage

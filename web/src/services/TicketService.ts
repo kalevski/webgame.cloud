@@ -1,4 +1,5 @@
 import { apiFetch } from 'helpers/api'
+import { queryString } from 'helpers/query'
 import {
     Ticket,
     TicketDraft,
@@ -8,17 +9,6 @@ import {
     TicketStatus,
     TicketThread,
 } from 'types'
-
-const query = (filters: TicketFilters): string => {
-    const params = new URLSearchParams()
-    if (filters.status) params.set('status', filters.status)
-    if (filters.assigneeId) params.set('assigneeId', filters.assigneeId)
-    if (filters.q) params.set('q', filters.q)
-    if (filters.limit !== undefined) params.set('limit', String(filters.limit))
-    if (filters.offset !== undefined) params.set('offset', String(filters.offset))
-    const encoded = params.toString()
-    return encoded ? `?${encoded}` : ''
-}
 
 class TicketService {
     private static instance: TicketService
@@ -34,7 +24,7 @@ class TicketService {
     }
 
     async queue(filters: TicketFilters): Promise<TicketQueueResult> {
-        return apiFetch<TicketQueueResult>(`/api/tickets/queue${query(filters)}`)
+        return apiFetch<TicketQueueResult>(`/api/tickets/queue${queryString(filters)}`)
     }
 
     async create(draft: TicketDraft): Promise<TicketThread> {

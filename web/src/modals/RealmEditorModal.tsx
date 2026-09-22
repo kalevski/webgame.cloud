@@ -4,7 +4,7 @@ import { useTc } from '@toolcase/web-components/react'
 import { useStore } from 'state'
 import { Realm, RealmStatus, RealmToken } from 'types'
 import { MODAL } from './keys'
-import { useModalClose, useModalInput, useModalIsOpen } from './registry'
+import { useModalClose, useModalInput, useModalIsOpen, SheetFooter } from './registry'
 
 type ValueElement = HTMLElement & { value?: unknown }
 
@@ -155,12 +155,14 @@ const RealmEditorModal: React.FC = () => {
                     <tc-code-snippet code={issued.token} language="bash" title={issued.realm.name} />
                     <tc-helper-text icon="Info">{r.createdHint}</tc-helper-text>
                 </div>
-                <tc-button slot="footer" variant="primary" onClick={() => closeModal(true)}>
-                    <span>{r.done}</span>
-                </tc-button>
-                <tc-button slot="footer" variant="secondary" outline onClick={copy}>
-                    <span>{copied ? r.copied : r.copy}</span>
-                </tc-button>
+                <SheetFooter>
+                    <tc-button variant="primary" onClick={() => closeModal(true)}>
+                        <span>{r.done}</span>
+                    </tc-button>
+                    <tc-button variant="secondary" outline onClick={copy}>
+                        <span>{copied ? r.copied : r.copy}</span>
+                    </tc-button>
+                </SheetFooter>
             </>
         )
     }
@@ -187,7 +189,7 @@ const RealmEditorModal: React.FC = () => {
                             label={r.nameLabel}
                             placeholder={r.namePlaceholder}
                             required
-                            onInput={(event: React.FormEvent<ValueElement>) => {
+                            onInput={(event) => {
                                 name.current = String((event.target as ValueElement).value ?? '')
                                 setHasName(name.current.trim().length > 0)
                             }}
@@ -207,7 +209,7 @@ const RealmEditorModal: React.FC = () => {
                         help={r.baseUrlHint}
                         placeholder={r.baseUrlPlaceholder}
                         required
-                        onInput={(event: React.FormEvent<ValueElement>) => {
+                        onInput={(event) => {
                             baseUrl.current = String((event.target as ValueElement).value ?? '')
                             setHasUrl(baseUrl.current.trim().length > 0)
                         }}
@@ -239,17 +241,18 @@ const RealmEditorModal: React.FC = () => {
                     />
                 </section>
             </div>
-            <tc-button
-                slot="footer"
-                variant="primary"
-                disabled={!valid || saving || undefined}
-                onClick={submit}
-            >
-                <span>{realm ? t.projects.save : r.create}</span>
-            </tc-button>
-            <tc-button slot="footer" variant="secondary" outline onClick={() => closeModal(null)}>
-                <span>{t.modal.cancel}</span>
-            </tc-button>
+            <SheetFooter>
+                <tc-button
+                    variant="primary"
+                    disabled={!valid || saving || undefined}
+                    onClick={submit}
+                >
+                    <span>{realm ? t.projects.save : r.create}</span>
+                </tc-button>
+                <tc-button variant="secondary" outline onClick={() => closeModal(null)}>
+                    <span>{t.modal.cancel}</span>
+                </tc-button>
+            </SheetFooter>
         </>
     )
 }

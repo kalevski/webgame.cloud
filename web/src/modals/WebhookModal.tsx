@@ -5,7 +5,7 @@ import { selectedKeys, toKeyList } from 'helpers/select'
 import { useTc } from '@toolcase/web-components/react'
 import { WebhookEndpoint } from 'types'
 import { MODAL } from './keys'
-import { useModalClose, useModalInput, useModalIsOpen } from './registry'
+import { useModalClose, useModalInput, useModalIsOpen, SheetFooter } from './registry'
 
 type ValueElement = HTMLElement & { value?: string }
 
@@ -83,66 +83,68 @@ const WebhookModal: React.FC = () => {
     }
 
     return (
-        <div className="modal-webhook">
-            <tc-stack direction="column" gap="0.85rem">
-                <tc-form-input
-                    ref={urlRef}
-                    type="text"
-                    label={w.urlLabel}
-                    placeholder={w.urlPlaceholder}
-                    onInput={(event: React.FormEvent<ValueElement>) => {
-                        url.current = String((event.target as ValueElement).value ?? '')
-                        setHasUrl(url.current.trim().length > 0)
-                    }}
-                ></tc-form-input>
+        <>
+            <div className="modal-webhook">
+                <tc-stack direction="vertical" gap="0.85rem">
+                    <tc-form-input
+                        ref={urlRef}
+                        type="text"
+                        label={w.urlLabel}
+                        placeholder={w.urlPlaceholder}
+                        onInput={(event) => {
+                            url.current = String((event.target as ValueElement).value ?? '')
+                            setHasUrl(url.current.trim().length > 0)
+                        }}
+                    ></tc-form-input>
 
-                <tc-form-input
-                    ref={descriptionRef}
-                    type="text"
-                    label={w.descriptionLabel}
-                    onInput={(event: React.FormEvent<ValueElement>) => {
-                        description.current = String((event.target as ValueElement).value ?? '')
-                    }}
-                ></tc-form-input>
+                    <tc-form-input
+                        ref={descriptionRef}
+                        type="text"
+                        label={w.descriptionLabel}
+                        onInput={(event) => {
+                            description.current = String((event.target as ValueElement).value ?? '')
+                        }}
+                    ></tc-form-input>
 
-                <div>
-                    <tc-label>{w.eventsLabel}</tc-label>
-                    <tc-extended-select
-                        ref={eventSelect}
-                        multiple
-                        value={toKeyList(selected)}
-                        placeholder={t.common.selectMultiple}
-                        search-placeholder={t.common.search}
-                        no-results-text={t.common.noResults}
-                    ></tc-extended-select>
-                    <tc-helper-text>{w.eventsHint}</tc-helper-text>
-                </div>
+                    <div>
+                        <tc-label>{w.eventsLabel}</tc-label>
+                        <tc-extended-select
+                            ref={eventSelect}
+                            multiple
+                            value={toKeyList(selected)}
+                            placeholder={t.common.selectMultiple}
+                            search-placeholder={t.common.search}
+                            no-results-text={t.common.noResults}
+                        ></tc-extended-select>
+                        <tc-helper-text>{w.eventsHint}</tc-helper-text>
+                    </div>
 
-                <tc-form-input
-                    type="password"
-                    label={w.secretLabel}
-                    help={editing?.secretSet ? w.secretSet : w.secretHint}
-                    onInput={(event: React.FormEvent<ValueElement>) => {
-                        secret.current = String((event.target as ValueElement).value ?? '')
-                    }}
-                ></tc-form-input>
+                    <tc-form-input
+                        type="password"
+                        label={w.secretLabel}
+                        help={editing?.secretSet ? w.secretSet : w.secretHint}
+                        onInput={(event) => {
+                            secret.current = String((event.target as ValueElement).value ?? '')
+                        }}
+                    ></tc-form-input>
 
-                <tc-switch
-                    checked={active || undefined}
-                    label={w.activeLabel}
-                    onClick={() => setActive((current) => !current)}
-                ></tc-switch>
+                    <tc-switch
+                        checked={active || undefined}
+                        label={w.activeLabel}
+                        onClick={() => setActive((current) => !current)}
+                    ></tc-switch>
 
-                <div className="modal-webhook__actions">
-                    <tc-button variant="secondary" outline onClick={() => closeModal(null)}>
-                        {t.modal.cancel}
-                    </tc-button>
-                    <tc-button variant="primary" disabled={!valid || saving || undefined} onClick={submit}>
-                        {t.modal.save}
-                    </tc-button>
-                </div>
-            </tc-stack>
-        </div>
+                </tc-stack>
+            </div>
+            <SheetFooter>
+                <tc-button variant="secondary" outline onClick={() => closeModal(null)}>
+                    {t.modal.cancel}
+                </tc-button>
+                <tc-button variant="primary" disabled={!valid || saving || undefined} onClick={submit}>
+                    {t.modal.save}
+                </tc-button>
+            </SheetFooter>
+        </>
     )
 }
 

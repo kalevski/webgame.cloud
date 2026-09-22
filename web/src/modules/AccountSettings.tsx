@@ -4,7 +4,6 @@ import { useStore } from 'state'
 import useStrings from 'hooks/useStrings'
 import useAuth from 'hooks/useAuth'
 import { useTc } from '@toolcase/web-components/react'
-import FloatingActionBar from 'components/FloatingActionBar'
 import { MODAL, useModalOpen } from 'modals'
 import { EVENT } from 'configs/analytics'
 import { trackEvent } from 'helpers/analytics'
@@ -178,42 +177,35 @@ const AccountSettings: React.FC = () => {
     }
 
     return (
-        <div className="module-profile__columns">
+        <div className="module-profile">
+            <tc-entity-profile-card ref={profileCard} title={me.name || me.email} className="module-profile__identity">
+                <tc-avatar slot="lead" name={me.name || me.email} size="large"></tc-avatar>
+                <tc-badge-row slot="chips" ref={chipRow} size="sm"></tc-badge-row>
+            </tc-entity-profile-card>
 
-            <div className="module-profile__identity">
-                <tc-entity-profile-card ref={profileCard} title={me.name || me.email} className="module-profile__card">
-                    <tc-avatar slot="lead" name={me.name || me.email} size="lg"></tc-avatar>
-                    <tc-badge-row slot="chips" ref={chipRow} size="sm"></tc-badge-row>
-                </tc-entity-profile-card>
-
-                <tc-panel bordered className="module-profile__form">
-                    <tc-stack direction="column" gap="0.85rem">
+            <div className="module-profile__columns">
+                <tc-section-card title={p.nameSectionTitle} icon="User" className="module-profile__section">
+                    <tc-stack direction="vertical" gap="0.85rem">
                         <tc-form-input ref={nameInput} type="text" label={p.nameLabel}></tc-form-input>
                         <tc-helper-text icon="Info">{p.nameHint}</tc-helper-text>
                     </tc-stack>
-                </tc-panel>
+                </tc-section-card>
 
-                <FloatingActionBar label={p.unsavedHint} visible={dirty}>
-                    <tc-button key="save" variant="primary" disabled={saving || undefined} onClick={handleSave}>
-                        {p.save}
-                    </tc-button>
-                </FloatingActionBar>
-            </div>
-
-            <div className="module-profile__account">
                 {connectionProviders.length > 0 && (
-                    <tc-stack direction="column" gap="0.5rem" className="module-profile__section">
+                    <div className="module-profile__section">
                         <tc-linked-providers-card
                             ref={connections}
                             title={p.connectionsTitle}
                             empty-label={p.notConnected}
                         ></tc-linked-providers-card>
-                        <tc-text variant="muted">{p.connectionsIntro}</tc-text>
-                    </tc-stack>
+                        <tc-text variant="muted" className="module-profile__connections-hint">
+                            {p.connectionsIntro}
+                        </tc-text>
+                    </div>
                 )}
 
                 <tc-section-card title={t.account.exportTitle} className="module-profile__section">
-                    <tc-stack direction="column" gap="0.85rem" align="start">
+                    <tc-stack direction="vertical" gap="0.85rem" align="start">
                         <tc-text variant="muted">{t.account.exportDescription}</tc-text>
                         <tc-button
                             variant="secondary"
@@ -234,6 +226,14 @@ const AccountSettings: React.FC = () => {
                     <tc-action-row-list ref={legalLinks} outline></tc-action-row-list>
                 </tc-section-card>
             </div>
+
+            <tc-danger-zone-actions ref={dangerZone} className="module-profile__danger-zone"></tc-danger-zone-actions>
+
+            <tc-floating-action-bar label={p.unsavedHint} open={dirty} align="column">
+                <tc-button variant="primary" disabled={saving || undefined} onClick={handleSave}>
+                    {p.save}
+                </tc-button>
+            </tc-floating-action-bar>
         </div>
     )
 }

@@ -35,7 +35,7 @@
         gap: $space-2;
 
         padding: $space-3;
-        border-radius: $radius-sm;
+        border-radius: var(--bs-border-radius);
         background: linear-gradient(
             135deg,
             var(--tc-surface-muted, #fbfaff) 0%,

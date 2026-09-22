@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react'
 import { useStore } from 'state'
 import useStrings from 'hooks/useStrings'
 import Loading from 'components/Loading'
-import FloatingActionBar from 'components/FloatingActionBar'
+import ModuleActions from 'components/ModuleActions'
 import useCan from 'hooks/useCan'
 import { useTc } from '@toolcase/web-components/react'
 import { EMAIL_PROVIDERS, EmailProvider } from 'types'
@@ -10,7 +10,7 @@ import { EMAIL_PROVIDERS, EmailProvider } from 'types'
 type ValueElement = HTMLElement & { value?: string }
 
 const bind = (target: React.MutableRefObject<string>, touch: () => void) =>
-    (event: React.FormEvent<ValueElement>) => {
+    (event: React.InputEvent) => {
         target.current = String((event.target as ValueElement).value ?? '')
         touch()
     }
@@ -118,15 +118,16 @@ const EmailSettingsPanel: React.FC = () => {
 
     return (
         <div className="module module-email-settings">
+            <ModuleActions>
+                {canWrite && (
+                    <tc-button variant="secondary" outline onClick={() => void sendTestEmail()}>
+                        {e.sendTest}
+                    </tc-button>
+                )}
+            </ModuleActions>
+
             <tc-section-card title={e.settingsTitle} icon="Settings">
-                <span slot="action" className="section-card-actions">
-                    {canWrite && (
-                        <tc-button variant="secondary" outline onClick={() => void sendTestEmail()}>
-                            {e.sendTest}
-                        </tc-button>
-                    )}
-                </span>
-                <tc-stack direction="column" gap="0.85rem">
+                <tc-stack direction="vertical" gap="0.85rem">
                     <tc-text variant="muted">{e.settingsIntro}</tc-text>
 
                     <div>
@@ -184,13 +185,11 @@ const EmailSettingsPanel: React.FC = () => {
                 </tc-stack>
             </tc-section-card>
 
-            <FloatingActionBar label={e.unsavedHint} visible={dirty}>
-                {canWrite && (
-                    <tc-button key="save" variant="primary" disabled={saving || undefined} onClick={save}>
-                        {e.save}
-                    </tc-button>
-                )}
-            </FloatingActionBar>
+            <tc-floating-action-bar label={e.unsavedHint} open={dirty && canWrite} align="column">
+                <tc-button variant="primary" disabled={saving || undefined} onClick={save}>
+                    {e.save}
+                </tc-button>
+            </tc-floating-action-bar>
         </div>
     )
 }

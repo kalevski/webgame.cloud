@@ -11,21 +11,12 @@ const wholeNumbersOnly = (value: number) => (Number.isInteger(value) ? String(va
 const AdminOverview: React.FC = () => {
     const { t } = useStrings()
     const o = t.overview
-    const p = t.projects
     const overview = useStore((state) => state.overview)
     const fetchOverview = useStore((state) => state.fetchOverview)
 
     useEffect(() => {
         fetchOverview()
     }, [fetchOverview])
-
-    const statusLabel: Record<string, string> = {
-        planned: p.statusPlanned,
-        'in-progress': p.statusInProgress,
-        shipped: p.statusShipped,
-        private: p.visibilityPrivate,
-        shared: p.visibilityShared,
-    }
 
     const signupsArea = useTc<HTMLElement>({
         series: overview
@@ -45,10 +36,18 @@ const AdminOverview: React.FC = () => {
         yFormatter: wholeNumbersOnly,
     })
 
+    const buildStatusLabel = t.builds.status
+
+    const appTypeLabel: Record<string, string> = {
+        game: t.projects.appTypeGame,
+        app: t.projects.appTypeApp,
+        prototype: t.projects.appTypePrototype,
+    }
+
     const buildsTotal = overview?.buildsByStatus.reduce((sum, entry) => sum + entry.count, 0) ?? 0
     const buildsDonut = useTc<HTMLElement>({
         data: (overview?.buildsByStatus ?? []).map((entry, index) => ({
-            label: statusLabel[entry.status] ?? entry.status,
+            label: buildStatusLabel[entry.status] ?? entry.status,
             value: entry.count,
             color: CATEGORICAL[index % CATEGORICAL.length],
         })),
@@ -57,7 +56,7 @@ const AdminOverview: React.FC = () => {
 
     const appTypePie = useTc<HTMLElement>({
         data: (overview?.projectsByAppType ?? []).map((entry, index) => ({
-            label: statusLabel[entry.appType] ?? entry.appType,
+            label: appTypeLabel[entry.appType] ?? entry.appType,
             value: entry.count,
             color: CATEGORICAL[index % CATEGORICAL.length],
         })),
@@ -82,26 +81,19 @@ const AdminOverview: React.FC = () => {
     ]
 
     const signupsBaseline = overview.signupsTotal - overview.signupsLast30
-    const projectsBaseline = overview.projectsTotal - overview.projectsLast30
 
     return (
         <div className="module module-overview">
-            <tc-grid columns={1} columns-md={2} gap="1.5rem" className="module-overview__trends">
+            <div className="module-overview__trends">
                 <tc-difference-card
                     title={o.signupsTotal}
                     value={overview.signupsTotal}
                     previous-value={signupsBaseline}
                     period={signupsBaseline > 0 ? o.last30Period : undefined}
                 ></tc-difference-card>
-                <tc-difference-card
-                    title={o.projectsTotal}
-                    value={overview.projectsTotal}
-                    previous-value={projectsBaseline}
-                    period={projectsBaseline > 0 ? o.last30Period : undefined}
-                ></tc-difference-card>
-            </tc-grid>
+            </div>
 
-            <tc-metric-grid columns="4">
+            <tc-metric-grid columns="3">
                 {tiles.map((tile) => (
                     <tc-metric-tile key={tile.label} label={tile.label} value={String(tile.value)}></tc-metric-tile>
                 ))}

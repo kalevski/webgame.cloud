@@ -4,7 +4,8 @@ import useStrings from 'hooks/useStrings'
 import useCan from 'hooks/useCan'
 import { useTc } from '@toolcase/web-components/react'
 import AdvancedTable from 'components/AdvancedTable'
-import { escapeHtml } from 'helpers/html'
+import ModuleActions from 'components/ModuleActions'
+import { escapeHtml, rowIconButton } from 'helpers/html'
 import { formatDate, formatDateTime } from 'helpers/dates'
 import { clampOffset } from 'helpers/paging'
 import { MODAL, useModalOpen } from 'modals'
@@ -99,17 +100,17 @@ const ServiceAccountsAdmin: React.FC = () => {
             const status = `<tc-badge variant="${account.active ? 'success' : 'danger'}" text="${escapeHtml(account.active ? s.active : s.inactive)}"></tc-badge>`
             const role = `<tc-badge variant="primary" text="${escapeHtml(roleName(account.role))}"></tc-badge>`
             const used = account.lastUsedAt ? formatDateTime(account.lastUsedAt) : s.neverUsed
-            const keys = `<tc-icon-button icon="KeyRound" variant="secondary" size="small" outline data-action="keys" data-id="${escapeHtml(account.id)}" label="${escapeHtml(s.keys)}" title="${escapeHtml(s.keys)}"></tc-icon-button>`
+            const keys = rowIconButton('KeyRound', 'secondary', 'keys', account.id, s.keys)
             const access = !canWrite
                 ? ''
-                : `<tc-icon-button icon="Settings" variant="secondary" size="small" outline data-action="access" data-id="${escapeHtml(account.id)}" label="${escapeHtml(s.manageAccess)}" title="${escapeHtml(s.manageAccess)}"></tc-icon-button>`
+                : rowIconButton('Settings', 'secondary', 'access', account.id, s.manageAccess)
             const toggleLabel = account.active ? s.deactivate : s.activate
             const toggle = !canWrite
                 ? ''
-                : `<tc-icon-button icon="${account.active ? 'PowerOff' : 'Power'}" variant="${account.active ? 'danger' : 'success'}" size="small" outline data-action="toggle-active" data-id="${escapeHtml(account.id)}" label="${escapeHtml(toggleLabel)}" title="${escapeHtml(toggleLabel)}"></tc-icon-button>`
+                : rowIconButton(account.active ? 'PowerOff' : 'Power', account.active ? 'danger' : 'success', 'toggle-active', account.id, toggleLabel)
             const remove = !canWrite
                 ? ''
-                : `<tc-icon-button icon="Trash2" variant="danger" size="small" outline data-action="delete" data-id="${escapeHtml(account.id)}" label="${escapeHtml(s.remove)}" title="${escapeHtml(s.remove)}"></tc-icon-button>`
+                : rowIconButton('Trash2', 'danger', 'delete', account.id, s.remove)
 
             return `<tr${account.active ? '' : ' class="module-service-accounts__row--inactive"'}>
                 <td>${escapeHtml(account.name)}</td>
@@ -176,15 +177,16 @@ const ServiceAccountsAdmin: React.FC = () => {
 
     return (
         <div className="module module-service-accounts">
+            <ModuleActions>
+                {canWrite && (
+                    <tc-button variant="primary" onClick={() => openCreateModal()}>
+                        {s.create}
+                    </tc-button>
+                )}
+            </ModuleActions>
+
             <tc-section-card title={s.title} icon="Bot">
-                <span slot="action" className="section-card-actions">
-                    {canWrite && (
-                        <tc-button variant="primary" onClick={() => openCreateModal()}>
-                            {s.create}
-                        </tc-button>
-                    )}
-                </span>
-                <tc-stack direction="column" gap="0.85rem">
+                <tc-stack direction="vertical" gap="0.85rem">
                     <tc-text variant="muted">{s.intro}</tc-text>
 
                     {serviceAccountsLoaded && serviceAccounts.length === 0 ? (
@@ -207,18 +209,20 @@ const ServiceAccountsAdmin: React.FC = () => {
             </tc-section-card>
 
             {selected && (
+                <>
+                <ModuleActions>
+                    {canWrite && (
+                        <tc-button
+                            variant="primary"
+                            onClick={() => openKeyModal({ serviceAccountId: selected.id })}
+                        >
+                            {s.newKey}
+                        </tc-button>
+                    )}
+                </ModuleActions>
+
                 <tc-section-card title={s.keysTitle(selected.name)} icon="Key">
-                    <span slot="action" className="section-card-actions">
-                        {canWrite && (
-                            <tc-button
-                                variant="primary"
-                                onClick={() => openKeyModal({ serviceAccountId: selected.id })}
-                            >
-                                {s.newKey}
-                            </tc-button>
-                        )}
-                    </span>
-                    <tc-stack direction="column" gap="0.85rem">
+                    <tc-stack direction="vertical" gap="0.85rem">
                         <tc-text variant="muted">{s.keysIntro}</tc-text>
 
                         {serviceKeys.length === 0 ? (
@@ -228,6 +232,7 @@ const ServiceAccountsAdmin: React.FC = () => {
                         )}
                     </tc-stack>
                 </tc-section-card>
+                </>
             )}
         </div>
     )

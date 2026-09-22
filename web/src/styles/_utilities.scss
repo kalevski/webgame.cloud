@@ -81,7 +81,7 @@ tc-container {
 }
 
 .rounded-3 {
-    border-radius: $radius-md;
+    border-radius: var(--bs-border-radius);
 }
 
 .mt-1 { margin-top: $space-1; }

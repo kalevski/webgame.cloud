@@ -1,5 +1,4 @@
 import React, { useEffect } from 'react'
-import { wrapInBaseLayout } from 'layouts/BaseLayout'
 import { usePageContext } from 'contexts/PageContext'
 import useStrings from 'hooks/useStrings'
 import LegalTerms from 'modules/LegalTerms'
@@ -16,4 +15,4 @@ const TermsPage: React.FC = () => {
     return <LegalTerms />
 }
 
-export default wrapInBaseLayout(TermsPage)
+export default TermsPage

@@ -7,7 +7,7 @@ import { escapeHtml } from 'helpers/html'
 import { formatBytes } from 'helpers/format'
 import { Bundle, BundleDraft, BundleEngine, PackingAlgorithm } from 'types'
 import { MODAL } from './keys'
-import { useModalClose, useModalInput, useModalIsOpen } from './registry'
+import { useModalClose, useModalInput, useModalIsOpen, SheetFooter } from './registry'
 
 type ValueElement = HTMLElement & { value?: unknown; values?: string[]; items?: unknown[] }
 
@@ -294,7 +294,7 @@ const BundleWizardModal: React.FC = () => {
                 </div>
 
                 <tc-section-card title={b.previewTitle} className="bundle-wizard__preview">
-                    <tc-stack direction="column" gap="0.6rem">
+                    <tc-stack direction="vertical" gap="0.6rem">
                         <tc-text variant="muted">
                             {b.previewSummary(preview?.count ?? 0, formatBytes(preview?.totalBytes ?? 0))}
                         </tc-text>
@@ -312,36 +312,36 @@ const BundleWizardModal: React.FC = () => {
                 </tc-section-card>
             </div>
 
-            <tc-button
-                slot="footer"
-                variant="secondary"
-                outline
-                hidden={step === 0 || undefined}
-                onClick={() => setStep(step - 1)}
-            >
-                {t.modal.back}
-            </tc-button>
-            <tc-button
-                slot="footer"
-                variant="secondary"
-                hidden={step === STEP_KEYS.length - 1 || undefined}
-                disabled={(step === 0 && name.trim().length === 0) || undefined}
-                onClick={() => setStep(step + 1)}
-            >
-                {t.modal.next}
-            </tc-button>
-            <tc-button
-                slot="footer"
-                variant="primary"
-                hidden={step !== STEP_KEYS.length - 1 || name.trim().length === 0 || undefined}
-                disabled={saving || undefined}
-                onClick={submit}
-            >
-                {existing ? t.projects.save : b.create}
-            </tc-button>
-            <tc-button slot="footer" variant="secondary" outline onClick={() => closeModal(null)}>
-                {t.modal.cancel}
-            </tc-button>
+            <SheetFooter>
+
+                <tc-button
+                    variant="secondary"
+                    outline
+                    hidden={step === 0 || undefined}
+                    onClick={() => setStep(step - 1)}
+                >
+                    {t.modal.back}
+                </tc-button>
+                <tc-button
+                    variant="secondary"
+                    hidden={step === STEP_KEYS.length - 1 || undefined}
+                    disabled={(step === 0 && name.trim().length === 0) || undefined}
+                    onClick={() => setStep(step + 1)}
+                >
+                    {t.modal.next}
+                </tc-button>
+                <tc-button
+                    variant="primary"
+                    hidden={step !== STEP_KEYS.length - 1 || name.trim().length === 0 || undefined}
+                    disabled={saving || undefined}
+                    onClick={submit}
+                >
+                    {existing ? t.projects.save : b.create}
+                </tc-button>
+                <tc-button variant="secondary" outline onClick={() => closeModal(null)}>
+                    {t.modal.cancel}
+                </tc-button>
+            </SheetFooter>
         </>
     )
 }

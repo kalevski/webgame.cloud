@@ -8,9 +8,9 @@ The web app follows the `react-spa-app` skill. Read that skill for the full cont
 pages → modules → components / state (slices) → services → helpers/api (apiFetch)
 ```
 
-- **pages** (`pages/*.tsx`) wrap one module in a layout HOC (`wrapInMainLayout` / `wrapInBaseLayout`) + `AuthGuard` (+ optional `permission`) and set the page title/description via `usePageContext`.
+- **pages** (`pages/*.tsx`) wrap one module in `AuthGuard` (+ optional `permission`) and set the page title/description via `usePageContext`. They carry **no layout HOC** — the shell is a parent route (see *The shell*). `BaseLayout` is still a HOC, for the chrome-free screens.
 - **modules** (`modules/*.tsx`) are feature screens; they read the store and open modals.
-- **components** (`components/*.tsx`) are reusable, store-agnostic (`AdvancedTable`, `PageToolbar`, `RouteTabs`, `ToolShell`, `ToolWorkspace`, `ToolControls`, `LimitMeter`, `LockChip`, `LockedAction`, `UpgradeNudge`, `Loading`, `Icon`, `EarlyAccessPanel`).
+- **components** (`components/*.tsx`) are reusable, store-agnostic (`AdvancedTable`, `PageToolbar`, `PageTabs`, `ModuleActions`, `ToolShell`, `ToolWorkspace`, `ToolControls`, `LimitMeter`, `LockChip`, `LockedAction`, `Loading`, `Icon`, `EarlyAccessPanel`).
 - **services** (`services/*Service.ts`) are singletons wrapping `apiFetch` per domain. Modules never call `apiFetch` directly.
 - **state** (`state/*.slice.ts`) are zustand slices; `state/index.ts` assembles them. Read one field per selector — never `useStore(s => s)`.
 
@@ -36,64 +36,94 @@ pages → modules → components / state (slices) → services → helpers/api (
 
 Every JSON response is `{ status: 'OK', data }` or `{ status: 'rejected', cause }` (server hook `api/src/http/envelope.ts`). `cause` is a machine code plus comma-joined params (`"limit_reached,projects,3"` — catalog in `api/src/contracts/errors.ts`), never display copy; `helpers/api.ts` parses it, renders the sentence from `strings.errors` (typed total over the catalog, so a new code without a template is a build error), and throws that as a readable `Error` on non-2xx. A stray 403 triggers a session re-fetch (self-heal). A `curl` shows the envelope — reach into `.data`.
 
-## Modals
+## Modals (bottom sheets)
 
-`modals/keys.ts` holds the `MODAL` key map (its own file so the component-bearing registry stays a clean Fast Refresh boundary); `modals/registry.tsx` holds the context/hooks (`useModalOpen`, `useModalClose`, `useModalInput`, `ModalWindow`); `modals/index.tsx` (`ModalRender`) mounts each modal once. Add a key + a `<ModalWindow>`. Modal bodies stay mounted while hidden and reset on open. `title` accepts a
-function of the modal's input when the heading depends on it (the bundle wizard reads *New bundle* vs *Edit
-bundle* from whether an existing bundle was passed), and `staticBackdrop` stops a stray click outside the
-dialog from discarding a half-filled wizard — set it on multi-step modals.
+`modals/keys.ts` holds the `MODAL` key map, declared `as const` so a stale key fails to compile (its own file
+so the component-bearing registry stays a clean Fast Refresh boundary). `modals/registry.tsx` holds the
+context and hooks (`useModalOpen`, `useModalClose`, `useModalInput`, `SheetWindow`, `SheetFooter`);
+`modals/index.tsx` (`ModalRender`) mounts each one once. Add a key plus a `<SheetWindow>`.
 
-**`ModalWindow` restores focus to the opener.** It captures `document.activeElement` when the modal opens and re-focuses it on close (falling back to a `blur()` if the opener has since unmounted). Without this, `tc-modal` sets `aria-hidden` on a subtree that still holds focus — Chrome logs *"Blocked aria-hidden on an element because its descendant retained focus"* and, more practically, focus falls back to `<body>`, so the next Tab restarts from the top of the page instead of returning to the button that opened the dialog. Keep this if you swap the modal component.
+**`SheetWindow` is a `tc-bottom-sheet`,** portalled into the frame's `overlay` slot (falling back to
+`document.body`). The modal API and the bodies are unchanged from the old `tc-modal` — only the surface
+moved. `title` still accepts a function of the modal's input when the heading depends on it (the bundle
+wizard reads *New bundle* vs *Edit bundle* from whether an existing bundle was passed).
 
-**Escape closes one layer at a time.** `tc-modal` and `tc-extended-select` both listen for Escape on `document` in the bubble phase, and only the modal consults the overlay stack — so with a select menu open inside a modal, both handlers fire and Escape discards the whole form the user was half-way through filling in. `ModalWindow` adds a capture-phase Escape listener that, when the open modal contains an expanded `.tc-extended-select__menu--open`, stops propagation and dispatches a `mousedown` on `document` — the select's own outside-click handler closes just the menu. A second Escape then closes the modal, and a modal with no open menu is untouched. The same guard covers `.tc-tag-input-menu--open` — the tag input's suggestion list has the identical problem, and Escape used to throw away a whole bundle wizard. Drop this once the library gives dropdowns a place on the overlay stack.
+**The presentation vocabulary is `content | full`**, mapping to the sheet's `auto` and `full` snaps. There is
+no `size`, no `scrollable` and no `staticBackdrop`: a sheet scrolls its own body, and `snap="content"` was
+never a valid library value — it silently degraded to `auto`.
+
+**Footer actions go in one `SheetFooter`.** Bare `slot="footer"` buttons are laid out by the library as one
+full-bleed row *each*, so a Save/Cancel pair became two stacked full-width bars. `SheetFooter` wraps them in
+a single row, and commit actions belong there rather than at the end of the scrolling body.
+
+**The body unmounts ~320ms after close**, so a sheet's state resets between openings without cutting the
+close animation short.
+
+`useSheetHistory` pushes a history entry while a sheet is open, so the Android/browser back gesture closes
+the sheet rather than leaving the page underneath it.
 
 ## Dates
 
 Never call `toLocaleDateString()` / `toLocaleString()` inline. `helpers/dates.ts` exposes `formatDate` (e.g. *Jul 27, 2026*) and `formatDateTime`, both null-safe with an em-dash fallback. One place to change the convention, and no drift between screens — which is how the app ended up mixing `7/26/2026` with `1 min ago`. Relative "x min ago" labels go through `hooks/useWhen.ts`, which reads `strings.notifications.justNow` / `minutesAgo` / `hoursAgo` / `daysAgo` and falls back to `formatDate` past a week — so the copy stays translatable and no module invents its own wording. `Dashboard` and `NotificationsBell` still carry their own inline variants; migrate them when you touch them. `helpers/format.ts` holds `formatBytes` for sizes.
 
-## Layouts
+## The shell
 
-`MainLayout` = the `tc-dashboard-layout` shell (brand, `SidebarMenu`, `UserPanel`, `PageHeader`, `CommandPalette`, `UsageSummary`, `NotificationsBell`, `AlertPanel`). `BaseLayout` = chrome-free (login, legal). Both are HOCs.
+There is **one frame**: `layouts/AppFrame.tsx` mounts a single `tc-mobile-shell` as a parent `<Route>`, so
+the element's per-route scroll banking survives navigation. Pages render into its `<Outlet />`. `BaseLayout`
+stays for the chrome-free screens (login, landing, the public invoice).
 
-**Three navigation surfaces, one rule.** `SidebarMenu` (Project / Workspace / Platform sections), the `UserPanel` avatar menu (Profile, Billing, Admin, Moderation), and the ⌘K palette's *Go to* group each list routes, and each gates them on the same `useCan` / `useFeature` checks. When you add a route, add it to all three or deliberately decide not to: a route that exists in one surface and not the others is how the palette ended up missing half the app.
+**Pages carry no layout HOC and set no width.** Width is chrome: `--app-frame-inset` (in
+`styles/modules/_frame.scss`) is the one measure every region substitutes, so the bar, the tab rail and the
+cards all land on the same column. A page that sets its own `max-width` fights the frame.
 
-**Live is deliberately not in the sidebar either.** `/projects/:id/live` is reached from the `Live` step of
-`ProjectPipeline` (see live-builds.md); it is a per-project destination, not a platform one, so it belongs to
-the pipeline rather than the nav.
+`configs/navigation.ts` carries both navigation models and is the only place routes are described:
 
-**Shared project surfaces.** `components/ChoiceCards.tsx` (the landing engine-card visual, reused for app
-types and bundle engines), `components/ProjectPreview.tsx` and `components/ProjectIconTile.tsx` are shared by
-the create-project page, project settings and the switcher, so those screens cannot drift apart.
+- **`ROUTE_CHROME`** — a pattern list read by the pure `chromeForPath(pathname)`, giving each route its bar
+  variant (`brand | title | back | none`), the nav id it highlights, and where `back` goes. Order matters:
+  the first match wins, so put `/projects/:id/settings` above `/projects/:id`.
+- **`NAV`** — every destination with `rank` (who keeps a dock seat) and `order` (position). Gating is by
+  capability and product flag, so a withheld destination is **absent rather than disabled**.
+  `dockSeats` takes the four highest-ranked available items; `moreGroups` puts the rest in the More sheet
+  under `workspace` / `platform` / `admin` headings, so every route stays reachable.
 
-**Admin and Moderation are deliberately not in the sidebar.** They are staff destinations rather than everyday workspace ones, so they are reached from the `UserPanel` avatar menu and the ⌘K palette only. The sidebar carries Project, Workspace and Platform. If you re-add an Administration section, add it to all three surfaces and update this paragraph.
+That replaces the old three-surfaces rule. Adding a route now means one `NAV` entry plus one `ROUTE_CHROME`
+pattern — the dock, the More sheet and the back behaviour all follow. The ⌘K palette is still its own list
+in `modules/CommandPalette.tsx`; keep it in step.
+
+**The bar** is the library's `tc-app-bar` (`modules/AppBar.tsx`) — `brand | title | back` are its own
+`variant` vocabulary. The page tab rail rides in its `below` slot, and `heading-level` stays opt-in so the
+chrome does not emit a second `<h1>` over the page's own heading. The bar's `actions` slot carries the ⌘K
+palette, `UsageSummary` and the notification bell.
+
+**Page tabs are chrome, not content.** A screen with several independent, linkable forms calls
+`usePageTabs(tabs)` (`{ id, label, href, badge? }`); `PageContext` holds them and `AppFrame` renders them
+into the bar. Call the hook **above any early return** — it is a hook, and a loading guard above it makes it
+conditional. Where the data the labels need is not loaded yet, pass `[]`.
+
+**Every transient surface is a `tc-bottom-sheet`** — see *Modals*.
 
 ## Console page shape
 
-Every console screen opens the same way, so the three product pages (`/projects/new`, project settings)
-and the platform pages read as one app:
+Every console screen opens the same way, so the product pages and the platform pages read as one app:
 
-1. **A `tc-rich-page-header`** — `title-text`, `description`, `icon-name` (Lucide, PascalCase) and
-   `icon-color`, taking its copy from `strings.pages.*` so the header, the document title and the shell's
-   `PageHeader` all say the same thing. It sits either directly in the page (`CreateProjectPage`,
-   `RealmsAdminPage`, `InvoicesPage`, `EnquiriesPage`, `PlatformUsersPage`) or at the top of the one module
-   that owns the screen (`AdminWorkspace`, `Moderation`, `Profile`, `Dashboard`, `BillingPage`). Project
-   screens get theirs from `ProjectPageShell` instead.
-2. **`RouteTabs`** when the screen has several independent forms, so each is linkable.
-3. **`tc-section-card`s** for the content — each with a `title`, an `icon`, and its action in the card's
-   `action` slot.
+1. **The page title and description** go to the chrome, not the page: `setPageTitle` / `setPageDescription`
+   from `usePageContext`, read from `strings.pages.*`, which the app bar renders.
+2. **`usePageTabs(tabs)`** when the screen has several independent forms, so each is linkable. They render in
+   the bar's `below` slot, not in the page.
+3. **A `ModuleActions` row** for the screen's actions, above the first card.
+4. **`tc-section-card`s** for the content — each with a `title` and its body.
 
-**The card title is written once.** Screens used to render a `tc-action-header` carrying the same words
-directly above a `tc-section-card` with the same `title`, which showed the heading twice and needed an
-effect that poked `.tc-action-header-content.textContent` on every render (the element relocates its own
-light-DOM children, so React children could not be used). Putting the action in the card's `action` slot
-removes both. `tc-action-header` is no longer used anywhere in `web/src`.
+Project screens still open with a `tc-rich-page-header` from `ProjectPageShell`, which carries the project's
+identity (icon, colour, name chips) rather than the page's title.
 
-**Slot children need the same wrapper as body children.** `tc-section-card` collects `[slot="action"]` at
-connect time and moves those nodes into its header, so a conditional straight under the card is the trap
-described in *Never conditionally swap a direct child of a `tc-*` element*. Render one stable
-`<span slot="action" className="section-card-actions">` (it is present from the first render, so it is
-relocated once) and put the permission check inside it. Do not repeat `slot="action"` on the buttons
-within — the card would collect them too and move them out of the span React owns.
+**A `tc-section-card` no longer carries a button in its header.** Card actions moved to a `ModuleActions` row
+above the card: it is a `tc-stack`, not a `tc-action-bar` — the action bar is the sticky commit surface and
+sizes its children to full width. This also removes the old `slot="action"` trap, where the card harvested
+its slotted nodes at connect time and a conditional straight under the card fell foul of *Never conditionally
+swap a direct child of a `tc-*` element*.
+
+**Corner radius reads `var(--bs-border-radius)`.** The `$radius-*` Sass variables are gone, so the app
+follows whatever theme it is dropped into rather than hard-coding its own rounding.
 
 ## The floating action bar
 
@@ -444,7 +474,7 @@ Three separate failure modes, three separate mechanisms.
 
 The important detail is the reset: the boundary takes a `resetKey` (the current pathname) and clears its error in `componentDidUpdate` when that key changes. Without it the fallback would stay on screen after navigating away, because a boundary that has caught never re-renders its children on its own. `componentDidCatch` currently just `console.error`s — if a monitoring port is ever added, that is the one place to report from, and the fallback is where a "report this error" action would go.
 
-**Offline** is `modules/OfflineBanner.tsx`: `navigator.onLine` seeded on mount plus `online` / `offline` window listeners, rendered next to `AlertPanel` in both `MainLayout` and `BaseLayout` so it shows in the dashboard shell and on public pages. It renders nothing while online.
+**Offline** is `modules/OfflineBanner.tsx`: `navigator.onLine` seeded on mount plus `online` / `offline` window listeners, rendered in `AppFrame`'s `header` slot beside `ImpersonationBanner`, and next to `AlertPanel` in `BaseLayout`, so it shows in the shell and on public pages. It renders nothing while online.
 
 **`apiFetch` retries network failures, never HTTP failures.** A rejected `fetch` (DNS failure, connection refused, offline) is retried; any *response* — 4xx, 5xx — is returned and handled as before, because the server answered and retrying would not change the outcome. Retries are `[300ms, 900ms]`, so a request makes at most three attempts, and exhausting them throws `strings.network.unreachable` rather than a raw `TypeError`.
 
@@ -455,7 +485,7 @@ One testing note: behind the Vite dev proxy a stopped API returns a 5xx *respons
 ## Command palette (⌘K)
 
 `modules/CommandPalette.tsx` wires `tc-command-palette` to a ⌘K / Ctrl+K binding and renders the trigger
-hint in the dashboard navbar (`MainLayout`'s `navbar-right` slot, beside the usage gauge and the
+hint in the app bar (`AppBar`'s `actions` slot, beside the usage gauge and the
 notification bell — see the usage panel in
 [access-and-feature-flags.md](access-and-feature-flags.md)). One module
 owns both the hint button and the overlay, so there is no cross-component state to plumb — the palette is
@@ -495,7 +525,7 @@ and backdrop clicks appear to do nothing. Selecting an item fires `tc-select` *a
 
 **The overlay is portalled out of the navbar.** The hint button lives in the navbar slot, but the palette
 itself is rendered through `createPortal` into the `tc-theme` element. It has to be: the palette's backdrop
-is `position: fixed; inset: 0`, and `tc-dashboard-layout`'s navbar sets `backdrop-filter: blur(8px)` — a
+is `position: fixed; inset: 0`, and `tc-app-bar` sets `backdrop-filter: blur(8px)` — a
 non-`none` `backdrop-filter` makes an element a **containing block for fixed-position descendants**, so a
 backdrop rendered inside the navbar resolves `inset: 0` against the 80px navbar strip instead of the
 viewport and only dims that band. No CSS override can fix it; nothing escapes a containing block, so the
@@ -553,7 +583,7 @@ deliberately does not register again — a second call reloads the package's own
 Each project screen is its own route and page — `/projects/:id/{assets,bundles,builds,configs,members,settings}` —
 not tabs on one detail page. Where a single screen genuinely has several independent forms, those become
 routed sub-tabs rather than sections stacked down the page: Settings is `/settings`, `/settings/categories-and-tags`
-and `/settings/danger` via a `:tab` param and `RouteTabs`, so each form is linkable and the danger zone is
+and `/settings/danger` via a `:tab` param and `usePageTabs`, so each form is linkable and the danger zone is
 not something you scroll past. Every page is the same shape: `usePageContext` sets the title and
 description, `AuthGuard secured` wraps it, and `components/ProjectPageShell.tsx` resolves the project
 from the route, syncs `activeProjectId`, and renders — in order — the lock banner, `ProjectHeader`,
@@ -580,7 +610,7 @@ while a build is queued or running.
 **The connector encodes flow, not decoration.** Between two stations sits a chevron that is teal when the
 downstream stage has content and faint grey when it does not, so a project with assets but no bundles shows
 where the line stops feeding. The strip's current-stage accent is `--tc-app-accent` (coral), matching
-`RouteTabs` and the sidebar rather than the violet `--tc-primary` used for project identity. Stations wrap
+the page tabs and the dock rather than the violet `--tc-primary` used for project identity. Stations wrap
 two-up below `$bp-lg` and one-up below `$bp-sm`, dropping the chevrons; the pulse respects
 `prefers-reduced-motion`.
 

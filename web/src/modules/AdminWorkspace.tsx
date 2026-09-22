@@ -3,7 +3,7 @@ import { useParams } from 'react-router'
 import useStrings from 'hooks/useStrings'
 import useCan from 'hooks/useCan'
 import useFeature from 'hooks/useFeature'
-import RouteTabs from 'components/RouteTabs'
+import usePageTabs from 'hooks/usePageTabs'
 import AdminOverview from 'modules/AdminOverview'
 import UsersAdmin from 'modules/UsersAdmin'
 import PlatformSettingsPanel from 'modules/PlatformSettingsPanel'
@@ -47,34 +47,27 @@ const AdminWorkspace: React.FC = () => {
     const filesEnabled = useFeature('files')
 
     const tabs = [
-        ...(canReadOverview ? [{ id: 'overview', label: t.admin.tabOverview, icon: 'gauge', path: '/admin/overview' }] : []),
-        ...(canReadUsers ? [{ id: 'users', label: t.admin.tabUsers, icon: 'shield', path: '/admin/users' }] : []),
+        ...(canReadOverview ? [{ id: 'overview', label: t.admin.tabOverview, href: '/admin/overview' }] : []),
+        ...(canReadUsers ? [{ id: 'users', label: t.admin.tabUsers, href: '/admin/users' }] : []),
 
-        ...(canReadRoles ? [{ id: 'access', label: t.accessAdmin.tab, icon: 'lock', path: '/admin/access' }] : []),
-        ...(canReadSettings ? [{ id: 'settings', label: t.admin.tabSettings, icon: 'settings', path: '/admin/settings' }] : []),
-        { id: 'api-keys', label: t.apiKeys.tab, icon: 'key', path: '/admin/api-keys' },
-        ...(canReadServiceAccounts ? [{ id: 'service-accounts', label: t.serviceAccounts.tab, icon: 'bot', path: '/admin/service-accounts' }] : []),
-        ...(canReadWebhooks ? [{ id: 'webhooks', label: t.webhooks.tab, icon: 'webhook', path: '/admin/webhooks' }] : []),
-        ...(filesEnabled && canReadAssetSources ? [{ id: 'files', label: t.files.tab, icon: 'database', path: '/admin/files' }] : []),
-        ...(canReadJobs ? [{ id: 'jobs', label: t.jobs.tab, icon: 'calendar-clock', path: '/admin/jobs' }] : []),
-        ...(canReadSettings ? [{ id: 'retention', label: t.retention.tab, icon: 'timer', path: '/admin/retention' }] : []),
-        ...(canReadSigningKeys ? [{ id: 'signing-keys', label: t.signingKeys.tab, icon: 'key-round', path: '/admin/signing-keys' }] : []),
+        ...(canReadRoles ? [{ id: 'access', label: t.accessAdmin.tab, href: '/admin/access' }] : []),
+        ...(canReadSettings ? [{ id: 'settings', label: t.admin.tabSettings, href: '/admin/settings' }] : []),
+        { id: 'api-keys', label: t.apiKeys.tab, href: '/admin/api-keys' },
+        ...(canReadServiceAccounts ? [{ id: 'service-accounts', label: t.serviceAccounts.tab, href: '/admin/service-accounts' }] : []),
+        ...(canReadWebhooks ? [{ id: 'webhooks', label: t.webhooks.tab, href: '/admin/webhooks' }] : []),
+        ...(filesEnabled && canReadAssetSources ? [{ id: 'files', label: t.files.tab, href: '/admin/files' }] : []),
+        ...(canReadJobs ? [{ id: 'jobs', label: t.jobs.tab, href: '/admin/jobs' }] : []),
+        ...(canReadSettings ? [{ id: 'retention', label: t.retention.tab, href: '/admin/retention' }] : []),
+        ...(canReadSigningKeys ? [{ id: 'signing-keys', label: t.signingKeys.tab, href: '/admin/signing-keys' }] : []),
     ]
 
     const available = tabs.map((entry) => entry.id)
     const tab = (available.includes(tabParam ?? '') ? tabParam : available[0]) as AdminTab | undefined
 
+    usePageTabs(tabs)
+
     return (
         <div className="module module-workspace">
-            <tc-rich-page-header
-                className="module-workspace__header"
-                title-text={t.pages.adminTitle}
-                description={t.pages.adminDescription}
-                icon-name="ShieldCheck"
-                icon-color="blue"
-            ></tc-rich-page-header>
-
-            <RouteTabs tabs={tabs} activeId={tab ?? ''} />
             <div className="module-workspace__content">
                 {tab === 'overview' && <AdminOverview />}
                 {tab === 'users' && <UsersAdmin />}

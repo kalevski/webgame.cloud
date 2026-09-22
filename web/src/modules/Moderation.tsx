@@ -3,13 +3,15 @@ import { useParams, useSearchParams } from 'react-router'
 import { useStore } from 'state'
 import useStrings from 'hooks/useStrings'
 import { useTc } from '@toolcase/web-components/react'
-import RouteTabs from 'components/RouteTabs'
+import usePageTabs from 'hooks/usePageTabs'
 import { MODAL, useModalOpen } from 'modals'
 import { escapeHtml } from 'helpers/html'
+import useCan from 'hooks/useCan'
+import RoleApplicationsAdmin from 'modules/RoleApplicationsAdmin'
 import { AuditEntry, Report } from 'types'
 import { formatDateTime } from 'helpers/dates'
 
-type ModerationTab = 'reports' | 'audit'
+type ModerationTab = 'reports' | 'applications' | 'audit'
 
 const AUDIT_PAGE_SIZE = 25
 
@@ -37,23 +39,36 @@ const Moderation: React.FC = () => {
     const fetchReports = useStore((state) => state.fetchReports)
     const fetchAuditLog = useStore((state) => state.fetchAuditLog)
 
+    const canReadReports = useCan('moderation.queue.read')
+    const canReadApplications = useCan('role.application.read')
+    const canReadAudit = useCan('audit.read')
+
     const [searchParams] = useSearchParams()
     const actorParam = searchParams.get('actor') ?? undefined
 
     useEffect(() => {
-        fetchReports()
-    }, [fetchReports])
+        if (canReadReports) fetchReports()
+    }, [fetchReports, canReadReports])
 
     useEffect(() => {
-        void fetchAuditLog({ actorId: actorParam, limit: AUDIT_PAGE_SIZE, offset: 0 })
-    }, [fetchAuditLog, actorParam])
+        if (canReadAudit) void fetchAuditLog({ actorId: actorParam, limit: AUDIT_PAGE_SIZE, offset: 0 })
+    }, [fetchAuditLog, actorParam, canReadAudit])
 
     const tabs = [
-        { id: 'reports', label: m.reportsTitle, icon: 'flag', path: '/moderation/reports' },
-        { id: 'audit', label: m.auditTitle, icon: 'history', path: '/moderation/audit' },
+        ...(canReadReports
+            ? [{ id: 'reports', label: m.reportsTitle, href: '/moderation/reports' }]
+            : []),
+        ...(canReadApplications
+            ? [{ id: 'applications', label: t.roleApplications.tab, href: '/moderation/applications' }]
+            : []),
+        ...(canReadAudit
+            ? [{ id: 'audit', label: m.auditTitle, href: '/moderation/audit' }]
+            : []),
     ]
     const available = tabs.map((entry) => entry.id)
     const tab = (available.includes(tabParam ?? '') ? tabParam : available[0]) as ModerationTab
+
+    usePageTabs(tabs)
 
     const open = reports.filter((report) => report.status === 'pending')
 
@@ -117,22 +132,13 @@ const Moderation: React.FC = () => {
 
     return (
         <div className="module module-moderation">
-            <tc-rich-page-header
-                className="module-workspace__header"
-                title-text={t.pages.moderationTitle}
-                description={t.pages.moderationDescription}
-                icon-name="ShieldAlert"
-                icon-color="rose"
-            ></tc-rich-page-header>
-
-            <RouteTabs tabs={tabs} activeId={tab} />
-
             <div className="module-workspace__content">
                 {tab === 'reports' && (
                     open.length > 0
                         ? <tc-data-list ref={reportsList}></tc-data-list>
                         : <tc-empty-state icon="flag">{m.reportsEmpty}</tc-empty-state>
                 )}
+                {tab === 'applications' && <RoleApplicationsAdmin />}
                 {tab === 'audit' && (
                     <div className="module-moderation__audit">
                         {actorParam && (

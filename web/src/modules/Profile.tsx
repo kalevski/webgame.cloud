@@ -2,12 +2,13 @@ import React from 'react'
 import { useParams } from 'react-router'
 import useStrings from 'hooks/useStrings'
 import useFeature from 'hooks/useFeature'
-import RouteTabs from 'components/RouteTabs'
+import usePageTabs from 'hooks/usePageTabs'
 import AccountSettings from 'modules/AccountSettings'
 import DeviceSessions from 'modules/DeviceSessions'
 import TicketList from 'modules/TicketList'
+import RoleApplications from 'modules/RoleApplications'
 
-type ProfileTab = 'account' | 'devices' | 'tickets'
+type ProfileTab = 'account' | 'devices' | 'roles' | 'tickets'
 
 const Profile: React.FC = () => {
     const { t } = useStrings()
@@ -17,31 +18,25 @@ const Profile: React.FC = () => {
     const { tab: tabParam } = useParams()
 
     const tabs = [
-        { id: 'account', label: p.tabAccount, icon: 'user', path: '/profile' },
-        { id: 'devices', label: p.tabDevices, icon: 'monitor-smartphone', path: '/profile/devices' },
+        { id: 'account', label: p.tabAccount, href: '/profile' },
+        { id: 'devices', label: p.tabDevices, href: '/profile/devices' },
+        { id: 'roles', label: p.tabRoles, href: '/profile/roles' },
         ...(ticketsEnabled
-            ? [{ id: 'tickets', label: p.tabTickets, icon: 'life-buoy', path: '/profile/tickets' }]
+            ? [{ id: 'tickets', label: p.tabTickets, href: '/profile/tickets' }]
             : []),
     ]
 
     const available = tabs.map((entry) => entry.id)
     const tab = (available.includes(tabParam ?? '') ? tabParam : 'account') as ProfileTab
 
+    usePageTabs(tabs)
+
     return (
         <div className="module module-profile">
-            <tc-rich-page-header
-                className="module-profile__header"
-                title-text={p.title}
-                description={p.intro}
-                icon-name="UserCircle"
-                icon-color="violet"
-            ></tc-rich-page-header>
-
-            <RouteTabs tabs={tabs} activeId={tab} />
-
             <div className="module-profile__content">
                 {tab === 'account' && <AccountSettings />}
                 {tab === 'devices' && <DeviceSessions />}
+                {tab === 'roles' && <RoleApplications />}
                 {tab === 'tickets' && <TicketList />}
             </div>
         </div>

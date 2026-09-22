@@ -15,6 +15,7 @@ import { createBundlesSlice, BundlesSlice } from './bundles.slice'
 import { createBuildsSlice, BuildsSlice } from './builds.slice'
 import { createConfigsSlice, ConfigsSlice } from './configs.slice'
 import { createTranslationsSlice, TranslationsSlice } from './translations.slice'
+import { createRoleApplicationsSlice, RoleApplicationsSlice } from './roleApplications.slice'
 import { createServiceAccountsSlice, ServiceAccountsSlice } from './serviceAccounts.slice'
 import { createTicketsSlice, TicketsSlice } from './tickets.slice'
 import { createUsersSlice, UsersSlice } from './users.slice'
@@ -34,6 +35,7 @@ export type AppStore = AccessPolicySlice &
     BuildsSlice &
     ConfigsSlice &
     TranslationsSlice &
+    RoleApplicationsSlice &
     ServiceAccountsSlice &
     TicketsSlice &
     UsersSlice
@@ -56,6 +58,7 @@ export const useStore = create<AppStore>()(
             ...createBuildsSlice(...args),
             ...createConfigsSlice(...args),
             ...createTranslationsSlice(...args),
+            ...createRoleApplicationsSlice(...args),
             ...createServiceAccountsSlice(...args),
             ...createTicketsSlice(...args),
             ...createUsersSlice(...args),

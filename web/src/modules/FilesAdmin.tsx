@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react'
+import ModuleActions from 'components/ModuleActions'
 import { useStore } from 'state'
 import useStrings from 'hooks/useStrings'
 import useCan from 'hooks/useCan'
@@ -132,13 +133,16 @@ const FilesAdmin: React.FC = () => {
 
     return (
         <div className="module module-files">
-            <tc-section-card title={f.title} icon="Database">
+            <ModuleActions>
                 {canWrite && (
-                    <tc-button slot="action" variant="primary" size="sm" onClick={() => openSource(null)}>
+                    <tc-button variant="primary" size="sm" onClick={() => openSource(null)}>
                         {f.create}
                     </tc-button>
                 )}
-                <tc-stack direction="column" gap="0.85rem">
+            </ModuleActions>
+
+            <tc-section-card title={f.title} icon="Database">
+                <tc-stack direction="vertical" gap="0.85rem">
                     <tc-text variant="muted">{f.intro}</tc-text>
 
                     {assetSourcesLoaded && !hasSources && (
@@ -154,7 +158,7 @@ const FilesAdmin: React.FC = () => {
             </tc-section-card>
 
             <tc-section-card title={f.bindingsTitle} icon="FolderTree" className="module-files__bindings">
-                <tc-stack direction="column" gap="0.85rem">
+                <tc-stack direction="vertical" gap="0.85rem">
                     <tc-text variant="muted">{f.bindingsIntro}</tc-text>
 
                     {!hasSources && assetSourcesLoaded && <tc-alert variant="info">{f.bindingsNoSources}</tc-alert>}

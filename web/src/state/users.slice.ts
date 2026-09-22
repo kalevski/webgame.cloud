@@ -3,6 +3,7 @@ import UserService from 'services/UserService'
 import { STRINGS } from 'configs/strings'
 import { AdminOverview, AdminUserProfile, PlatformSettings, User, UserRole } from 'types'
 import type { AppStore } from './index'
+import { fail } from './alerts.slice'
 
 export type UsersSlice = {
     users: User[]
@@ -52,11 +53,7 @@ export const createUsersSlice: StateCreator<AppStore, [], [], UsersSlice> = (set
         try {
             set({ users: await UserService.getInstance().fetchUsers(), usersLoaded: true })
         } catch (error) {
-            get().addAlert({
-                variant: 'danger',
-                message: error instanceof Error ? error.message : STRINGS.common.loadFailed,
-                dismissible: true,
-            })
+            fail(get, error, STRINGS.common.loadFailed)
         }
     },
 
@@ -67,11 +64,7 @@ export const createUsersSlice: StateCreator<AppStore, [], [], UsersSlice> = (set
             get().addAlert({ variant: 'success', message: STRINGS.usersAdmin.userCreated, dismissible: true })
             return created
         } catch (error) {
-            get().addAlert({
-                variant: 'danger',
-                message: error instanceof Error ? error.message : STRINGS.usersAdmin.saveFailed,
-                dismissible: true,
-            })
+            fail(get, error, STRINGS.usersAdmin.saveFailed)
             return null
         }
     },
@@ -84,11 +77,7 @@ export const createUsersSlice: StateCreator<AppStore, [], [], UsersSlice> = (set
             get().addAlert({ variant: 'success', message: STRINGS.usersAdmin.saved, dismissible: true })
             return updated
         } catch (error) {
-            get().addAlert({
-                variant: 'danger',
-                message: error instanceof Error ? error.message : STRINGS.usersAdmin.saveFailed,
-                dismissible: true,
-            })
+            fail(get, error, STRINGS.usersAdmin.saveFailed)
             return null
         }
     },
@@ -97,13 +86,9 @@ export const createUsersSlice: StateCreator<AppStore, [], [], UsersSlice> = (set
         try {
             await UserService.getInstance().impersonateUser(id)
 
-            window.location.href = '/dashboard'
+            window.location.href = '/'
         } catch (error) {
-            get().addAlert({
-                variant: 'danger',
-                message: error instanceof Error ? error.message : STRINGS.usersAdmin.saveFailed,
-                dismissible: true,
-            })
+            fail(get, error, STRINGS.usersAdmin.saveFailed)
         }
     },
 
@@ -111,11 +96,7 @@ export const createUsersSlice: StateCreator<AppStore, [], [], UsersSlice> = (set
         try {
             set({ settings: await UserService.getInstance().fetchSettings() })
         } catch (error) {
-            get().addAlert({
-                variant: 'danger',
-                message: error instanceof Error ? error.message : STRINGS.common.loadFailed,
-                dismissible: true,
-            })
+            fail(get, error, STRINGS.common.loadFailed)
         }
     },
 
@@ -125,11 +106,7 @@ export const createUsersSlice: StateCreator<AppStore, [], [], UsersSlice> = (set
             get().addAlert({ variant: 'success', message: STRINGS.platformSettings.saved, dismissible: true })
             return true
         } catch (error) {
-            get().addAlert({
-                variant: 'danger',
-                message: error instanceof Error ? error.message : STRINGS.platformSettings.saveFailed,
-                dismissible: true,
-            })
+            fail(get, error, STRINGS.platformSettings.saveFailed)
             return false
         }
     },
@@ -138,11 +115,7 @@ export const createUsersSlice: StateCreator<AppStore, [], [], UsersSlice> = (set
         try {
             set({ overview: await UserService.getInstance().fetchOverview() })
         } catch (error) {
-            get().addAlert({
-                variant: 'danger',
-                message: error instanceof Error ? error.message : STRINGS.common.loadFailed,
-                dismissible: true,
-            })
+            fail(get, error, STRINGS.common.loadFailed)
         }
     },
 })

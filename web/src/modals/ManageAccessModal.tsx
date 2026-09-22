@@ -13,7 +13,7 @@ import {
     User,
     UserRole, OWNER_ROLE_ID } from 'types'
 import { MODAL } from './keys'
-import { useModalClose, useModalInput, useModalIsOpen } from './registry'
+import { useModalClose, useModalInput, useModalIsOpen, SheetFooter } from './registry'
 
 type ValueElement = HTMLElement & { value?: unknown }
 
@@ -302,31 +302,33 @@ const ManageAccessModal: React.FC = () => {
                         <tc-form-input
                             type="text"
                             label={s.confirmPrompt(s.confirmWord)}
-                            onInput={(event: React.FormEvent<ValueElement>) =>
+                            onInput={(event) =>
                                 dispatch({ type: 'setConfirmText', text: String((event.target as ValueElement).value ?? '') })
                             }
                         ></tc-form-input>
                     </div>
                 )}
             </div>
-            <tc-button
-                slot="footer"
-                variant="primary"
-                disabled={!valid || undefined}
-                onClick={() =>
-                    valid &&
-                    closeModal({
-                        role: draft.role,
-                        verified: draft.verified,
-                        overrides: { permissions: draft.permissionOverrides, limits: draft.limitOverrides },
-                    } satisfies ManageAccessResult)
-                }
-            >
-                {s.save}
-            </tc-button>
-            <tc-button slot="footer" variant="secondary" outline onClick={() => closeModal(null)}>
-                {t.modal.cancel}
-            </tc-button>
+            <SheetFooter>
+                <tc-button
+               
+                    variant="primary"
+                    disabled={!valid || undefined}
+                    onClick={() =>
+                        valid &&
+                        closeModal({
+                            role: draft.role,
+                            verified: draft.verified,
+                            overrides: { permissions: draft.permissionOverrides, limits: draft.limitOverrides },
+                        } satisfies ManageAccessResult)
+                    }
+                >
+                    {s.save}
+                </tc-button>
+                <tc-button variant="secondary" outline onClick={() => closeModal(null)}>
+                    {t.modal.cancel}
+                </tc-button>
+            </SheetFooter>
         </>
     )
 }

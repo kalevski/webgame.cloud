@@ -116,7 +116,7 @@ p:where([class$='__intro']) {
 :where(tc-button, tc-icon-button, tc-form-input, tc-extended-select, tc-combo-box, tc-tag-input):focus-visible {
     outline: 2px solid var(--tc-focus-ring, #{$accent});
     outline-offset: 2px;
-    border-radius: $radius-sm;
+    border-radius: var(--bs-border-radius);
 }
 
 @include coarse-pointer {

@@ -84,8 +84,8 @@ const MyInvoices: React.FC = () => {
 
     return (
         <div className="module-my-invoices" role="presentation" onClick={openInvoice}>
-            <tc-section-card title={b.invoicesTitle}>
-                <tc-stack direction="column" gap="0.85rem">
+            <tc-section-card title={b.invoicesTitle} icon="ReceiptText">
+                <tc-stack direction="vertical" gap="0.85rem">
                     <tc-text variant="muted">{b.invoicesIntro}</tc-text>
                     <tc-advanced-table
                         ref={table}

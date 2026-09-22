@@ -3,7 +3,7 @@ import useStrings from 'hooks/useStrings'
 import { useStore } from 'state'
 import { Plan, SalesField } from 'types'
 import { MODAL } from './keys'
-import { useModalClose, useModalInput, useModalIsOpen } from './registry'
+import { useModalClose, useModalInput, useModalIsOpen, SheetFooter } from './registry'
 
 type ValueElement = HTMLElement & { value?: string }
 
@@ -60,7 +60,7 @@ const ContactSalesModal: React.FC = () => {
                     label={label}
                     rows="3"
                     placeholder={field.placeholder}
-                    onInput={(event: React.FormEvent<ValueElement>) =>
+                    onInput={(event) =>
                         setAnswer(field.key, String((event.target as ValueElement).value ?? ''))
                     }
                 ></tc-textarea>
@@ -72,7 +72,7 @@ const ContactSalesModal: React.FC = () => {
                 type={field.type === 'number' ? 'number' : field.type === 'email' ? 'email' : 'text'}
                 label={label}
                 placeholder={field.placeholder}
-                onInput={(event: React.FormEvent<ValueElement>) =>
+                onInput={(event) =>
                     setAnswer(field.key, String((event.target as ValueElement).value ?? ''))
                 }
             ></tc-form-input>
@@ -80,32 +80,34 @@ const ContactSalesModal: React.FC = () => {
     }
 
     return (
-        <div className="modal-contact-sales">
-            <tc-stack direction="column" gap="0.85rem">
-                <tc-text variant="muted">{b.enquiryIntro}</tc-text>
+        <>
+            <div className="modal-contact-sales">
+                <tc-stack direction="vertical" gap="0.85rem">
+                    <tc-text variant="muted">{b.enquiryIntro}</tc-text>
 
-                {fields.length === 0
-                    ? <tc-text variant="muted">{b.contactSalesHint}</tc-text>
-                    : fields.map(renderField)}
+                    {fields.length === 0
+                        ? <tc-text variant="muted">{b.contactSalesHint}</tc-text>
+                        : fields.map(renderField)}
 
-                {settings?.salesContact && (
-                    <tc-text variant="muted">{b.enquiryContactHint(settings.salesContact)}</tc-text>
-                )}
+                    {settings?.salesContact && (
+                        <tc-text variant="muted">{b.enquiryContactHint(settings.salesContact)}</tc-text>
+                    )}
 
-                <div className="modal-contact-sales__actions">
-                    <tc-button variant="secondary" outline onClick={() => closeModal(null)}>
-                        {b.enquiryCancel}
-                    </tc-button>
-                    <tc-button
-                        variant="primary"
-                        disabled={missing || saving || undefined}
-                        onClick={submit}
-                    >
-                        {b.enquirySubmit}
-                    </tc-button>
-                </div>
-            </tc-stack>
-        </div>
+                </tc-stack>
+            </div>
+            <SheetFooter>
+                <tc-button variant="secondary" outline onClick={() => closeModal(null)}>
+                    {b.enquiryCancel}
+                </tc-button>
+                <tc-button
+                    variant="primary"
+                    disabled={missing || saving || undefined}
+                    onClick={submit}
+                >
+                    {b.enquirySubmit}
+                </tc-button>
+            </SheetFooter>
+        </>
     )
 }
 

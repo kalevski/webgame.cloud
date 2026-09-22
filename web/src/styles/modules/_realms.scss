@@ -76,7 +76,7 @@
 
         padding: $space-4;
         border: 1px solid $line;
-        border-radius: $radius-md;
+        border-radius: var(--bs-border-radius);
         background: $surface;
 
         &[data-open='false'] {
@@ -153,7 +153,7 @@
 
         padding: 0.2rem 0.5rem;
         border: 1px solid $line;
-        border-radius: $radius-sm;
+        border-radius: var(--bs-border-radius);
         background: transparent;
 
         font-family: var(--rg-mono);

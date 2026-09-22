@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react'
 import { useStore } from 'state'
 import useStrings from 'hooks/useStrings'
 import { MODAL } from './keys'
-import { useModalClose, useModalInput, useModalIsOpen } from './registry'
+import { useModalClose, useModalInput, useModalIsOpen, SheetFooter } from './registry'
 
 type ValueElement = HTMLElement & { value?: string }
 
@@ -41,16 +41,18 @@ const ResolveReportModal: React.FC = () => {
                 ref={noteEl}
                 label={m.resolvePrompt}
                 rows="3"
-                onInput={(event: React.FormEvent<ValueElement>) => {
+                onInput={(event) => {
                     note.current = String((event.target as ValueElement).value ?? '')
                 }}
             ></tc-textarea>
-            <tc-button slot="footer" variant="primary" disabled={!reportId || busy || undefined} onClick={handleResolve}>
-                {m.resolve}
-            </tc-button>
-            <tc-button slot="footer" variant="secondary" outline onClick={() => closeModal(null)}>
-                {t.modal.cancel}
-            </tc-button>
+            <SheetFooter>
+                <tc-button variant="primary" disabled={!reportId || busy || undefined} onClick={handleResolve}>
+                    {m.resolve}
+                </tc-button>
+                <tc-button variant="secondary" outline onClick={() => closeModal(null)}>
+                    {t.modal.cancel}
+                </tc-button>
+            </SheetFooter>
         </>
     )
 }

@@ -1,3 +1,6 @@
+import type { AnalyticsEvent } from 'configs/analytics'
+import { STORAGE_PREFIX } from 'helpers/storage'
+
 type Gtag = (command: string, ...args: unknown[]) => void
 
 const getGtag = (): Gtag | null => {
@@ -9,7 +12,6 @@ const DEBUG = import.meta.env.VITE_GA_DEBUG === 'true'
 const ENABLED = import.meta.env.PROD || DEBUG
 
 const REDACTED: Array<[RegExp, string]> = [
-    [/^\/projects\/[^/]+/, '/projects/:id'],
 ]
 
 export const normalizePath = (path: string): string => {
@@ -32,11 +34,11 @@ export const trackPageView = (path: string): void => {
     gtag('event', 'page_view')
 }
 
-export const AUTH_METHOD_KEY = 'starter:auth-method'
+export const AUTH_METHOD_KEY = `${STORAGE_PREFIX}:auth-method`
 
 export type TrackParams = Record<string, string | number | boolean | undefined>
 
-export const trackEvent = (name: string, params: TrackParams = {}): void => {
+export const trackEvent = (name: AnalyticsEvent, params: TrackParams = {}): void => {
     const gtag = getGtag()
     if (!gtag || !ENABLED) return
     const clean: TrackParams = {}
@@ -55,10 +57,36 @@ export const normalizeEndpoint = (path: string): string =>
         .map((segment, index) => (index === 0 || PATH_WORD.test(segment) ? segment : ':id'))
         .join('/')
 
-export const trackOnce = (key: string, name: string, params: TrackParams = {}): void => {
+export const trackOnce = (key: string, name: AnalyticsEvent, params: TrackParams = {}): void => {
     if (seenThisPage.has(key)) return
     seenThisPage.add(key)
     trackEvent(name, params)
+}
+
+export const countBucket = (count: number): string => {
+    if (count <= 0) return '0'
+    if (count < 10) return '1_9'
+    if (count < 50) return '10_49'
+    if (count < 200) return '50_199'
+    return '200_plus'
+}
+
+export const amountBucket = (cents: number): string => {
+    if (cents <= 0) return 'none'
+    const units = cents / 100
+    if (units < 10) return 'under_10'
+    if (units < 50) return '10_49'
+    if (units < 200) return '50_199'
+    if (units < 1000) return '200_999'
+    return '1000_plus'
+}
+
+export const daysBucket = (days: number): string => {
+    if (days < 1) return 'today'
+    if (days < 7) return 'this_week'
+    if (days < 30) return 'this_month'
+    if (days < 365) return 'this_year'
+    return 'older'
 }
 
 export type AnalyticsIdentity = {

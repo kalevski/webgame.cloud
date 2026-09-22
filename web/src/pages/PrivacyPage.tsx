@@ -1,5 +1,4 @@
 import React, { useEffect } from 'react'
-import { wrapInBaseLayout } from 'layouts/BaseLayout'
 import { usePageContext } from 'contexts/PageContext'
 import useStrings from 'hooks/useStrings'
 import LegalPrivacy from 'modules/LegalPrivacy'
@@ -16,4 +15,4 @@ const PrivacyPage: React.FC = () => {
     return <LegalPrivacy />
 }
 
-export default wrapInBaseLayout(PrivacyPage)
+export default PrivacyPage

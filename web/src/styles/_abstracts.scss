@@ -15,13 +15,14 @@ $space-lg: $space-4;
 $space-xl: $space-5;
 $space-2xl: $space-6;
 
-$radius-sm: 6px;
-$radius-md: 10px;
-$radius-lg: 14px;
-
 $bp-sm: 576px;
 $bp-md: 768px;
 $bp-lg: 992px;
+
+$gutter: 16px;
+$gutter-wide: 24px;
+$desktop-content-max: 1120px;
+$prose-max: 760px;
 
 @mixin down($breakpoint) {
     @media (max-width: #{$breakpoint - 0.02px}) {
@@ -43,6 +44,8 @@ $bp-lg: 992px;
 
 $tap-target: 40px;
 $tap-target-touch: 44px;
+
+$font-display: 'Playfair Display', Georgia, serif;
 
 $brand: #7c3aed;
 

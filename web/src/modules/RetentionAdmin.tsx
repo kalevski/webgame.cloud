@@ -3,6 +3,7 @@ import { useStore } from 'state'
 import useStrings from 'hooks/useStrings'
 import useCan from 'hooks/useCan'
 import Loading from 'components/Loading'
+import ModuleActions from 'components/ModuleActions'
 import { useTc } from '@toolcase/web-components/react'
 import { escapeHtml } from 'helpers/html'
 import { formatDateTime } from 'helpers/dates'
@@ -151,15 +152,16 @@ const RetentionAdmin: React.FC = () => {
 
     return (
         <div className="module module-retention">
+            <ModuleActions>
+                {canWrite && (
+                    <tc-button variant="secondary" size="sm" outline onClick={() => void runPurge()}>
+                        {r.runNow}
+                    </tc-button>
+                )}
+            </ModuleActions>
+
             <tc-section-card title={r.settingsTitle} icon="Timer">
-                <span slot="action" className="section-card-actions">
-                    {canWrite && (
-                        <tc-button variant="secondary" size="sm" outline onClick={() => void runPurge()}>
-                            {r.runNow}
-                        </tc-button>
-                    )}
-                </span>
-                <tc-stack direction="column" gap="0.85rem">
+                <tc-stack direction="vertical" gap="0.85rem">
                     <tc-text variant="muted">{r.settingsIntro}</tc-text>
 
                     <div className="module-retention__settings">
@@ -172,7 +174,7 @@ const RetentionAdmin: React.FC = () => {
                                 max={PURGE_INTERVAL_BOUNDS.max}
                                 help={r.intervalHint}
                                 disabled={!canWrite || undefined}
-                                onInput={(event: React.FormEvent<ValueElement>) => {
+                                onInput={(event) => {
                                     interval.current = Number((event.target as ValueElement).value ?? 0)
                                 }}
                             ></tc-form-input>
@@ -186,7 +188,7 @@ const RetentionAdmin: React.FC = () => {
                                 max={PURGE_BATCH_BOUNDS.max}
                                 help={r.batchHint}
                                 disabled={!canWrite || undefined}
-                                onInput={(event: React.FormEvent<ValueElement>) => {
+                                onInput={(event) => {
                                     batch.current = Number((event.target as ValueElement).value ?? 0)
                                 }}
                             ></tc-form-input>
@@ -200,7 +202,7 @@ const RetentionAdmin: React.FC = () => {
                                 max={PURGE_TABLES_PER_TICK_BOUNDS.max}
                                 help={r.tablesPerTickHint}
                                 disabled={!canWrite || undefined}
-                                onInput={(event: React.FormEvent<ValueElement>) => {
+                                onInput={(event) => {
                                     perTick.current = Number((event.target as ValueElement).value ?? 0)
                                 }}
                             ></tc-form-input>
@@ -233,7 +235,7 @@ const RetentionAdmin: React.FC = () => {
             </tc-section-card>
 
             <tc-section-card title={r.title} icon="Database">
-                <tc-stack direction="column" gap="0.85rem">
+                <tc-stack direction="vertical" gap="0.85rem">
                     <tc-text variant="muted">{r.intro}</tc-text>
 
                     <div className="module-retention__summary">

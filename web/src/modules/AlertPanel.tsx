@@ -19,7 +19,7 @@ const AlertPanel: React.FC = () => {
     if (alerts.length === 0) return null
 
     return (
-        <div className="module module-alert-panel">
+        <div className="module module-alert-panel" role="status" aria-live="polite">
             {alerts.map((alert) => (
                 <AlertItem key={alert.key} alert={alert} onDismiss={dismissAlert} />
             ))}

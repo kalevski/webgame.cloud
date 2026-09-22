@@ -4,11 +4,108 @@
     display: flex;
     flex-direction: column;
     gap: $space-lg;
-    max-width: 46rem;
-}
 
-.module-devices__current,
-.module-devices__others {
-    display: block;
-    --bs-section-card-body-padding: 0;
+    &__card {
+        --bs-section-card-body-padding: 0;
+
+        display: block;
+    }
+
+    &__intro {
+        display: block;
+        padding: $space-md $space-lg 0;
+    }
+
+    &__list {
+        margin: 0;
+        padding: 0;
+        list-style: none;
+    }
+
+    &__row {
+        display: grid;
+        grid-template-columns: auto minmax(0, 1fr) auto;
+        grid-template-areas:
+            'glyph who act'
+            '.     when act';
+        align-items: center;
+        column-gap: $space-md;
+        row-gap: $space-2xs;
+        padding: $space-md $space-lg;
+        border-bottom: 1px solid var(--tc-border, #e4e4e7);
+        border-left: 3px solid transparent;
+
+        &:last-child {
+            border-bottom: 0;
+        }
+
+        @include up($bp-md) {
+            grid-template-columns: auto minmax(0, 1fr) auto auto;
+            grid-template-areas: 'glyph who when act';
+            column-gap: $space-lg;
+        }
+
+        &--current {
+            border-left-color: var(--tc-success, #16a34a);
+        }
+    }
+
+    &__glyph {
+        grid-area: glyph;
+        color: var(--tc-text-faint, #a1a1aa);
+    }
+
+    &__row--current &__glyph {
+        color: var(--tc-success, #16a34a);
+    }
+
+    &__who {
+        grid-area: who;
+        display: flex;
+        flex-direction: column;
+        min-width: 0;
+    }
+
+    &__name {
+        font-weight: 600;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    &__origin {
+        font-family: var(--tc-font-mono, ui-monospace, monospace);
+        font-size: 0.75rem;
+        font-variant-numeric: tabular-nums;
+        color: var(--tc-text-faint, #a1a1aa);
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    &__when {
+        grid-area: when;
+        font-family: var(--tc-font-mono, ui-monospace, monospace);
+        font-size: 0.8125rem;
+        font-variant-numeric: tabular-nums;
+        color: var(--tc-text-muted, #71717a);
+        white-space: nowrap;
+    }
+
+    &__row--current &__when {
+        color: var(--tc-success, #16a34a);
+    }
+
+    &__act {
+        grid-area: act;
+        display: flex;
+        justify-content: flex-end;
+        flex-shrink: 0;
+    }
+
+    &__alone {
+        display: block;
+        padding: $space-md $space-lg;
+        border-top: 1px solid var(--tc-border, #e4e4e7);
+    }
 }

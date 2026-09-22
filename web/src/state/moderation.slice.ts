@@ -3,6 +3,7 @@ import ModerationService from 'services/ModerationService'
 import { STRINGS } from 'configs/strings'
 import { AuditEntry, AuditFilters, Report, ReportTargetKind } from 'types'
 import type { AppStore } from './index'
+import { fail } from './alerts.slice'
 
 export type ModerationSlice = {
     reports: Report[]
@@ -39,7 +40,12 @@ export const createModerationSlice: StateCreator<AppStore, [], [], ModerationSli
         set({ auditLoading: true, auditFilters: next })
         try {
             const { entries, total, actions } = await ModerationService.getInstance().fetchAuditLog(next)
-            set({ auditLog: entries, auditTotal: total, auditActions: actions, auditLoading: false })
+            set({
+                auditLog: entries,
+                auditTotal: total,
+                auditActions: actions.length > 0 ? actions : get().auditActions,
+                auditLoading: false,
+            })
         } catch {
             set({ auditLoading: false })
             get().addAlert({ variant: 'danger', message: STRINGS.alerts.loadFailed, dismissible: true })
@@ -54,11 +60,7 @@ export const createModerationSlice: StateCreator<AppStore, [], [], ModerationSli
             get().addAlert({ variant: 'success', message: t.resolved, dismissible: true })
             return true
         } catch (error) {
-            get().addAlert({
-                variant: 'danger',
-                message: error instanceof Error ? error.message : STRINGS.alerts.loadFailed,
-                dismissible: true,
-            })
+            fail(get, error, STRINGS.alerts.loadFailed)
             return false
         }
     },
@@ -70,11 +72,7 @@ export const createModerationSlice: StateCreator<AppStore, [], [], ModerationSli
             get().addAlert({ variant: 'success', message: t.reportSent, dismissible: true })
             return true
         } catch (error) {
-            get().addAlert({
-                variant: 'danger',
-                message: error instanceof Error ? error.message : t.reportFailed,
-                dismissible: true,
-            })
+            fail(get, error, t.reportFailed)
             return false
         }
     },

@@ -96,13 +96,13 @@ const AssetSourceModal: React.FC = () => {
 
     return (
         <div className="modal-file-source">
-            <tc-stack direction="column" gap="0.85rem">
+            <tc-stack direction="vertical" gap="0.85rem">
                 <tc-form-input
                     ref={nameRef}
                     type="text"
                     label={f.nameLabel}
                     placeholder={f.namePlaceholder}
-                    onInput={(event: React.FormEvent<ValueElement>) => {
+                    onInput={(event) => {
                         name.current = String((event.target as ValueElement).value ?? '')
                         setHasName(name.current.trim().length > 0)
                     }}
@@ -123,7 +123,7 @@ const AssetSourceModal: React.FC = () => {
                         label={f.basePathLabel}
                         placeholder={f.basePathPlaceholder}
                         help={f.basePathHint}
-                        onInput={(event: React.FormEvent<ValueElement>) => {
+                        onInput={(event) => {
                             basePath.current = String((event.target as ValueElement).value ?? '')
                         }}
                     ></tc-form-input>
@@ -135,7 +135,7 @@ const AssetSourceModal: React.FC = () => {
                             ref={bucketRef}
                             type="text"
                             label={f.bucketLabel}
-                            onInput={(event: React.FormEvent<ValueElement>) => {
+                            onInput={(event) => {
                                 bucket.current = String((event.target as ValueElement).value ?? '')
                             }}
                         ></tc-form-input>
@@ -143,7 +143,7 @@ const AssetSourceModal: React.FC = () => {
                             ref={regionRef}
                             type="text"
                             label={f.regionLabel}
-                            onInput={(event: React.FormEvent<ValueElement>) => {
+                            onInput={(event) => {
                                 region.current = String((event.target as ValueElement).value ?? '')
                             }}
                         ></tc-form-input>
@@ -152,7 +152,7 @@ const AssetSourceModal: React.FC = () => {
                             type="text"
                             label={f.endpointLabel}
                             help={f.endpointHint}
-                            onInput={(event: React.FormEvent<ValueElement>) => {
+                            onInput={(event) => {
                                 endpoint.current = String((event.target as ValueElement).value ?? '')
                             }}
                         ></tc-form-input>
@@ -160,7 +160,7 @@ const AssetSourceModal: React.FC = () => {
                             ref={accessKeyIdRef}
                             type="text"
                             label={f.accessKeyIdLabel}
-                            onInput={(event: React.FormEvent<ValueElement>) => {
+                            onInput={(event) => {
                                 accessKeyId.current = String((event.target as ValueElement).value ?? '')
                             }}
                         ></tc-form-input>
@@ -168,7 +168,7 @@ const AssetSourceModal: React.FC = () => {
                             type="password"
                             label={f.secretLabel}
                             help={editing?.secretSet ? f.secretSet : f.secretHint}
-                            onInput={(event: React.FormEvent<ValueElement>) => {
+                            onInput={(event) => {
                                 secret.current = String((event.target as ValueElement).value ?? '')
                             }}
                         ></tc-form-input>

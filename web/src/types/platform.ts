@@ -5,6 +5,7 @@ export type {
     AssetSource,
     AssetSourceConfig,
     AssetSourceDraft,
+    AssetSourceRules,
     AssetSourceType,
     AssetType,
     AssetTypeBindings,
@@ -33,6 +34,10 @@ export type {
 } from '@webgame-cloud/api/contracts'
 
 export {
+    EMPTY_ASSET_SOURCE_RULES,
+    extensionOf,
+    normalizeExtension,
+    normalizeMimeType,
     ASSET_SOURCE_TYPE_LABELS,
     ASSET_SOURCE_TYPES,
     ASSET_TYPE_LABELS,

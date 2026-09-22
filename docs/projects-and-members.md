@@ -187,7 +187,7 @@ before the handler runs. Staff read the roster through the separate, read-only
 ## Project settings
 
 Settings is **two routed tabs** — `/projects/:id/settings` and `/settings/categories-and-tags`, both served
-by `pages/ProjectSettingsPage.tsx` through the `:tab` route param and `components/RouteTabs.tsx` (the same
+by `pages/ProjectSettingsPage.tsx` through the `:tab` route param and `hooks/usePageTabs.ts` (the same
 shape `/billing/:tab` uses). An unknown `:tab` renders General rather than redirecting, which is also what
 retires the old `/settings/danger` link cleanly — it now lands on General, where the danger zone lives. Each
 tab owns its own draft state and its own save, so leaving a tab discards only that tab's unsaved edits:
@@ -265,7 +265,7 @@ reference count. Renaming is not supported — remove and re-add.
 
 There is no projects **list** screen. Every project-scoped surface hangs off one **active project**,
 chosen from a `tc-extended-select` that sits in the dashboard layout's `sidebar-menu` slot, directly
-above `SidebarMenu` (`modules/ProjectSwitcher.tsx`).
+in the More sheet (`modules/ProjectSwitcher.tsx`).
 
 - One entry per project the caller is a member of — name plus description, searchable.
 - A trailing **Create new project** entry that navigates to `/projects/new`. It is **appended only while

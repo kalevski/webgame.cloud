@@ -54,8 +54,8 @@ const FeatureFlagsPanel: React.FC = () => {
 
     return (
         <div className="module module-feature-flags">
-            <tc-section-card title={f.title}>
-                <tc-stack direction="column" gap="0.85rem">
+            <tc-section-card title={f.title} icon="ToggleRight">
+                <tc-stack direction="vertical" gap="0.85rem">
                     <tc-text variant="muted">{f.intro}</tc-text>
                     {!featureFlags ? (
                         <Loading />

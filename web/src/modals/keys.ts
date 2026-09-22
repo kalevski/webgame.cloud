@@ -13,7 +13,6 @@ export const MODAL = {
 
     CREATE_TICKET: 'create-ticket',
 
-    PICK_TEMPLATE: 'pick-template',
 
     IMPERSONATE_USER: 'impersonate-user',
 
@@ -46,6 +45,10 @@ export const MODAL = {
 
     BUNDLE_WIZARD: 'bundle-wizard',
     CREATE_CONFIG: 'create-config',
+    ROLE_APPLICATION: 'role-application',
+
+    REVIEW_ROLE_APPLICATION: 'review-role-application',
+
 
     CONTACT_SALES: 'contact-sales',
 
@@ -65,4 +68,6 @@ export const MODAL = {
 
     SIGNING_PUBLIC_KEY: 'signing-public-key',
     CONFIRM_ROTATE_SIGNING_KEY: 'confirm-rotate-signing-key',
-}
+} as const
+
+export type ModalKey = typeof MODAL[keyof typeof MODAL]

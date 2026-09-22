@@ -1,4 +1,5 @@
 import { apiFetch } from 'helpers/api'
+import { queryString } from 'helpers/query'
 import {
     ApiKey,
     ApiKeyDraft,
@@ -72,13 +73,8 @@ class PlatformService {
     }
 
     async listDeliveries(filters: WebhookDeliveryFilters): Promise<{ deliveries: WebhookDelivery[]; total: number }> {
-        const query = new URLSearchParams()
-        for (const [key, value] of Object.entries(filters)) {
-            if (value !== undefined && value !== null && value !== '') query.set(key, String(value))
-        }
-        const suffix = query.toString()
         return apiFetch<{ deliveries: WebhookDelivery[]; total: number }>(
-            `/api/webhooks/deliveries${suffix ? `?${suffix}` : ''}`
+            `/api/webhooks/deliveries${queryString(filters)}`
         )
     }
 
@@ -137,13 +133,8 @@ class PlatformService {
     async listJobs(
         filters: JobFilters
     ): Promise<{ jobs: Job[]; total: number; stats: JobStats; nextCursor: string | null }> {
-        const query = new URLSearchParams()
-        for (const [key, value] of Object.entries(filters)) {
-            if (value !== undefined && value !== null && value !== '') query.set(key, String(value))
-        }
-        const suffix = query.toString()
         return apiFetch<{ jobs: Job[]; total: number; stats: JobStats; nextCursor: string | null }>(
-            `/api/jobs${suffix ? `?${suffix}` : ''}`
+            `/api/jobs${queryString(filters)}`
         )
     }
 

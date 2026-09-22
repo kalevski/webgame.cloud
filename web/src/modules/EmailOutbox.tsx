@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo } from 'react'
+import ModuleActions from 'components/ModuleActions'
 import { useStore } from 'state'
 import useStrings from 'hooks/useStrings'
 import useCan from 'hooks/useCan'
@@ -124,15 +125,16 @@ const EmailOutbox: React.FC = () => {
 
     return (
         <div className="module module-email-outbox" role="presentation" onClick={onClick}>
+            <ModuleActions>
+                {canSend && (
+                    <tc-button variant="primary" onClick={() => openCompose()}>
+                        {e.compose}
+                    </tc-button>
+                )}
+            </ModuleActions>
+
             <tc-section-card title={e.outboxTitle} icon="Inbox">
-                <span slot="action" className="section-card-actions">
-                    {canSend && (
-                        <tc-button variant="primary" onClick={() => openCompose()}>
-                            {e.compose}
-                        </tc-button>
-                    )}
-                </span>
-                <tc-stack direction="column" gap="0.85rem">
+                <tc-stack direction="vertical" gap="0.85rem">
                     <tc-text variant="muted">{e.outboxIntro}</tc-text>
 
                     <tc-metric-grid ref={statTiles} columns="5"></tc-metric-grid>

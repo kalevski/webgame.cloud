@@ -5,7 +5,7 @@ import { isRequiredText } from 'helpers/validation'
 import { useStore } from 'state'
 import { OWNER_ROLE_ID, UserRole } from 'types'
 import { MODAL } from './keys'
-import { useModalClose, useModalIsOpen } from './registry'
+import { useModalClose, useModalIsOpen, SheetFooter } from './registry'
 
 type ValueElement = HTMLElement & { value?: unknown }
 
@@ -62,23 +62,29 @@ const CreateServiceAccountModal: React.FC = () => {
 
     return (
         <>
-            <p>{s.intro}</p>
-            <tc-form-input
-                ref={nameInput}
-                type="text"
-                label={s.nameLabel}
-                placeholder={s.namePlaceholder}
-                required
-            ></tc-form-input>
-            <tc-label>{s.roleLabel}</tc-label>
-            <tc-extended-select ref={roleSelect} placeholder={s.roleLabel}></tc-extended-select>
-            <tc-helper-text>{s.roleHint}</tc-helper-text>
-            <tc-button slot="footer" variant="primary" disabled={!valid || undefined} onClick={handleConfirm}>
-                {s.create}
-            </tc-button>
-            <tc-button slot="footer" variant="secondary" outline onClick={() => closeModal(null)}>
-                {t.modal.cancel}
-            </tc-button>
+            <div className="app-sheet-form">
+                <p>{s.intro}</p>
+                <tc-form-input
+                    ref={nameInput}
+                    type="text"
+                    label={s.nameLabel}
+                    placeholder={s.namePlaceholder}
+                    required
+                ></tc-form-input>
+                <div className="app-sheet-field">
+                    <tc-label>{s.roleLabel}</tc-label>
+                    <tc-extended-select ref={roleSelect} placeholder={s.roleLabel}></tc-extended-select>
+                    <tc-helper-text>{s.roleHint}</tc-helper-text>
+                </div>
+            </div>
+            <SheetFooter>
+                <tc-button variant="primary" disabled={!valid || undefined} onClick={handleConfirm}>
+                    {s.create}
+                </tc-button>
+                <tc-button variant="secondary" outline onClick={() => closeModal(null)}>
+                    {t.modal.cancel}
+                </tc-button>
+            </SheetFooter>
         </>
     )
 }

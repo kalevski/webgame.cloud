@@ -2,6 +2,9 @@ import React from 'react'
 import { toIconName } from 'helpers/icons'
 import { Project } from 'types'
 
+export type ProjectHeaderIconColor =
+    'violet' | 'cyan' | 'emerald' | 'amber' | 'pink' | 'blue' | 'slate' | 'rose'
+
 type Props = {
     title: string
     subline?: React.ReactNode
@@ -9,7 +12,7 @@ type Props = {
     action?: React.ReactNode
     project?: Project
     iconName?: string
-    iconColor?: string
+    iconColor?: ProjectHeaderIconColor
 }
 
 const ProjectHeader: React.FC<Props> = ({

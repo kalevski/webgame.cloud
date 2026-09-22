@@ -1,0 +1,53 @@
+@use '../abstracts' as *;
+
+tc-bottom-sheet {
+    --bs-bottom-sheet-body-padding: #{$gutter};
+    --bs-bottom-sheet-body-gap: 10px;
+}
+
+tc-bottom-sheet > :not([slot]) {
+    padding-inline: var(--bs-bottom-sheet-body-padding, #{$gutter});
+    gap: var(--bs-bottom-sheet-body-gap, 10px);
+}
+
+tc-bottom-sheet > :not([slot]) > * {
+    flex-shrink: 0;
+}
+
+tc-bottom-sheet {
+    --bs-form-input-gap: 0.1rem;
+
+    tc-label {
+        margin-bottom: 3px;
+    }
+}
+
+.app-sheet {
+    &__placeholder {
+        min-height: 1px;
+    }
+}
+
+.app-sheet-form {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.app-sheet-field {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.app-sheet-footer {
+    flex-wrap: wrap;
+
+    tc-button {
+        flex: 0 0 auto;
+    }
+
+    tc-button[variant='primary'] {
+        flex: 1 1 auto;
+    }
+}

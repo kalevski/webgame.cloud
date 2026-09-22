@@ -5,7 +5,7 @@ import useStrings from 'hooks/useStrings'
 import useCan from 'hooks/useCan'
 import { MODAL, useModalOpen } from 'modals'
 import AdvancedTable from 'components/AdvancedTable'
-import RouteTabs from 'components/RouteTabs'
+import usePageTabs from 'hooks/usePageTabs'
 import { PersonColumnKey, personColumns, personRow } from 'helpers/platformTables'
 import { toIconName } from 'helpers/icons'
 import { formatBytes } from 'helpers/format'
@@ -62,6 +62,19 @@ const ProjectAdminDetail: React.FC = () => {
         return () => clearAdminProject()
     }, [id, fetchAdminProject, fetchAdminProjectMembers, clearAdminProject])
 
+    const tabs = project
+        ? [
+            { id: 'overview', label: p.tabOverview, href: `/platform/projects/${project.id}` },
+            {
+                id: 'members',
+                label: p.tabMembers(project.memberCount),
+                href: `/platform/projects/${project.id}/members`,
+            },
+        ]
+        : []
+
+    usePageTabs(tabs)
+
     if (!project) {
         return (
             <div className="module module-project-admin-detail">
@@ -84,16 +97,6 @@ const ProjectAdminDetail: React.FC = () => {
         ...(project.archivedAt
             ? [{ label: p.detailArchived, value: formatDateTime(project.archivedAt), mono: true }]
             : []),
-    ]
-
-    const tabs = [
-        { id: 'overview', label: p.tabOverview, icon: 'gauge', path: `/platform/projects/${project.id}` },
-        {
-            id: 'members',
-            label: p.tabMembers(project.memberCount),
-            icon: 'users',
-            path: `/platform/projects/${project.id}/members`,
-        },
     ]
 
     const memberColumns = personColumns(t.usersAdmin, p, MEMBER_COLUMN_KEYS)
@@ -157,8 +160,6 @@ const ProjectAdminDetail: React.FC = () => {
                     )}
                 </span>
             </tc-rich-page-header>
-
-            <RouteTabs tabs={tabs} activeId={activeTab} />
 
             {activeTab === 'overview' && (
                 <div className="console-section">

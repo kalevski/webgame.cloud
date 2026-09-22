@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo } from 'react'
+import ModuleActions from 'components/ModuleActions'
 import { useStore } from 'state'
 import useStrings from 'hooks/useStrings'
 import useCan from 'hooks/useCan'
@@ -122,15 +123,16 @@ const WebhooksAdmin: React.FC = () => {
 
     return (
         <div className="module module-webhooks" role="presentation" onClick={onClick}>
+            <ModuleActions>
+                {canWrite && (
+                    <tc-button variant="primary" onClick={() => openWebhook(null)}>
+                        {w.create}
+                    </tc-button>
+                )}
+            </ModuleActions>
+
             <tc-section-card title={w.title} icon="Webhook">
-                <span slot="action" className="section-card-actions">
-                    {canWrite && (
-                        <tc-button variant="primary" onClick={() => openWebhook(null)}>
-                            {w.create}
-                        </tc-button>
-                    )}
-                </span>
-                <tc-stack direction="column" gap="0.85rem">
+                <tc-stack direction="vertical" gap="0.85rem">
                     <tc-text variant="muted">{w.intro}</tc-text>
 
                     {webhooksLoaded && webhooks.length === 0 && (
@@ -146,7 +148,7 @@ const WebhooksAdmin: React.FC = () => {
             </tc-section-card>
 
             <tc-section-card title={w.deliveriesTitle} className="module-webhooks__deliveries">
-                <tc-stack direction="column" gap="0.85rem">
+                <tc-stack direction="vertical" gap="0.85rem">
                     <tc-text variant="muted">{w.deliveriesIntro}</tc-text>
 
                     <tc-advanced-table

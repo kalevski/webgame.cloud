@@ -1,13 +1,5 @@
 @use '../abstracts' as *;
 
-.module-workspace__header {
-    margin-bottom: $space-xl;
-}
-
-.module-workspace__content {
-    margin-top: $space-lg;
-}
-
 .module-workspace__sections {
     display: flex;
     flex-direction: column;

@@ -4,7 +4,7 @@ import { useTc } from '@toolcase/web-components/react'
 import { useStore } from 'state'
 import { Project } from 'types'
 import { MODAL } from './keys'
-import { useModalClose, useModalInput } from './registry'
+import { useModalClose, useModalInput, SheetFooter } from './registry'
 
 type ValueElement = HTMLElement & { value?: unknown }
 
@@ -44,17 +44,18 @@ const ArchiveProjectModal: React.FC = () => {
                 hidden={!archiving || undefined}
                 label={t.projects.typeToConfirm(project?.name ?? '')}
             />
-            <tc-button
-                slot="footer"
-                variant="warning"
-                disabled={(archiving && !confirmed) || saving || undefined}
-                onClick={submit}
-            >
-                {archiving ? t.projects.archive : t.projects.unarchive}
-            </tc-button>
-            <tc-button slot="footer" variant="secondary" outline onClick={() => closeModal(null)}>
-                {t.modal.cancel}
-            </tc-button>
+            <SheetFooter>
+                <tc-button
+                    variant="warning"
+                    disabled={(archiving && !confirmed) || saving || undefined}
+                    onClick={submit}
+                >
+                    {archiving ? t.projects.archive : t.projects.unarchive}
+                </tc-button>
+                <tc-button variant="secondary" outline onClick={() => closeModal(null)}>
+                    {t.modal.cancel}
+                </tc-button>
+            </SheetFooter>
         </>
     )
 }

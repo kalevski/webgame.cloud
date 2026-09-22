@@ -11,10 +11,12 @@ import './styles/app.scss'
 import { Router } from './Router'
 import applyToolcaseMessages from './configs/toolcaseMessages'
 import { initAnalytics } from './helpers/analytics'
+import { captureGlobalErrors } from './helpers/observability'
 
 register()
 applyToolcaseMessages()
 initAnalytics()
+captureGlobalErrors()
 
 document.addEventListener('click', (event) => {
     const combo = (event.target as Element | null)?.closest?.('tc-combo-box')

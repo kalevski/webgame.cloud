@@ -7,6 +7,7 @@ import { useLimitLock } from 'hooks/useLock'
 import { TICKET_LIMIT_ENTITLEMENT } from 'configs/entitlements'
 import LimitMeter from 'components/LimitMeter'
 import LockedAction from 'components/LockedAction'
+import ModuleActions from 'components/ModuleActions'
 import { MODAL, useModalOpen } from 'modals'
 import { CreateTicketResult } from 'modals/CreateTicketModal'
 import { Ticket, isTicketOpen } from 'types'
@@ -69,16 +70,16 @@ const TicketList: React.FC = () => {
 
     return (
         <div className="module module-tickets">
-            <tc-section-card title={k.title} icon="LifeBuoy">
+            <ModuleActions>
                 {canCreate && (
-                    <span slot="action" className="section-card-actions">
-                        <LockedAction lock={lock} onClick={() => openCreate()}>
-                            <tc-button variant="primary">{k.newTicket}</tc-button>
-                        </LockedAction>
-                    </span>
+                    <LockedAction lock={lock} onClick={() => openCreate()}>
+                        <tc-button variant="primary">{k.newTicket}</tc-button>
+                    </LockedAction>
                 )}
+            </ModuleActions>
 
-                <tc-stack direction="column" gap="0.85rem">
+            <tc-section-card title={k.title} icon="LifeBuoy">
+                <tc-stack direction="vertical" gap="0.85rem">
                     <LimitMeter
                         used={used}
                         limit={limits.tickets}
@@ -90,11 +91,6 @@ const TicketList: React.FC = () => {
                     {ticketsLoaded && tickets.length === 0 ? (
                         <tc-empty-state heading={k.empty} icon="life-buoy">
                             <p className="module-tickets__empty-hint">{k.emptyHint}</p>
-                            {canCreate && (
-                                <tc-button slot="action" variant="primary" onClick={() => openCreate()}>
-                                    {k.newTicket}
-                                </tc-button>
-                            )}
                         </tc-empty-state>
                     ) : (
                         <div className="module-tickets__list">

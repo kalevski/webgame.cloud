@@ -12,7 +12,7 @@ tc-theme[name='blueprint'] .tc-metric-grid.tc-metric-grid {
     position: relative;
     padding: var(--mg-bezel) 3px 3px;
     border: 1px solid var(--mg-rule);
-    border-radius: $radius-lg;
+    border-radius: var(--bs-border-radius);
     overflow: hidden;
 
     background-color: var(--mg-rule);

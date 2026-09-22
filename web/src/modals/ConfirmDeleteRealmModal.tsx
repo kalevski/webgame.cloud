@@ -2,7 +2,7 @@ import React from 'react'
 import useStrings from 'hooks/useStrings'
 import { Realm } from 'types'
 import { MODAL } from './keys'
-import { useModalClose, useModalInput } from './registry'
+import { useModalClose, useModalInput, SheetFooter } from './registry'
 
 const ConfirmDeleteRealmModal: React.FC = () => {
     const closeModal = useModalClose()
@@ -13,12 +13,14 @@ const ConfirmDeleteRealmModal: React.FC = () => {
     return (
         <>
             <p>{r.deleteConfirm(realm?.name ?? '')}</p>
-            <tc-button slot="footer" variant="danger" onClick={() => closeModal(realm ?? null)}>
-                {r.deleteTitle}
-            </tc-button>
-            <tc-button slot="footer" variant="secondary" outline onClick={() => closeModal(null)}>
-                {t.modal.cancel}
-            </tc-button>
+            <SheetFooter>
+                <tc-button variant="danger" onClick={() => closeModal(realm ?? null)}>
+                    {r.deleteTitle}
+                </tc-button>
+                <tc-button variant="secondary" outline onClick={() => closeModal(null)}>
+                    {t.modal.cancel}
+                </tc-button>
+            </SheetFooter>
         </>
     )
 }

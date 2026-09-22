@@ -7,9 +7,9 @@ import { readFromStorage, removeFromStorage, writeToStorage } from 'helpers/stor
 import { setForbiddenHandler } from 'helpers/api'
 import { AuthConfig, AuthSession, LIMITABLE_RESOURCES, OAuthProvider, OAUTH_PROVIDER_LABELS, Permission, ResolvedLimits, User, UserIdentity, UserSession } from 'types'
 import type { AppStore } from './index'
+import { fail } from './alerts.slice'
 
 const SESSION_HINT = 'has-session'
-
 
 const NO_RESOURCE_LIMITS = Object.fromEntries(
     LIMITABLE_RESOURCES.map((resource) => [resource, null])
@@ -28,6 +28,8 @@ export type AuthSlice = {
     slots: AuthSession['slots']
 
     roleName: string | null
+
+    impersonatedBy: AuthSession['impersonatedBy']
 
     paid: boolean
 
@@ -52,6 +54,7 @@ export type AuthSlice = {
     updateName: (name: string) => Promise<boolean>
     loginDev: (email: string, name?: string) => Promise<boolean>
     logout: () => Promise<void>
+    endImpersonation: () => Promise<boolean>
     acceptConsent: () => Promise<boolean>
     exportAccount: () => Promise<void>
     deleteAccount: () => Promise<boolean>
@@ -63,6 +66,7 @@ export const createAuthSlice: StateCreator<AppStore, [], [], AuthSlice> = (set, 
     resourceLimits: NO_RESOURCE_LIMITS,
     slots: NO_SLOTS,
     roleName: null,
+    impersonatedBy: null,
     paid: false,
     upgradePlanName: null,
     authLoaded: false,
@@ -93,6 +97,7 @@ export const createAuthSlice: StateCreator<AppStore, [], [], AuthSlice> = (set, 
             slots: session?.slots ?? NO_SLOTS,
             roleName: session?.roleName ?? null,
             paid: session?.paid ?? false,
+            impersonatedBy: session?.impersonatedBy ?? null,
             upgradePlanName: session?.upgradePlanName ?? null,
             authLoaded: true,
         })
@@ -108,9 +113,22 @@ export const createAuthSlice: StateCreator<AppStore, [], [], AuthSlice> = (set, 
             resourceLimits: session.resourceLimits ?? NO_RESOURCE_LIMITS,
             slots: session.slots,
             roleName: session.roleName ?? null,
+            impersonatedBy: session.impersonatedBy ?? null,
             paid: session.paid,
             upgradePlanName: session.upgradePlanName,
         })
+    },
+
+    async endImpersonation() {
+        try {
+            await AuthService.getInstance().endImpersonation()
+            await get().refreshSession()
+            window.location.assign('/admin')
+            return true
+        } catch (error) {
+            fail(get, error, STRINGS.common.loadFailed)
+            return false
+        }
     },
 
     async fetchIdentities() {
@@ -133,11 +151,7 @@ export const createAuthSlice: StateCreator<AppStore, [], [], AuthSlice> = (set, 
             })
             return true
         } catch (error) {
-            get().addAlert({
-                variant: 'danger',
-                message: error instanceof Error ? error.message : STRINGS.alerts.identityUnlinkFailed,
-                dismissible: true,
-            })
+            fail(get, error, STRINGS.alerts.identityUnlinkFailed)
             return false
         }
     },
@@ -158,11 +172,7 @@ export const createAuthSlice: StateCreator<AppStore, [], [], AuthSlice> = (set, 
             get().addAlert({ variant: 'success', message: STRINGS.alerts.sessionRevoked, dismissible: true })
             return true
         } catch (error) {
-            get().addAlert({
-                variant: 'danger',
-                message: error instanceof Error ? error.message : STRINGS.alerts.sessionRevokeFailed,
-                dismissible: true,
-            })
+            fail(get, error, STRINGS.alerts.sessionRevokeFailed)
             return false
         }
     },
@@ -175,11 +185,7 @@ export const createAuthSlice: StateCreator<AppStore, [], [], AuthSlice> = (set, 
             get().addAlert({ variant: 'success', message: STRINGS.alerts.nameSaved, dismissible: true })
             return true
         } catch (error) {
-            get().addAlert({
-                variant: 'danger',
-                message: error instanceof Error ? error.message : STRINGS.alerts.nameFailed,
-                dismissible: true,
-            })
+            fail(get, error, STRINGS.alerts.nameFailed)
             return false
         }
     },
@@ -190,17 +196,10 @@ export const createAuthSlice: StateCreator<AppStore, [], [], AuthSlice> = (set, 
             writeToStorage(SESSION_HINT, true)
             set({ me })
 
-            void get().refreshSession()
-
-            void AuthService.getInstance().me().catch(() => undefined)
-            void AuthService.getInstance().config().catch(() => undefined)
+            await get().refreshSession()
             return true
         } catch (error) {
-            get().addAlert({
-                variant: 'danger',
-                message: error instanceof Error ? error.message : STRINGS.alerts.loginFailed,
-                dismissible: true,
-            })
+            fail(get, error, STRINGS.alerts.loginFailed)
             return false
         }
     },
@@ -222,11 +221,7 @@ export const createAuthSlice: StateCreator<AppStore, [], [], AuthSlice> = (set, 
             void get().refreshSession()
             return true
         } catch (error) {
-            get().addAlert({
-                variant: 'danger',
-                message: error instanceof Error ? error.message : STRINGS.alerts.consentFailed,
-                dismissible: true,
-            })
+            fail(get, error, STRINGS.alerts.consentFailed)
             return false
         }
     },
@@ -236,11 +231,7 @@ export const createAuthSlice: StateCreator<AppStore, [], [], AuthSlice> = (set, 
             const data = await AccountService.getInstance().exportData()
             downloadTextFile(`account-export-${get().me?.id ?? 'account'}.json`, JSON.stringify(data, null, 2), 'application/json')
         } catch (error) {
-            get().addAlert({
-                variant: 'danger',
-                message: error instanceof Error ? error.message : STRINGS.alerts.accountExportFailed,
-                dismissible: true,
-            })
+            fail(get, error, STRINGS.alerts.accountExportFailed)
         }
     },
 
@@ -252,11 +243,7 @@ export const createAuthSlice: StateCreator<AppStore, [], [], AuthSlice> = (set, 
             window.location.href = '/'
             return true
         } catch (error) {
-            get().addAlert({
-                variant: 'danger',
-                message: error instanceof Error ? error.message : STRINGS.alerts.accountDeleteFailed,
-                dismissible: true,
-            })
+            fail(get, error, STRINGS.alerts.accountDeleteFailed)
             return false
         }
     },

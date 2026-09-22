@@ -1,13 +1,15 @@
 import React from 'react'
 import AlertPanel from 'modules/AlertPanel'
 import OfflineBanner from 'modules/OfflineBanner'
+import ImpersonationBanner from 'modules/ImpersonationBanner'
 
 const BaseLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => (
-    <div className="layout-base">
+    <main id="main-content" className="layout-base">
+        <ImpersonationBanner />
         <OfflineBanner />
         <AlertPanel />
         {children}
-    </div>
+    </main>
 )
 
 export const wrapInBaseLayout = (Component: React.FC) => {

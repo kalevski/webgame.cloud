@@ -5,7 +5,7 @@ import { isOptionalText, withinMaxLen } from 'helpers/validation'
 import { useStore } from 'state'
 import { UserRole } from 'types'
 import { MODAL } from './keys'
-import { useModalClose, useModalIsOpen } from './registry'
+import { useModalClose, useModalIsOpen, SheetFooter } from './registry'
 
 type ValueElement = HTMLElement & { value?: unknown }
 
@@ -72,23 +72,29 @@ const CreateUserModal: React.FC = () => {
 
     return (
         <>
-            <p>{s.createHint}</p>
-            <tc-form-input
-                ref={emailInput}
-                type="email"
-                label={s.createEmailLabel}
-                placeholder={s.createEmailPlaceholder}
-                required
-            ></tc-form-input>
-            <tc-form-input ref={nameInput} type="text" label={s.createNameLabel}></tc-form-input>
-            <tc-label>{s.createRoleLabel}</tc-label>
-            <tc-extended-select ref={roleSelect} placeholder={s.createRoleLabel}></tc-extended-select>
-            <tc-button slot="footer" variant="primary" disabled={!valid || undefined} onClick={handleConfirm}>
-                {s.createSubmit}
-            </tc-button>
-            <tc-button slot="footer" variant="secondary" outline onClick={() => closeModal(null)}>
-                {t.modal.cancel}
-            </tc-button>
+            <div className="app-sheet-form">
+                <p>{s.createHint}</p>
+                <tc-form-input
+                    ref={emailInput}
+                    type="email"
+                    label={s.createEmailLabel}
+                    placeholder={s.createEmailPlaceholder}
+                    required
+                ></tc-form-input>
+                <tc-form-input ref={nameInput} type="text" label={s.createNameLabel}></tc-form-input>
+                <div className="app-sheet-field">
+                    <tc-label>{s.createRoleLabel}</tc-label>
+                    <tc-extended-select ref={roleSelect} placeholder={s.createRoleLabel}></tc-extended-select>
+                </div>
+            </div>
+            <SheetFooter>
+                <tc-button variant="primary" disabled={!valid || undefined} onClick={handleConfirm}>
+                    {s.createSubmit}
+                </tc-button>
+                <tc-button variant="secondary" outline onClick={() => closeModal(null)}>
+                    {t.modal.cancel}
+                </tc-button>
+            </SheetFooter>
         </>
     )
 }

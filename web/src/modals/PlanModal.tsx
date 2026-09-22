@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react'
 import useStrings from 'hooks/useStrings'
 import { useStore } from 'state'
 import { useTc } from '@toolcase/web-components/react'
+import { selectedKeys, toKeyList } from 'helpers/select'
 import {
     BILLING_INTERVALS,
     OWNER_ROLE_ID,
@@ -14,7 +15,7 @@ import {
     SalesFieldType,
 } from 'types'
 import { MODAL } from './keys'
-import { useModalClose, useModalInput, useModalIsOpen } from './registry'
+import { useModalClose, useModalInput, useModalIsOpen, SheetFooter } from './registry'
 
 type ValueElement = HTMLElement & { value?: string }
 
@@ -24,12 +25,14 @@ const EMPTY: PlanDraft = {
     name: '',
     description: '',
     roleId: null,
+    visibleRoleIds: [],
     mode: 'manual',
     priceCents: 0,
     currency: 'USD',
     interval: 'month',
     position: 0,
     active: true,
+    trialDays: 0,
     features: [],
     salesFields: [],
 }
@@ -143,6 +146,7 @@ const PlanModal: React.FC = () => {
     const deletePlan = useStore((state) => state.deletePlan)
 
     const [draft, setDraft] = useState<PlanDraft>(EMPTY)
+    const [visibleRoleIds, setVisibleRoleIds] = useState<string[]>([])
     const [saving, setSaving] = useState(false)
 
     const [fieldRows, setFieldRows] = useState<FieldRow[]>([])
@@ -151,6 +155,7 @@ const PlanModal: React.FC = () => {
     const featuresRef = useRef<ValueElement | null>(null)
     const nameRef = useRef<ValueElement | null>(null)
     const priceRef = useRef<ValueElement | null>(null)
+    const trialDaysRef = useRef<ValueElement | null>(null)
     const currencyRef = useRef<ValueElement | null>(null)
     const descriptionRef = useRef<ValueElement | null>(null)
     const featuresValue = useRef('')
@@ -176,6 +181,17 @@ const PlanModal: React.FC = () => {
         onChange: (next: string) => setDraft((current) => ({ ...current, roleId: next || null })),
     })
 
+    const visibilitySelect = useTc<ValueElement>(
+        {
+            items: roles.flatMap((role) =>
+                role.id !== OWNER_ROLE_ID ? [{ key: role.id, label: role.name }] : []
+            ),
+        },
+        {
+            'tc-change': (event: Event) => setVisibleRoleIds(selectedKeys(event)),
+        }
+    )
+
     useEffect(() => {
         if (!isOpen) return
         const next: PlanDraft = editing
@@ -183,17 +199,20 @@ const PlanModal: React.FC = () => {
                 name: editing.name,
                 description: editing.description,
                 roleId: editing.roleId,
+                visibleRoleIds: editing.visibleRoleIds,
                 mode: editing.mode,
                 priceCents: editing.priceCents,
                 currency: editing.currency,
                 interval: editing.interval,
                 position: editing.position,
                 active: editing.active,
+                trialDays: editing.trialDays,
                 features: editing.features,
                 salesFields: editing.salesFields,
             }
             : EMPTY
         setDraft(next)
+        setVisibleRoleIds(next.visibleRoleIds ?? [])
         featuresValue.current = toLines(next.features ?? [])
         setFieldRows(toRows(next.salesFields ?? []))
 
@@ -204,6 +223,7 @@ const PlanModal: React.FC = () => {
             if (featuresRef.current) featuresRef.current.value = featuresValue.current
             if (nameRef.current) nameRef.current.value = next.name
             if (priceRef.current) priceRef.current.value = String(next.priceCents ?? 0)
+            if (trialDaysRef.current) trialDaysRef.current.value = String(next.trialDays ?? 0)
             if (currencyRef.current) currencyRef.current.value = next.currency ?? 'USD'
             if (descriptionRef.current) descriptionRef.current.value = next.description ?? ''
         })
@@ -233,6 +253,7 @@ const PlanModal: React.FC = () => {
         try {
             const payload: PlanDraft = {
                 ...draft,
+                visibleRoleIds,
                 features: parseFeatures(featuresValue.current),
                 salesFields: toSalesFields(fieldRows),
             }
@@ -250,136 +271,164 @@ const PlanModal: React.FC = () => {
     }
 
     return (
-        <div className="modal-plan">
-            <tc-stack direction="column" gap="1rem">
-                <div className="modal-plan__grid">
-                    <tc-form-input
-                        ref={nameRef}
-                        type="text"
-                        label={p.nameLabel}
-                        onInput={(event: React.FormEvent<ValueElement>) =>
-                            setDraft((current) => ({ ...current, name: String((event.target as ValueElement).value ?? '') }))
-                        }
-                    ></tc-form-input>
+        <>
+            <div className="modal-plan">
+                <tc-stack direction="vertical" gap="1rem">
+                    <div className="modal-plan__grid">
+                        <tc-form-input
+                            ref={nameRef}
+                            type="text"
+                            label={p.nameLabel}
+                            onInput={(event) =>
+                                setDraft((current) => ({ ...current, name: String((event.target as ValueElement).value ?? '') }))
+                            }
+                        ></tc-form-input>
 
-                    <div>
-                        <tc-label>{p.modeLabel}</tc-label>
-                        <tc-extended-select ref={modeSelect}></tc-extended-select>
-                        <tc-helper-text>{p.modeHint}</tc-helper-text>
+                        <div>
+                            <tc-label>{p.modeLabel}</tc-label>
+                            <tc-extended-select ref={modeSelect}></tc-extended-select>
+                            <tc-helper-text>{p.modeHint}</tc-helper-text>
+                        </div>
+
+                        <tc-form-input
+                            ref={priceRef}
+                            type="number"
+                            label={p.priceLabel}
+                            onInput={(event) =>
+                                setDraft((current) => ({
+                                    ...current,
+                                    priceCents: Number((event.target as ValueElement).value ?? 0) || 0,
+                                }))
+                            }
+                        ></tc-form-input>
+
+                        <tc-form-input
+                            ref={currencyRef}
+                            type="text"
+                            label={p.currencyLabel}
+                            onInput={(event) =>
+                                setDraft((current) => ({
+                                    ...current,
+                                    currency: String((event.target as ValueElement).value ?? '').toUpperCase().slice(0, 3),
+                                }))
+                            }
+                        ></tc-form-input>
+
+                        <div>
+                            <tc-label>{p.intervalLabel}</tc-label>
+                            <tc-extended-select ref={intervalSelect}></tc-extended-select>
+                        </div>
+
+                        <tc-form-input
+                            ref={trialDaysRef}
+                            type="number"
+                            label={p.trialDaysLabel}
+                            help={p.trialDaysHint}
+                            onInput={(event) =>
+                                setDraft((current) => ({
+                                    ...current,
+                                    trialDays: Math.max(0, Number((event.target as ValueElement).value ?? 0) || 0),
+                                }))
+                            }
+                        ></tc-form-input>
+
+                        <div>
+                            <tc-label>{p.roleLabel}</tc-label>
+                            <tc-extended-select
+                                ref={roleSelect}
+                                search-placeholder={t.common.search}
+                                no-results-text={t.common.noResults}
+                            ></tc-extended-select>
+                            <tc-helper-text>{p.roleHint}</tc-helper-text>
+                        </div>
                     </div>
 
-                    <tc-form-input
-                        ref={priceRef}
-                        type="number"
-                        label={p.priceLabel}
-                        onInput={(event: React.FormEvent<ValueElement>) =>
-                            setDraft((current) => ({
-                                ...current,
-                                priceCents: Number((event.target as ValueElement).value ?? 0) || 0,
-                            }))
-                        }
-                    ></tc-form-input>
-
-                    <tc-form-input
-                        ref={currencyRef}
-                        type="text"
-                        label={p.currencyLabel}
-                        onInput={(event: React.FormEvent<ValueElement>) =>
-                            setDraft((current) => ({
-                                ...current,
-                                currency: String((event.target as ValueElement).value ?? '').toUpperCase().slice(0, 3),
-                            }))
-                        }
-                    ></tc-form-input>
-
-                    <div>
-                        <tc-label>{p.intervalLabel}</tc-label>
-                        <tc-extended-select ref={intervalSelect}></tc-extended-select>
-                    </div>
-
-                    <div>
-                        <tc-label>{p.roleLabel}</tc-label>
+                    <div className="modal-plan__visibility">
+                        <tc-label>{p.visibilityLabel}</tc-label>
                         <tc-extended-select
-                            ref={roleSelect}
+                            ref={visibilitySelect}
+                            multiple
+                            value={toKeyList(visibleRoleIds)}
+                            placeholder={p.visibilityEveryone}
                             search-placeholder={t.common.search}
                             no-results-text={t.common.noResults}
                         ></tc-extended-select>
-                        <tc-helper-text>{p.roleHint}</tc-helper-text>
-                    </div>
-                </div>
-
-                <tc-textarea
-                    ref={descriptionRef}
-                    label={p.descriptionLabel}
-                    rows="2"
-                    onInput={(event: React.FormEvent<ValueElement>) =>
-                        setDraft((current) => ({ ...current, description: String((event.target as ValueElement).value ?? '') }))
-                    }
-                ></tc-textarea>
-
-                <tc-textarea
-                    ref={featuresRef}
-                    label={p.featuresLabel}
-                    help={p.featuresHint}
-                    rows="3"
-                    onInput={(event: React.FormEvent<ValueElement>) => {
-                        featuresValue.current = String((event.target as ValueElement).value ?? '')
-                    }}
-                ></tc-textarea>
-
-                <div className="modal-plan__fields">
-                    <tc-label>{p.salesFieldsLabel}</tc-label>
-                    <tc-helper-text>{p.salesFieldsHint}</tc-helper-text>
-
-                    <div className="modal-plan__field-list">
-                        {fieldRows.length === 0
-                            ? <tc-text variant="muted">{p.fieldsEmpty}</tc-text>
-                            : fieldRows.map((row, index) => (
-                                <SalesFieldRow
-                                    key={row.rowId}
-                                    row={row}
-                                    index={index}
-                                    onChange={updateRow}
-                                    onRemove={removeRow}
-                                />
-                            ))}
+                        <tc-helper-text>{p.visibilityHint}</tc-helper-text>
                     </div>
 
-                    <div>
-                        <tc-button
-                            variant="secondary"
-                            outline
-                            disabled={fieldRows.length >= MAX_FIELDS || undefined}
-                            onClick={addRow}
-                        >
-                            {p.fieldAdd}
-                        </tc-button>
+                    <tc-textarea
+                        ref={descriptionRef}
+                        label={p.descriptionLabel}
+                        rows="2"
+                        onInput={(event) =>
+                            setDraft((current) => ({ ...current, description: String((event.target as ValueElement).value ?? '') }))
+                        }
+                    ></tc-textarea>
+
+                    <tc-textarea
+                        ref={featuresRef}
+                        label={p.featuresLabel}
+                        help={p.featuresHint}
+                        rows="3"
+                        onInput={(event) => {
+                            featuresValue.current = String((event.target as ValueElement).value ?? '')
+                        }}
+                    ></tc-textarea>
+
+                    <div className="modal-plan__fields">
+                        <tc-label>{p.salesFieldsLabel}</tc-label>
+                        <tc-helper-text>{p.salesFieldsHint}</tc-helper-text>
+
+                        <div className="modal-plan__field-list">
+                            {fieldRows.length === 0
+                                ? <tc-text variant="muted">{p.fieldsEmpty}</tc-text>
+                                : fieldRows.map((row, index) => (
+                                    <SalesFieldRow
+                                        key={row.rowId}
+                                        row={row}
+                                        index={index}
+                                        onChange={updateRow}
+                                        onRemove={removeRow}
+                                    />
+                                ))}
+                        </div>
+
+                        <div>
+                            <tc-button
+                                variant="secondary"
+                                outline
+                                disabled={fieldRows.length >= MAX_FIELDS || undefined}
+                                onClick={addRow}
+                            >
+                                {p.fieldAdd}
+                            </tc-button>
+                        </div>
                     </div>
-                </div>
 
-                <tc-switch
-                    checked={draft.active || undefined}
-                    label={p.activeLabel}
-                    help={p.activeHint}
-                    onClick={() => setDraft((current) => ({ ...current, active: !current.active }))}
-                ></tc-switch>
+                    <tc-switch
+                        checked={draft.active || undefined}
+                        label={p.activeLabel}
+                        help={p.activeHint}
+                        onClick={() => setDraft((current) => ({ ...current, active: !current.active }))}
+                    ></tc-switch>
 
-                <div className="modal-plan__actions">
-                    {editing && (
-                        <tc-button variant="danger" outline onClick={remove}>
-                            {p.delete}
-                        </tc-button>
-                    )}
-                    <span className="modal-plan__spacer" />
-                    <tc-button variant="secondary" outline onClick={() => closeModal(null)}>
-                        {p.cancel}
+                </tc-stack>
+            </div>
+            <SheetFooter>
+                {editing && (
+                    <tc-button variant="danger" outline onClick={remove}>
+                        {p.delete}
                     </tc-button>
-                    <tc-button variant="primary" disabled={!valid || saving || undefined} onClick={submit}>
-                        {p.save}
-                    </tc-button>
-                </div>
-            </tc-stack>
-        </div>
+                )}
+                <span className="modal-plan__spacer" />
+                <tc-button variant="secondary" outline onClick={() => closeModal(null)}>
+                    {p.cancel}
+                </tc-button>
+                <tc-button variant="primary" disabled={!valid || saving || undefined} onClick={submit}>
+                    {p.save}
+                </tc-button>
+            </SheetFooter>
+        </>
     )
 }
 

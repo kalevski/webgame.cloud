@@ -10,6 +10,7 @@ import {
     TicketThread,
 } from 'types'
 import type { AppStore } from './index'
+import { fail } from './alerts.slice'
 
 export type TicketsSlice = {
     tickets: Ticket[]
@@ -34,13 +35,6 @@ export type TicketsSlice = {
 }
 
 const PAGE_SIZE = 25
-
-const fail = (get: () => AppStore, error: unknown, fallback: string) =>
-    get().addAlert({
-        variant: 'danger',
-        message: error instanceof Error ? error.message : fallback,
-        dismissible: true,
-    })
 
 export const createTicketsSlice: StateCreator<AppStore, [], [], TicketsSlice> = (set, get) => ({
     tickets: [],

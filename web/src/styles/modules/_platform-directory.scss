@@ -69,7 +69,7 @@ $platform-accent: var(--tc-app-accent, #ff7e5f);
 
         width: 1.75rem;
         height: 1.75rem;
-        border-radius: $radius-sm;
+        border-radius: var(--bs-border-radius);
 
         background: color-mix(in srgb, #{$text-muted} 14%, transparent);
         color: $text-muted;

@@ -1,5 +1,4 @@
 import React, { useEffect } from 'react'
-import { wrapInMainLayout } from 'layouts/MainLayout'
 import { usePageContext } from 'contexts/PageContext'
 import useStrings from 'hooks/useStrings'
 import AuthGuard from 'modules/AuthGuard'
@@ -16,11 +15,9 @@ const ProfilePage: React.FC = () => {
 
     return (
         <AuthGuard secured>
-            <section className="console-page">
-                <Profile />
-            </section>
+            <Profile />
         </AuthGuard>
     )
 }
 
-export default wrapInMainLayout(ProfilePage)
+export default ProfilePage

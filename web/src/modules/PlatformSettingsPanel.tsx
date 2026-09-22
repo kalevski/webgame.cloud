@@ -3,7 +3,6 @@ import { useStore } from 'state'
 import useStrings from 'hooks/useStrings'
 import useCan from 'hooks/useCan'
 import Loading from 'components/Loading'
-import FloatingActionBar from 'components/FloatingActionBar'
 
 type ValueElement = HTMLElement & { value?: string }
 
@@ -60,7 +59,7 @@ const PlatformSettingsPanel: React.FC = () => {
     return (
         <div className="module">
             <tc-section-card title={s.title} icon="Settings">
-                <tc-stack direction="column" gap="1.15rem">
+                <tc-stack direction="vertical" gap="1.15rem">
                     <tc-switch
                         checked={signupsOpen || undefined}
                         label={s.signupsOpenLabel}
@@ -76,7 +75,7 @@ const PlatformSettingsPanel: React.FC = () => {
                         label={s.announcementLabel}
                         help={s.announcementHint}
                         rows="3"
-                        onInput={(event: React.FormEvent<ValueElement>) => {
+                        onInput={(event) => {
                             announcementValue.current = String((event.target as ValueElement).value ?? '')
                             setDirty(true)
                         }}
@@ -87,7 +86,7 @@ const PlatformSettingsPanel: React.FC = () => {
                         type="text"
                         label={s.salesContactLabel}
                         help={s.salesContactHint}
-                        onInput={(event: React.FormEvent<ValueElement>) => {
+                        onInput={(event) => {
                             salesContactValue.current = String((event.target as ValueElement).value ?? '')
                             setDirty(true)
                         }}
@@ -95,13 +94,13 @@ const PlatformSettingsPanel: React.FC = () => {
                 </tc-stack>
             </tc-section-card>
 
-            <FloatingActionBar label={s.unsavedHint} visible={dirty}>
+            <tc-floating-action-bar label={s.unsavedHint} open={dirty} align="column">
                 {canWrite && (
                     <tc-button key="save" variant="primary" disabled={saving || undefined} onClick={handleSave}>
                         {s.save}
                     </tc-button>
                 )}
-            </FloatingActionBar>
+            </tc-floating-action-bar>
         </div>
     )
 }

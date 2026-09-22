@@ -3,7 +3,7 @@ import useStrings from 'hooks/useStrings'
 import { useStore } from 'state'
 import { RealmRegion } from 'types'
 import { MODAL } from './keys'
-import { useModalClose, useModalInput, useModalIsOpen } from './registry'
+import { useModalClose, useModalInput, useModalIsOpen, SheetFooter } from './registry'
 
 type ValueElement = HTMLElement & { value?: unknown }
 
@@ -58,7 +58,7 @@ const RealmRegionModal: React.FC = () => {
                     label={r.regionNameLabel}
                     placeholder={r.regionNamePlaceholder}
                     required
-                    onInput={(event: React.FormEvent<ValueElement>) => {
+                    onInput={(event) => {
                         name.current = String((event.target as ValueElement).value ?? '')
                         setHasName(name.current.trim().length > 0)
                     }}
@@ -70,17 +70,18 @@ const RealmRegionModal: React.FC = () => {
                     onClick={() => setActive((current) => !current)}
                 />
             </div>
-            <tc-button
-                slot="footer"
-                variant="primary"
-                disabled={!hasName || saving || undefined}
-                onClick={submit}
-            >
-                <span>{region ? t.projects.save : r.regionAdd}</span>
-            </tc-button>
-            <tc-button slot="footer" variant="secondary" outline onClick={() => closeModal(null)}>
-                <span>{t.modal.cancel}</span>
-            </tc-button>
+            <SheetFooter>
+                <tc-button
+                    variant="primary"
+                    disabled={!hasName || saving || undefined}
+                    onClick={submit}
+                >
+                    <span>{region ? t.projects.save : r.regionAdd}</span>
+                </tc-button>
+                <tc-button variant="secondary" outline onClick={() => closeModal(null)}>
+                    <span>{t.modal.cancel}</span>
+                </tc-button>
+            </SheetFooter>
         </>
     )
 }

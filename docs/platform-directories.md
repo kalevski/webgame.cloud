@@ -165,7 +165,7 @@ rule that machine-assigned facts are set in mono.
 
 A `tc-rich-page-header` (name as the title, email as `sub`, role / status / permission-count chips) whose
 `actions` slot holds every mutation the caller is allowed — *All profiles*, *Manage access*,
-*Activate*/*Deactivate*, *Sign in as*, *Full audit trail* — then `RouteTabs` over **Profile**,
+*Activate*/*Deactivate*, *Sign in as*, *Full audit trail* — then page tabs over **Profile**,
 **Projects (n)** and **Activity (n)**, each a real URL (`/platform/users/:id/:tab`) so a tab is linkable
 and the back button works.
 
@@ -182,7 +182,7 @@ timestamp / action / detail grid.
 ### `ProjectAdminDetail`
 
 Header from the project's own icon and identity colour, chips for app type / archived / migrating, owner as
-`sub`, description as the header description. Then `RouteTabs` over **Overview** and **Members (n)** at
+`sub`, description as the header description. Then page tabs over **Overview** and **Members (n)** at
 `/platform/projects/:id/:tab`, mirroring the user profile.
 
 **Overview** is the `tc-metric-grid` (members, assets, builds, storage) over two panels: **Placement**

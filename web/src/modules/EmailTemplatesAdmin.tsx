@@ -1,4 +1,5 @@
 import React, { useEffect } from 'react'
+import ModuleActions from 'components/ModuleActions'
 import { useStore } from 'state'
 import useStrings from 'hooks/useStrings'
 import useCan from 'hooks/useCan'
@@ -43,15 +44,16 @@ const EmailTemplatesAdmin: React.FC = () => {
 
     return (
         <div className="module module-email-templates">
+            <ModuleActions>
+                {canWrite && (
+                    <tc-button variant="primary" onClick={() => openTemplate(null)}>
+                        {e.newTemplate}
+                    </tc-button>
+                )}
+            </ModuleActions>
+
             <tc-section-card title={e.templatesTitle} icon="Mail">
-                <span slot="action" className="section-card-actions">
-                    {canWrite && (
-                        <tc-button variant="primary" onClick={() => openTemplate(null)}>
-                            {e.newTemplate}
-                        </tc-button>
-                    )}
-                </span>
-                <tc-stack direction="column" gap="0.85rem">
+                <tc-stack direction="vertical" gap="0.85rem">
                     <tc-text variant="muted">{e.templatesIntro}</tc-text>
 
                     {templates.length === 0 && <tc-empty-state icon="mail">{e.templatesEmpty}</tc-empty-state>}

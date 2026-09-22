@@ -1,0 +1,8 @@
+@use '../abstracts' as *;
+
+.module-role-applications,
+.module-role-applications-admin {
+    display: flex;
+    flex-direction: column;
+    gap: $space-md;
+}

@@ -3,7 +3,7 @@ import useStrings from 'hooks/useStrings'
 import { useTc } from '@toolcase/web-components/react'
 import { useStore } from 'state'
 import { MODAL } from './keys'
-import { useModalClose, useModalInput } from './registry'
+import { useModalClose, useModalInput, SheetFooter } from './registry'
 
 type ValueElement = HTMLElement & { value?: unknown }
 
@@ -45,17 +45,18 @@ const CreateConfigModal: React.FC = () => {
             <tc-form-input ref={keyInput} label={c.keyLabel} required />
             <tc-label>{c.schemaLabel}</tc-label>
             <tc-extended-select ref={schemaSelect} />
-            <tc-button
-                slot="footer"
-                variant="primary"
-                disabled={saving || key.trim().length === 0 || !schemaId || undefined}
-                onClick={submit}
-            >
-                {c.createConfig}
-            </tc-button>
-            <tc-button slot="footer" variant="secondary" outline onClick={() => closeModal(null)}>
-                {t.modal.cancel}
-            </tc-button>
+            <SheetFooter>
+                <tc-button
+                    variant="primary"
+                    disabled={saving || key.trim().length === 0 || !schemaId || undefined}
+                    onClick={submit}
+                >
+                    {c.createConfig}
+                </tc-button>
+                <tc-button variant="secondary" outline onClick={() => closeModal(null)}>
+                    {t.modal.cancel}
+                </tc-button>
+            </SheetFooter>
         </>
     )
 }

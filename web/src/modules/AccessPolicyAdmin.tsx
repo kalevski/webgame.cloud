@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react'
+import ModuleActions from 'components/ModuleActions'
 import { useStore } from 'state'
 import useStrings from 'hooks/useStrings'
 import useFeature from 'hooks/useFeature'
@@ -76,6 +77,9 @@ const AccessPolicyAdmin: React.FC = () => {
     const canWrite = useCan('admin.role.write')
 
     const [selectedId, setSelectedId] = useState<string | null>(null)
+    const [applicable, setApplicable] = useState(false)
+    const applicationPrompt = useRef('')
+    const promptRef = useRef<HTMLElement & { value?: string } | null>(null)
     const [bindingDraft, setBindingDraft] = useState<Partial<RoleBindings>>({})
     const [planRoleDraft, setPlanRoleDraft] = useState<Record<string, string>>({})
 
@@ -133,6 +137,16 @@ const AccessPolicyAdmin: React.FC = () => {
     }, [selectedId, selected, policy])
 
     useEffect(() => {
+        setApplicable(selected?.applicable ?? false)
+        const prompt = selected?.applicationPrompt ?? ''
+        applicationPrompt.current = prompt
+        const frame = requestAnimationFrame(() => {
+            if (promptRef.current) promptRef.current.value = prompt
+        })
+        return () => cancelAnimationFrame(frame)
+    }, [selected, selectedId])
+
+    useEffect(() => {
         draftRef.current = roleData
             ? {
                   id: roleData.id,
@@ -188,7 +202,12 @@ const AccessPolicyAdmin: React.FC = () => {
         const draft = draftRef.current
         if (!draft || !isRequiredText(draft.name, 80)) return
         const saved = await saveRole(
-            { name: draft.name.trim(), permissions: draft.permissions as Permission[] },
+            {
+                name: draft.name.trim(),
+                permissions: draft.permissions as Permission[],
+                applicable,
+                applicationPrompt: applicable ? applicationPrompt.current.trim() : '',
+            },
             isNew ? undefined : draft.id
         )
         if (!saved) return
@@ -223,20 +242,46 @@ const AccessPolicyAdmin: React.FC = () => {
 
     return (
         <div className="module module-access">
+            <ModuleActions>
+                {canWrite && (
+                    <tc-button variant="primary" onClick={() => setSelectedId(NEW_ROLE)}>
+                        {s.newRole}
+                    </tc-button>
+                )}
+            </ModuleActions>
+
             <tc-section-card title={s.rolesTitle} icon="Lock">
-                <span slot="action" className="section-card-actions">
-                    {canWrite && (
-                        <tc-button variant="primary" onClick={() => setSelectedId(NEW_ROLE)}>
-                            {s.newRole}
-                        </tc-button>
-                    )}
-                </span>
                 <tc-vertical-item-list ref={roleList} className="module-access__list">
                     <div className="module-access__detail">
                         {roleData ? (
                             <>
                                 <tc-module-access ref={moduleAccess}></tc-module-access>
                                 <tc-helper-text className="module-access__limits-hint">{s.limitsHint}</tc-helper-text>
+                                {!isOwner && (
+                                    <div className="module-access__applications">
+                                        <tc-switch
+                                            checked={applicable || undefined}
+                                            label={s.applicableLabel}
+                                            help={s.applicableHint}
+                                            disabled={!canWrite || undefined}
+                                            onClick={() => setApplicable((current) => !current)}
+                                        ></tc-switch>
+                                        {applicable && (
+                                            <tc-textarea
+                                                ref={promptRef}
+                                                label={s.applicationPromptLabel}
+                                                placeholder={s.applicationPromptPlaceholder}
+                                                rows="2"
+                                                disabled={!canWrite || undefined}
+                                                onInput={(event: React.FormEvent<HTMLElement & { value?: string }>) => {
+                                                    applicationPrompt.current = String(
+                                                        (event.target as HTMLElement & { value?: string }).value ?? ''
+                                                    )
+                                                }}
+                                            ></tc-textarea>
+                                        )}
+                                    </div>
+                                )}
                                 {!isOwner && canWrite && (
                                     <div className="module-access__footer">
                                         {!isNew && (

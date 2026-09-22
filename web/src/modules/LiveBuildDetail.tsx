@@ -171,7 +171,7 @@ const LiveBuildDetail: React.FC<Props> = ({ project }) => {
                     </tc-metric-grid>
 
                     <tc-section-card title={l.bundleSnapshotTitle}>
-                        <tc-stack direction="column" gap="0.6rem">
+                        <tc-stack direction="vertical" gap="0.6rem">
                             <tc-text variant="muted">{l.bundleSnapshotIntro}</tc-text>
                             {snapshotBundle ? (
                                 <dl className="module-live-build__facts">
@@ -203,7 +203,7 @@ const LiveBuildDetail: React.FC<Props> = ({ project }) => {
                     </tc-section-card>
 
                     <tc-section-card title={l.assetsTitle}>
-                        <tc-stack direction="column" gap="0.6rem">
+                        <tc-stack direction="vertical" gap="0.6rem">
                             <tc-text variant="muted">{l.assetsIntro}</tc-text>
                             <div>
                                 <tc-empty-state
@@ -233,7 +233,7 @@ const LiveBuildDetail: React.FC<Props> = ({ project }) => {
                     </tc-section-card>
 
                     <tc-section-card title={l.configTitle}>
-                        <tc-stack direction="column" gap="0.6rem">
+                        <tc-stack direction="vertical" gap="0.6rem">
                             <tc-alert variant="info">{l.configIntro(buildTag || l.defaultTag)}</tc-alert>
 
                             <div>
@@ -247,7 +247,7 @@ const LiveBuildDetail: React.FC<Props> = ({ project }) => {
                                                 key={config.id}
                                                 variant={config.id === effectiveConfigId ? 'primary' : 'secondary'}
                                                 outline={config.id === effectiveConfigId ? undefined : true}
-                                                size="small"
+                                                size="sm"
                                                 onClick={() => setActiveConfigId(config.id)}
                                             >
                                                 {config.key}

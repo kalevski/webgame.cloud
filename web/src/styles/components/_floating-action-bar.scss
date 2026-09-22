@@ -18,7 +18,7 @@
 
     padding: $space-3 $space-4;
     border: 1px solid var(--tc-border, #e3e0f2);
-    border-radius: $radius-lg;
+    border-radius: var(--bs-border-radius);
     background: var(--tc-surface, #fff);
     box-shadow: 0 12px 32px rgba(40, 30, 90, 0.16);
 

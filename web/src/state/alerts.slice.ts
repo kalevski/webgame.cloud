@@ -13,6 +13,13 @@ export type AlertsSlice = {
     dismissAlert: (key: string) => void
 }
 
+export const fail = (get: () => AppStore, error: unknown, fallback: string) =>
+    get().addAlert({
+        variant: 'danger',
+        message: error instanceof Error ? error.message : fallback,
+        dismissible: true,
+    })
+
 export const createAlertsSlice: StateCreator<AppStore, [], [], AlertsSlice> = (set, get) => ({
     alerts: [],
 

@@ -12,13 +12,7 @@ import {
     UserRole,
 } from 'types'
 import type { AppStore } from './index'
-
-const fail = (get: () => AppStore, error: unknown, fallback: string) =>
-    get().addAlert({
-        variant: 'danger',
-        message: error instanceof Error ? error.message : fallback,
-        dismissible: true,
-    })
+import { fail } from './alerts.slice'
 
 export type ServiceAccountsSlice = {
     serviceAccounts: ServiceAccount[]

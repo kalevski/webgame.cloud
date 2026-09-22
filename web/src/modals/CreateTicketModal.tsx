@@ -3,7 +3,7 @@ import useStrings from 'hooks/useStrings'
 import { useTc } from '@toolcase/web-components/react'
 import { isRequiredText } from 'helpers/validation'
 import { MODAL } from './keys'
-import { useModalClose, useModalIsOpen } from './registry'
+import { useModalClose, useModalIsOpen, SheetFooter } from './registry'
 
 type ValueElement = HTMLElement & { value?: string }
 
@@ -46,7 +46,7 @@ const CreateTicketModal: React.FC = () => {
 
     return (
         <>
-            <tc-stack direction="column" gap="0.85rem">
+            <tc-stack direction="vertical" gap="0.85rem">
                 <tc-form-input
                     ref={subjectInput}
                     type="text"
@@ -58,19 +58,21 @@ const CreateTicketModal: React.FC = () => {
                     label={k.bodyLabel}
                     placeholder={k.bodyPlaceholder}
                     rows="6"
-                    onInput={(event: React.FormEvent<ValueElement>) => {
+                    onInput={(event) => {
                         const next = String((event.target as ValueElement).value ?? '')
                         body.current = next
                         setBodyFilled(isRequiredText(next, 10000))
                     }}
                 ></tc-textarea>
             </tc-stack>
-            <tc-button slot="footer" variant="primary" disabled={!valid || undefined} onClick={handleConfirm}>
-                {k.submit}
-            </tc-button>
-            <tc-button slot="footer" variant="secondary" outline onClick={() => closeModal(null)}>
-                {t.modal.cancel}
-            </tc-button>
+            <SheetFooter>
+                <tc-button variant="primary" disabled={!valid || undefined} onClick={handleConfirm}>
+                    {k.submit}
+                </tc-button>
+                <tc-button variant="secondary" outline onClick={() => closeModal(null)}>
+                    {t.modal.cancel}
+                </tc-button>
+            </SheetFooter>
         </>
     )
 }

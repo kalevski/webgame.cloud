@@ -1,8 +1,11 @@
 import React, { FC, createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
-import { useTc } from '@toolcase/web-components/react'
+import { createPortal } from 'react-dom'
+import { usePageContext } from 'contexts/PageContext'
+import useSheetHistory from 'hooks/useSheetHistory'
+import type { ModalKey } from './keys'
 
 type ActiveModal = {
-    key: string
+    key: ModalKey
     input?: unknown
     onClose?: (payload: unknown) => void
 }
@@ -39,7 +42,7 @@ export const ModalContext: FC<{ children: React.ReactNode }> = ({ children }) =>
 }
 
 export const useModalOpen = <TPayload, TInput = void>(
-    key: string,
+    key: ModalKey,
     onClose?: (payload: TPayload | null) => void
 ) => {
     const { open } = useContext(ModalStateContext)
@@ -54,89 +57,72 @@ export const useModalClose = () => {
     return close
 }
 
-export const useModalIsOpen = (key: string): boolean => {
+export const useModalIsOpen = (key: ModalKey): boolean => {
     const { active } = useContext(ModalStateContext)
     return active?.key === key
 }
 
-export const useModalInput = <T,>(key: string): T | undefined => {
+export const useModalInput = <T,>(key: ModalKey): T | undefined => {
     const { active } = useContext(ModalStateContext)
     return active?.key === key ? (active.input as T | undefined) : undefined
 }
 
-type ModalWindowProps = {
+export type SheetPresentation = 'content' | 'full'
+
+type SheetWindowProps = {
     modalKey: string
     title: string | ((input: unknown) => string)
-    size?: 'sm' | 'lg' | 'xl'
+    presentation?: SheetPresentation
     className?: string
-    scrollable?: boolean
-    staticBackdrop?: boolean
     children: React.ReactNode
 }
 
-export const ModalWindow: FC<ModalWindowProps> = ({
-    modalKey,
-    title,
-    size,
-    className,
-    scrollable,
-    staticBackdrop,
-    children,
-}) => {
+const SNAP: Record<SheetPresentation, string> = {
+    content: 'auto',
+    full: 'full',
+}
+
+export const SheetFooter: FC<{ children: React.ReactNode }> = ({ children }) => (
+    <div slot="footer" className="app-sheet-footer">
+        {children}
+    </div>
+)
+
+export const SheetWindow: FC<SheetWindowProps> = ({ modalKey, title, presentation = 'content', className, children }) => {
     const { active, close } = useContext(ModalStateContext)
+    const { chromeHosts } = usePageContext()
     const isOpen = active?.key === modalKey
-    const isOpenRef = useRef(isOpen)
-    const openerRef = useRef<HTMLElement | null>(null)
+    const [mounted, setMounted] = useState(isOpen)
 
     useEffect(() => {
-        if (isOpen && !isOpenRef.current) {
-            const opener = document.activeElement
-            openerRef.current = opener instanceof HTMLElement ? opener : null
+        if (isOpen) {
+            setMounted(true)
+            return
         }
-        if (!isOpen && isOpenRef.current) {
-            const opener = openerRef.current
-            openerRef.current = null
-            if (opener?.isConnected) opener.focus()
-            else if (document.activeElement instanceof HTMLElement) document.activeElement.blur()
-        }
-        isOpenRef.current = isOpen
+        const timer = window.setTimeout(() => setMounted(false), 320)
+        return () => window.clearTimeout(timer)
     }, [isOpen])
 
-    const modal = useTc<HTMLElement>(
-        { open: isOpen },
-        {
-            'tc-hidden': () => {
-                if (isOpenRef.current) close(null)
-            },
-        }
-    )
+    const onClose = useCallback(() => {
+        if (active?.key === modalKey) close(null)
+    }, [active, modalKey, close])
 
-    useEffect(() => {
-        if (!isOpen) return
-        const onKeydown = (event: KeyboardEvent) => {
-            if (event.key !== 'Escape') return
-            if (!modal.current?.querySelector('.tc-extended-select__menu--open, .tc-tag-input-menu--open')) return
-            event.stopPropagation()
-            document.dispatchEvent(new MouseEvent('mousedown', { bubbles: true }))
-        }
-        document.addEventListener('keydown', onKeydown, true)
-        return () => document.removeEventListener('keydown', onKeydown, true)
-    }, [isOpen, modal])
+    useSheetHistory(isOpen, onClose)
 
-    const resolvedTitle = typeof title === 'function' ? title(isOpen ? active?.input : undefined) : title
+    const host = chromeHosts.overlay ?? document.body
 
-    return (
-        <tc-modal
-            ref={modal}
-            title={resolvedTitle}
+    const heading = typeof title === 'function' ? title(isOpen ? active?.input : undefined) : title
+
+    return createPortal(
+        <tc-bottom-sheet
+            heading={heading}
             className={className}
-            size={size}
-            scrollable={scrollable || undefined}
-            static-backdrop={staticBackdrop || undefined}
-            centered
-            lazy
+            open={isOpen === true}
+            snap={SNAP[presentation]}
+            ontc-sheet-close={onClose}
         >
-            {children}
-        </tc-modal>
+            {mounted ? children : <div className="app-sheet__placeholder" />}
+        </tc-bottom-sheet>,
+        host
     )
 }

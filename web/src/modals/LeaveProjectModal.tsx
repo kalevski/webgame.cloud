@@ -3,7 +3,7 @@ import useStrings from 'hooks/useStrings'
 import { useStore } from 'state'
 import { Project } from 'types'
 import { MODAL } from './keys'
-import { useModalClose, useModalInput } from './registry'
+import { useModalClose, useModalInput, SheetFooter } from './registry'
 
 const LeaveProjectModal: React.FC = () => {
     const closeModal = useModalClose()
@@ -26,12 +26,14 @@ const LeaveProjectModal: React.FC = () => {
     return (
         <>
             <p>{t.projects.leaveConfirm(project?.name ?? '')}</p>
-            <tc-button slot="footer" variant="danger" disabled={saving || undefined} onClick={submit}>
-                {t.projects.leave}
-            </tc-button>
-            <tc-button slot="footer" variant="secondary" outline onClick={() => closeModal(null)}>
-                {t.modal.cancel}
-            </tc-button>
+            <SheetFooter>
+                <tc-button variant="danger" disabled={saving || undefined} onClick={submit}>
+                    {t.projects.leave}
+                </tc-button>
+                <tc-button variant="secondary" outline onClick={() => closeModal(null)}>
+                    {t.modal.cancel}
+                </tc-button>
+            </SheetFooter>
         </>
     )
 }

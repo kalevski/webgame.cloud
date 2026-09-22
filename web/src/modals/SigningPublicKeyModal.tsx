@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react'
 import useStrings from 'hooks/useStrings'
 import { SigningKey } from 'types'
 import { MODAL } from './keys'
-import { useModalClose, useModalInput, useModalIsOpen } from './registry'
+import { useModalClose, useModalInput, useModalIsOpen, SheetFooter } from './registry'
 
 const SigningPublicKeyModal: React.FC = () => {
     const closeModal = useModalClose()
@@ -26,7 +26,7 @@ const SigningPublicKeyModal: React.FC = () => {
     return (
         <>
             <div className="modal-signing-key">
-                <tc-stack direction="column" gap="0.85rem">
+                <tc-stack direction="vertical" gap="0.85rem">
                     <tc-text variant="muted" size="small">
                         {key ? `${key.label} · ${s.kidLabel}: ${key.kid} · ${key.algorithm}` : ''}
                     </tc-text>
@@ -37,12 +37,15 @@ const SigningPublicKeyModal: React.FC = () => {
                 </tc-stack>
             </div>
 
-            <tc-button slot="footer" variant="secondary" outline onClick={copy}>
-                {copied ? s.copied : s.copy}
-            </tc-button>
-            <tc-button slot="footer" variant="primary" onClick={() => closeModal(null)}>
-                {s.close}
-            </tc-button>
+            <SheetFooter>
+
+                <tc-button variant="secondary" outline onClick={copy}>
+                    {copied ? s.copied : s.copy}
+                </tc-button>
+                <tc-button variant="primary" onClick={() => closeModal(null)}>
+                    {s.close}
+                </tc-button>
+            </SheetFooter>
         </>
     )
 }

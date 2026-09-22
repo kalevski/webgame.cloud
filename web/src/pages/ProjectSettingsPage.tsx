@@ -1,9 +1,8 @@
 import React, { useEffect } from 'react'
 import { useParams } from 'react-router'
-import { wrapInMainLayout } from 'layouts/MainLayout'
 import { usePageContext } from 'contexts/PageContext'
 import useStrings from 'hooks/useStrings'
-import RouteTabs from 'components/RouteTabs'
+import usePageTabs from 'hooks/usePageTabs'
 import AuthGuard from 'modules/AuthGuard'
 import ProjectPageShell from 'components/ProjectPageShell'
 import ProjectSettingsGeneral from 'modules/ProjectSettingsGeneral'
@@ -22,16 +21,16 @@ const ProjectSettingsPage: React.FC = () => {
         {
             id: 'general',
             label: p.settingsTabGeneral,
-            icon: 'sliders-horizontal',
-            path: `/projects/${id}/settings`,
+            href: `/projects/${id}/settings`,
         },
         {
             id: 'categories-and-tags',
             label: p.settingsTabCategoriesAndTags,
-            icon: 'tags',
-            path: `/projects/${id}/settings/categories-and-tags`,
+            href: `/projects/${id}/settings/categories-and-tags`,
         },
     ]
+
+    usePageTabs(tabs)
     const available = tabs.map((entry) => entry.id)
     const tab = (available.includes(tabParam ?? '') ? tabParam : 'general') as SettingsTab
 
@@ -51,7 +50,6 @@ const ProjectSettingsPage: React.FC = () => {
             <ProjectPageShell title={p.tabSettings} pipeline={false} subline={() => description}>
                 {(project) => (
                     <>
-                        <RouteTabs tabs={tabs} activeId={tab} />
 
                         {tab === 'general' && (
                             <>
@@ -67,4 +65,4 @@ const ProjectSettingsPage: React.FC = () => {
     )
 }
 
-export default wrapInMainLayout(ProjectSettingsPage)
+export default ProjectSettingsPage

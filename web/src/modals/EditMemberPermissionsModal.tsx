@@ -5,7 +5,7 @@ import { useStore } from 'state'
 import { useProjectPermissions } from 'hooks/useProjectCan'
 import { PROJECT_PERMISSION_LABELS, ProjectMember, ProjectPermission } from 'types'
 import { MODAL } from './keys'
-import { useModalClose, useModalInput } from './registry'
+import { useModalClose, useModalInput, SheetFooter } from './registry'
 
 type ValueElement = HTMLElement & { value?: unknown }
 
@@ -39,12 +39,14 @@ const EditMemberPermissionsModal: React.FC = () => {
     return (
         <>
             <tc-checkbox-group ref={group} label={t.members.invitePermissionsLabel} />
-            <tc-button slot="footer" variant="primary" disabled={saving || undefined} onClick={submit}>
-                {t.projects.save}
-            </tc-button>
-            <tc-button slot="footer" variant="secondary" outline onClick={() => closeModal(null)}>
-                {t.modal.cancel}
-            </tc-button>
+            <SheetFooter>
+                <tc-button variant="primary" disabled={saving || undefined} onClick={submit}>
+                    {t.projects.save}
+                </tc-button>
+                <tc-button variant="secondary" outline onClick={() => closeModal(null)}>
+                    {t.modal.cancel}
+                </tc-button>
+            </SheetFooter>
         </>
     )
 }

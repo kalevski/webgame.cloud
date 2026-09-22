@@ -292,7 +292,7 @@ const ProjectMembers: React.FC<Props> = ({ project }) => {
 
             {tab === 'members' && (
                 <tc-panel bordered className="module-project-members__panel">
-                    <tc-stack direction="column" gap="0.85rem">
+                    <tc-stack direction="vertical" gap="0.85rem">
                         <tc-text variant="muted">{m.rosterIntro}</tc-text>
                         <div>
                             <tc-empty-state icon="users" hidden={members.length > 0 || undefined}>
@@ -321,7 +321,7 @@ const ProjectMembers: React.FC<Props> = ({ project }) => {
 
             {tab === 'invites' && (
                 <tc-panel bordered className="module-project-members__panel">
-                    <tc-stack direction="column" gap="0.85rem">
+                    <tc-stack direction="vertical" gap="0.85rem">
                         <tc-text variant="muted">{m.invitesIntro}</tc-text>
                         <div>
                             <AdvancedTable
@@ -349,7 +349,7 @@ const ProjectMembers: React.FC<Props> = ({ project }) => {
             )}
 
             <tc-section-card title={m.permissionsGuideTitle}>
-                <tc-stack direction="column" gap="0.85rem">
+                <tc-stack direction="vertical" gap="0.85rem">
                     <tc-text variant="muted">{m.permissionsGuideIntro}</tc-text>
 
                     <dl className="member-permissions-guide">

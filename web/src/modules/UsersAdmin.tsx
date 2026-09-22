@@ -4,7 +4,8 @@ import { useStore } from 'state'
 import useStrings from 'hooks/useStrings'
 import { useTc } from '@toolcase/web-components/react'
 import AdvancedTable, { AdvancedTableSort } from 'components/AdvancedTable'
-import { escapeHtml } from 'helpers/html'
+import ModuleActions from 'components/ModuleActions'
+import { escapeHtml, rowIconButton } from 'helpers/html'
 import { MODAL, useModalOpen } from 'modals'
 import { FiltersInput, FiltersResult } from 'modals/FiltersModal'
 import useCan from 'hooks/useCan'
@@ -164,20 +165,20 @@ const UsersAdmin: React.FC = () => {
             const accessLabel = t.usersAdmin.manageAccess
             const access = self || !canWriteAccess
                 ? ''
-                : `<tc-icon-button icon="Settings" variant="secondary" size="small" outline data-action="access" data-id="${escapeHtml(user.id)}" label="${escapeHtml(accessLabel)}" title="${escapeHtml(accessLabel)}"></tc-icon-button>`
+                : rowIconButton('Settings', 'secondary', 'access', user.id, accessLabel)
             const toggleLabel = user.active ? t.usersAdmin.deactivate : t.usersAdmin.activate
             const toggle = self || !canWriteAccess
                 ? ''
-                : `<tc-icon-button icon="${user.active ? 'UserX' : 'UserCheck'}" variant="${user.active ? 'danger' : 'success'}" size="small" outline data-action="toggle-active" data-id="${escapeHtml(user.id)}" label="${escapeHtml(toggleLabel)}" title="${escapeHtml(toggleLabel)}"></tc-icon-button>`
+                : rowIconButton(user.active ? 'UserX' : 'UserCheck', user.active ? 'danger' : 'success', 'toggle-active', user.id, toggleLabel)
 
             const canLoginAs = canImpersonate && !self && user.active &&
                 (user.role !== OWNER_ROLE_ID || me?.role === OWNER_ROLE_ID)
             const loginAs = !canLoginAs
                 ? ''
-                : `<tc-icon-button icon="LogIn" variant="secondary" size="small" outline data-action="impersonate" data-id="${escapeHtml(user.id)}" label="${escapeHtml(t.usersAdmin.loginAs)}" title="${escapeHtml(t.usersAdmin.loginAs)}"></tc-icon-button>`
+                : rowIconButton('LogIn', 'secondary', 'impersonate', user.id, t.usersAdmin.loginAs)
             const activity = !canReadAudit
                 ? ''
-                : `<tc-icon-button icon="History" variant="secondary" size="small" outline data-action="activity" data-id="${escapeHtml(user.id)}" label="${escapeHtml(t.usersAdmin.activity)}" title="${escapeHtml(t.usersAdmin.activity)}"></tc-icon-button>`
+                : rowIconButton('History', 'secondary', 'activity', user.id, t.usersAdmin.activity)
 
             return `<tr${user.active ? '' : ' class="module-users__row--inactive"'}>
                 <td>${escapeHtml(user.name || '—')}</td>
@@ -215,17 +216,18 @@ const UsersAdmin: React.FC = () => {
 
     return (
         <div className="module module-users">
-            <tc-section-card title={t.usersAdmin.title} icon="UsersRound">
-                <span slot="action" className="section-card-actions">
-                    <tc-button variant="secondary" outline onClick={() => openFiltersModal(filterFields())}>
-                        {activeFilterCount > 0 ? t.filters.buttonWithCount(activeFilterCount) : t.filters.button}
+            <ModuleActions>
+                <tc-button variant="secondary" outline onClick={() => openFiltersModal(filterFields())}>
+                    {activeFilterCount > 0 ? t.filters.buttonWithCount(activeFilterCount) : t.filters.button}
+                </tc-button>
+                {canWriteAccess && (
+                    <tc-button variant="primary" onClick={() => openCreateUserModal()}>
+                        {t.usersAdmin.addUser}
                     </tc-button>
-                    {canWriteAccess && (
-                        <tc-button variant="primary" onClick={() => openCreateUserModal()}>
-                            {t.usersAdmin.addUser}
-                        </tc-button>
-                    )}
-                </span>
+                )}
+            </ModuleActions>
+
+            <tc-section-card title={t.usersAdmin.title} icon="UsersRound">
                 <AdvancedTable
                     columns={columns}
                     rows={rows}

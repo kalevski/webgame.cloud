@@ -1,33 +1,92 @@
 @use '../abstracts' as *;
 
-.module-profile__header {
-    margin-bottom: $space-xl;
+.module-profile {
+    display: flex;
+    flex-direction: column;
+    gap: $space-xl;
+    min-width: 0;
 }
 
-.module-profile__content {
-    margin-top: $space-lg;
+.module-profile__identity {
+    --bs-entity-profile-card-bg: var(--tc-surface-muted, #f6f6f7);
+    --bs-entity-profile-card-shadow: none;
+    --bs-entity-profile-card-hero-padding-y: 1.5rem;
+    --bs-entity-profile-card-meta-separator: transparent;
+    --bs-entity-profile-card-meta-padding-x: 0;
+    --bs-entity-profile-card-meta-padding-y: 0;
+    --bs-entity-profile-card-title-font-size: 1rem;
+    --bs-entity-profile-card-meta-value-font-size: 0.9375rem;
+
+    display: block;
+
+    .tc-entity-profile-card__hero {
+        display: grid;
+        grid-template-columns: auto minmax(0, 1fr);
+        grid-template-areas:
+            'lead name'
+            'lead chips';
+        align-content: center;
+        column-gap: $space-lg;
+        row-gap: $space-xs;
+    }
+
+    .tc-entity-profile-card__lead {
+        grid-area: lead;
+        align-self: center;
+
+        tc-avatar {
+            --bs-avatar-size: 68px;
+            --bs-avatar-font-size: 1.5rem;
+        }
+    }
+
+    .tc-entity-profile-card__title {
+        grid-area: name;
+        align-self: end;
+        margin: 0;
+        font-family: $font-display;
+        font-size: clamp(1.6rem, 1.15rem + 1.6vw, 2.15rem);
+        font-weight: 600;
+        line-height: 1.08;
+        letter-spacing: -0.012em;
+        color: var(--tc-text, #18181b);
+        overflow-wrap: anywhere;
+    }
+
+    .tc-entity-profile-card__chips {
+        grid-area: chips;
+        align-self: start;
+    }
+
+    .tc-entity-profile-card__meta {
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        column-gap: $space-xl;
+        row-gap: $space-md;
+        padding-block: var(--bs-entity-profile-card-hero-padding-y);
+    }
+
+    .tc-entity-profile-card__meta-value {
+        overflow-wrap: anywhere;
+    }
 }
 
 .module-profile__columns {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    grid-template-columns: minmax(0, 1fr);
     gap: $space-lg;
     align-items: start;
 
-    @include down($bp-md) {
-        grid-template-columns: minmax(0, 1fr);
+    @include up($bp-md) {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
     }
-}
-
-.module-profile__identity,
-.module-profile__account {
-    display: flex;
-    flex-direction: column;
-    gap: $space-lg;
-    min-width: 0;
 }
 
 .module-profile__section,
 .module-profile__danger-zone {
     display: block;
+}
+
+.module-profile__connections-hint {
+    display: block;
+    margin-top: $space-xs;
 }

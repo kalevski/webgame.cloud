@@ -1,4 +1,5 @@
 import { apiFetch } from 'helpers/api'
+import { queryString } from 'helpers/query'
 import {
     EmailComposeDraft,
     EmailComposeResult,
@@ -76,13 +77,8 @@ class EmailService {
     }
 
     async listMessages(filters: EmailFilters): Promise<{ messages: EmailMessage[]; total: number; stats: EmailStats }> {
-        const query = new URLSearchParams()
-        for (const [key, value] of Object.entries(filters)) {
-            if (value !== undefined && value !== null && value !== '') query.set(key, String(value))
-        }
-        const suffix = query.toString()
         return apiFetch<{ messages: EmailMessage[]; total: number; stats: EmailStats }>(
-            `/api/email/messages${suffix ? `?${suffix}` : ''}`
+            `/api/email/messages${queryString(filters)}`
         )
     }
 

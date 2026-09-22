@@ -3,7 +3,7 @@ import useStrings from 'hooks/useStrings'
 import { useStore } from 'state'
 import { Realm, RealmToken } from 'types'
 import { MODAL } from './keys'
-import { useModalClose, useModalInput, useModalIsOpen } from './registry'
+import { useModalClose, useModalInput, useModalIsOpen, SheetFooter } from './registry'
 
 const RealmTokenModal: React.FC = () => {
     const closeModal = useModalClose()
@@ -43,7 +43,7 @@ const RealmTokenModal: React.FC = () => {
 
     return (
         <>
-            <tc-stack direction="column" gap="0.85rem">
+            <tc-stack direction="vertical" gap="0.85rem">
                 {issued ? (
                     <>
                         <tc-alert variant="warning">{r.tokenHint}</tc-alert>
@@ -53,22 +53,22 @@ const RealmTokenModal: React.FC = () => {
                     <tc-text>{r.rotateConfirm(realm?.name ?? '')}</tc-text>
                 )}
             </tc-stack>
-            <tc-button
-                slot="footer"
-                variant={issued ? 'primary' : 'danger'}
-                disabled={rotating || undefined}
-                onClick={issued ? () => closeModal(true) : rotate}
-            >
-                <span>{issued ? r.done : r.rotateToken}</span>
-            </tc-button>
-            <tc-button
-                slot="footer"
-                variant="secondary"
-                outline
-                onClick={issued ? copy : () => closeModal(null)}
-            >
-                <span>{issued ? (copied ? r.copied : r.copy) : t.modal.cancel}</span>
-            </tc-button>
+            <SheetFooter>
+                <tc-button
+                    variant={issued ? 'primary' : 'danger'}
+                    disabled={rotating || undefined}
+                    onClick={issued ? () => closeModal(true) : rotate}
+                >
+                    <span>{issued ? r.done : r.rotateToken}</span>
+                </tc-button>
+                <tc-button
+                    variant="secondary"
+                    outline
+                    onClick={issued ? copy : () => closeModal(null)}
+                >
+                    <span>{issued ? (copied ? r.copied : r.copy) : t.modal.cancel}</span>
+                </tc-button>
+            </SheetFooter>
         </>
     )
 }

@@ -1,5 +1,6 @@
 import { apiFetch } from 'helpers/api'
 import { AuditEntry, AuditFilters, Report, ReportStatus, ReportTargetKind } from 'types'
+import { queryString } from 'helpers/query'
 
 class ModerationService {
     private static instance: ModerationService
@@ -30,13 +31,8 @@ class ModerationService {
     }
 
     async fetchAuditLog(filters: AuditFilters): Promise<{ entries: AuditEntry[]; total: number; actions: string[] }> {
-        const query = new URLSearchParams()
-        for (const [key, value] of Object.entries(filters)) {
-            if (value !== undefined && value !== null && value !== '') query.set(key, String(value))
-        }
-        const suffix = query.toString()
         return apiFetch<{ entries: AuditEntry[]; total: number; actions: string[] }>(
-            `/api/moderation/audit-log${suffix ? `?${suffix}` : ''}`
+            `/api/moderation/audit-log${queryString(filters)}`
         )
     }
 }

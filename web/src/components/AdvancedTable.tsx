@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useEffect, useMemo, useRef } from 'react'
 import { useTc } from '@toolcase/web-components/react'
 import useStableValue from 'hooks/useStableValue'
 
@@ -49,6 +49,17 @@ type AdvancedTableProps = {
     onRowAction?: (action: string, id: string, value?: string) => void
 }
 
+type FilterableTable = HTMLElement & { filterValues?: Record<string, string> }
+
+const NO_FILTERS: AdvancedTableFilter[] = []
+const NO_SORTABLE: string[] = []
+const NO_FILTER_VALUES: Record<string, string> = {}
+
+const useStableByValue = <T,>(value: T): T => {
+    const key = JSON.stringify(value)
+    return useMemo(() => JSON.parse(key) as T, [key])
+}
+
 const AdvancedTable: React.FC<AdvancedTableProps> = ({
     columns,
     rows,
@@ -56,9 +67,9 @@ const AdvancedTable: React.FC<AdvancedTableProps> = ({
     offset,
     limit = 10,
     loading = false,
-    filters = [],
-    filterValues = {},
-    sortableColumns = [],
+    filters = NO_FILTERS,
+    filterValues = NO_FILTER_VALUES,
+    sortableColumns = NO_SORTABLE,
     sort = null,
     stickyFirstColumn = false,
     stickyLastColumn = false,
@@ -67,7 +78,14 @@ const AdvancedTable: React.FC<AdvancedTableProps> = ({
     onPageChange,
     onRowAction,
 }) => {
-    const table = useTc<HTMLElement>(
+    const stableColumns = useStableByValue(columns)
+    const stableFilters = useStableByValue(filters)
+    const stableSortable = useStableByValue(sortableColumns)
+
+    const liveFilters = useRef<Record<string, string>>({ ...filterValues })
+    const filtersApplied = useRef(false)
+
+    const table = useTc<FilterableTable>(
         {
             columns: useStableValue(columns),
             rows,
@@ -96,6 +114,16 @@ const AdvancedTable: React.FC<AdvancedTableProps> = ({
             },
         }
     )
+
+    useEffect(() => {
+        const element = table.current
+        if (!element) return
+        if (filtersApplied.current && JSON.stringify(filterValues) === JSON.stringify(liveFilters.current)) return
+
+        filtersApplied.current = true
+        liveFilters.current = { ...filterValues }
+        element.filterValues = liveFilters.current
+    }, [filterValues, table])
 
     return (
         <tc-advanced-table

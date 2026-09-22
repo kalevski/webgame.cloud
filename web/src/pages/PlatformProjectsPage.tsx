@@ -1,6 +1,5 @@
 import React, { useEffect } from 'react'
 import { useParams } from 'react-router'
-import { wrapInMainLayout } from 'layouts/MainLayout'
 import { usePageContext } from 'contexts/PageContext'
 import useStrings from 'hooks/useStrings'
 import AuthGuard from 'modules/AuthGuard'
@@ -40,4 +39,4 @@ const PlatformProjectsPage: React.FC = () => {
     )
 }
 
-export default wrapInMainLayout(PlatformProjectsPage)
+export default PlatformProjectsPage

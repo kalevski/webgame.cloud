@@ -38,7 +38,7 @@ the list instead of typing free text, and a rename lands on every realm at once.
 is `409 realm_region_in_use` (the count travels as an error param). `active` is what gates the picker, not
 what enforces anything: an inactive region keeps the realms already in it and simply stops being offered.
 
-The screen is `/platform/realms` with a `RouteTabs` pair — **Realms** (`/platform/realms`) and **Regions**
+The screen is `/platform/realms` with a page-tab pair — **Realms** (`/platform/realms`) and **Regions**
 (`/platform/realms/regions`, a static route declared before `/:id` so the id pattern cannot swallow it).
 Tabs show on the list views only; a realm detail page replaces them. The page header's `actions` slot
 follows the active tab: *Add realm*, *Add region*, or *Edit realm* on a detail view.

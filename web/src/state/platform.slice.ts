@@ -2,6 +2,7 @@ import { StateCreator } from 'zustand'
 import { AppStore } from 'state'
 import { STRINGS } from 'configs/strings'
 import PlatformService from 'services/PlatformService'
+import { fail } from './alerts.slice'
 import {
     ApiKey,
     ApiKeyDraft,
@@ -78,13 +79,6 @@ export type PlatformSlice = {
     rotateSigningKey: (name: string) => Promise<boolean>
 
 }
-
-const fail = (get: () => AppStore, error: unknown, fallback: string) =>
-    get().addAlert({
-        variant: 'danger',
-        message: error instanceof Error ? error.message : fallback,
-        dismissible: true,
-    })
 
 export const createPlatformSlice: StateCreator<AppStore, [], [], PlatformSlice> = (set, get) => ({
     apiKeys: [],

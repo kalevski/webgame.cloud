@@ -4,7 +4,7 @@ import { useTc } from '@toolcase/web-components/react'
 import { useStore } from 'state'
 import { Project } from 'types'
 import { MODAL } from './keys'
-import { useModalClose, useModalInput } from './registry'
+import { useModalClose, useModalInput, SheetFooter } from './registry'
 
 type ValueElement = HTMLElement & { value?: unknown }
 
@@ -49,17 +49,18 @@ const TransferProjectModal: React.FC = () => {
             <tc-label>{t.projects.ownerLabel}</tc-label>
             <tc-extended-select ref={picker} placeholder={t.projects.transferSearchHint} />
             <tc-form-input ref={confirmInput} label={t.projects.typeToConfirm(project?.name ?? '')} />
-            <tc-button
-                slot="footer"
-                variant="danger"
-                disabled={!confirmed || !userId || saving || undefined}
-                onClick={submit}
-            >
-                {t.projects.transfer}
-            </tc-button>
-            <tc-button slot="footer" variant="secondary" outline onClick={() => closeModal(null)}>
-                {t.modal.cancel}
-            </tc-button>
+            <SheetFooter>
+                <tc-button
+                    variant="danger"
+                    disabled={!confirmed || !userId || saving || undefined}
+                    onClick={submit}
+                >
+                    {t.projects.transfer}
+                </tc-button>
+                <tc-button variant="secondary" outline onClick={() => closeModal(null)}>
+                    {t.modal.cancel}
+                </tc-button>
+            </SheetFooter>
         </>
     )
 }

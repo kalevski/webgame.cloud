@@ -6,6 +6,7 @@ import { notificationBadge } from 'types'
 import Icon from 'components/icons'
 import { EVENT } from 'configs/analytics'
 import { trackEvent } from 'helpers/analytics'
+import { useVisiblePoll } from '@toolcase/web-components/react'
 
 const POLL_MS = 60_000
 
@@ -29,9 +30,9 @@ const NotificationsBell: React.FC = () => {
     useEffect(() => {
         fetchNotifications()
         probePush()
-        const timer = window.setInterval(fetchNotifications, POLL_MS)
-        return () => window.clearInterval(timer)
     }, [fetchNotifications, probePush])
+
+    useVisiblePoll(fetchNotifications, POLL_MS)
 
     useEffect(() => {
         if (!open) return
@@ -68,7 +69,7 @@ const NotificationsBell: React.FC = () => {
             <button
                 type="button"
                 className="module-notifications__button"
-                aria-label={n.title}
+                aria-label={unread > 0 ? n.titleWithUnread(unread) : n.title}
                 title={n.title}
                 onClick={() => {
                     setOpen((value) => !value)

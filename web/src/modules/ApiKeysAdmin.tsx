@@ -1,4 +1,5 @@
 import React, { useEffect } from 'react'
+import ModuleActions from 'components/ModuleActions'
 import { useStore } from 'state'
 import useStrings from 'hooks/useStrings'
 import { useTc } from '@toolcase/web-components/react'
@@ -52,11 +53,14 @@ const ApiKeysAdmin: React.FC = () => {
 
     return (
         <div className="module module-api-keys">
-            <tc-section-card title={k.title} icon="Key">
-                <tc-button slot="action" variant="primary" onClick={() => openApiKey()}>
+            <ModuleActions>
+                <tc-button variant="primary" onClick={() => openApiKey()}>
                     {k.create}
                 </tc-button>
-                <tc-stack direction="column" gap="0.85rem">
+            </ModuleActions>
+
+            <tc-section-card title={k.title} icon="Key">
+                <tc-stack direction="vertical" gap="0.85rem">
                     <tc-text variant="muted">{k.intro}</tc-text>
 
                     {apiKeysLoaded && apiKeys.length === 0 && (

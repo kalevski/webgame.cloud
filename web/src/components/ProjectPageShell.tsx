@@ -3,7 +3,7 @@ import { useParams } from 'react-router'
 import { useStore } from 'state'
 import Loading from 'components/Loading'
 import ProjectLockBanner from 'modules/ProjectLockBanner'
-import ProjectHeader from 'modules/ProjectHeader'
+import ProjectHeader, { type ProjectHeaderIconColor } from 'modules/ProjectHeader'
 import ProjectPipeline from 'modules/ProjectPipeline'
 import { Project } from 'types'
 
@@ -12,7 +12,7 @@ type Props = {
     subline?: (project: Project) => React.ReactNode
     description?: string
     iconName?: string
-    iconColor?: string
+    iconColor?: ProjectHeaderIconColor
     action?: (project: Project) => React.ReactNode
     pipeline?: boolean
     children: (project: Project) => React.ReactNode

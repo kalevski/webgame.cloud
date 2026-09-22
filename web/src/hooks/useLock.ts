@@ -31,7 +31,7 @@ const useLock = (permission: Permission): Lock => {
     }, [entitlement, openUpgrade])
     const planName = entitlement ? upgradePlanName : null
     return {
-        locked: !allowed && entitlement !== undefined && planName !== null,
+        locked: !allowed && planName !== null,
         roleName: planName,
         open,
         entitlement: entitlement ?? null,

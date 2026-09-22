@@ -28,7 +28,7 @@
         display: flex;
         flex-direction: column;
         height: 100%;
-        border-radius: $radius-md;
+        border-radius: var(--bs-border-radius);
         transition: border-color 140ms ease;
     }
 
@@ -76,12 +76,12 @@
         font-size: 0.625rem;
         letter-spacing: 0.08em;
         text-transform: uppercase;
-        border-radius: $radius-sm;
+        border-radius: var(--bs-border-radius);
     }
 
     .tc-asset-bundle-count {
         gap: $space-2;
-        border-radius: $radius-sm;
+        border-radius: var(--bs-border-radius);
     }
 
     .tc-asset-bundle-count-label {
@@ -102,7 +102,7 @@
 
     .tc-asset-bundle-build-tag {
         border: 1px solid color-mix(in srgb, var(--ab-live) 45%, transparent);
-        border-radius: $radius-sm;
+        border-radius: var(--bs-border-radius);
         background: var(--ab-live-soft);
 
         font-family: var(--ab-mono);

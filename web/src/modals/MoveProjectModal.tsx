@@ -3,7 +3,7 @@ import useStrings from 'hooks/useStrings'
 import { useTc } from '@toolcase/web-components/react'
 import { useStore } from 'state'
 import { MODAL } from './keys'
-import { useModalClose, useModalInput } from './registry'
+import { useModalClose, useModalInput, SheetFooter } from './registry'
 
 type ValueElement = HTMLElement & { value?: unknown }
 
@@ -45,12 +45,14 @@ const MoveProjectModal: React.FC = () => {
         <>
             <tc-alert variant="warning">{t.realms.moveHint}</tc-alert>
             <tc-card-options ref={picker} />
-            <tc-button slot="footer" variant="primary" disabled={!realmId || saving || undefined} onClick={submit}>
-                {t.realms.moveTitle}
-            </tc-button>
-            <tc-button slot="footer" variant="secondary" outline onClick={() => closeModal(null)}>
-                {t.modal.cancel}
-            </tc-button>
+            <SheetFooter>
+                <tc-button variant="primary" disabled={!realmId || saving || undefined} onClick={submit}>
+                    {t.realms.moveTitle}
+                </tc-button>
+                <tc-button variant="secondary" outline onClick={() => closeModal(null)}>
+                    {t.modal.cancel}
+                </tc-button>
+            </SheetFooter>
         </>
     )
 }

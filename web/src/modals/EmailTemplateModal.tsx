@@ -1,9 +1,9 @@
 import React, { useEffect, useRef, useState } from 'react'
 import useStrings from 'hooks/useStrings'
 import { useStore } from 'state'
-import { EmailTemplate } from 'types'
+import { EMAIL_PLACEHOLDERS, EmailTemplate, type EmailPlaceholder } from 'types'
 import { MODAL } from './keys'
-import { useModalClose, useModalInput, useModalIsOpen } from './registry'
+import { useModalClose, useModalInput, useModalIsOpen, SheetFooter } from './registry'
 
 type ValueElement = HTMLElement & { value?: string }
 
@@ -71,77 +71,85 @@ const EmailTemplateModal: React.FC = () => {
         if (await deleteEmailTemplate(editing.key)) closeModal(null)
     }
 
-    const preview = body
-        .replace(/\{\{\s*workspace\s*\}\}/g, 'WebGame Cloud')
-        .replace(/\{\{\s*recipientName\s*\}\}/g, 'Ada Lovelace')
-        .replace(/\{\{\s*recipientEmail\s*\}\}/g, 'ada@example.com')
-        .replace(/\{\{\s*actorName\s*\}\}/g, 'Ada Lovelace')
-        .replace(/\{\{\s*actorEmail\s*\}\}/g, 'ada@example.com')
-        .replace(/\{\{\s*date\s*\}\}/g, new Date().toLocaleDateString('en-GB'))
+    const sample: Record<EmailPlaceholder, string> = {
+        workspace: 'WebGame Cloud',
+        recipientName: 'Ada Lovelace',
+        recipientEmail: 'ada@example.com',
+        actorName: 'Ada Lovelace',
+        actorEmail: 'ada@example.com',
+        date: new Date().toLocaleDateString('en-GB'),
+    }
+
+    const preview = EMAIL_PLACEHOLDERS.reduce(
+        (rendered, name) => rendered.replace(new RegExp(`\\{\\{\\s*${name}\\s*\\}\\}`, 'g'), sample[name]),
+        body
+    )
 
     return (
-        <div className="modal-email-template">
-            <tc-stack direction="column" gap="0.85rem">
-                <tc-form-input
-                    ref={nameRef}
-                    type="text"
-                    label={e.templateNameLabel}
-                    onInput={(event: React.FormEvent<ValueElement>) =>
-                        setName(String((event.target as ValueElement).value ?? ''))
-                    }
-                ></tc-form-input>
+        <>
+            <div className="modal-email-template">
+                <tc-stack direction="vertical" gap="0.85rem">
+                    <tc-form-input
+                        ref={nameRef}
+                        type="text"
+                        label={e.templateNameLabel}
+                        onInput={(event) =>
+                            setName(String((event.target as ValueElement).value ?? ''))
+                        }
+                    ></tc-form-input>
 
-                <tc-form-input
-                    ref={descriptionRef}
-                    type="text"
-                    label={e.templateDescriptionLabel}
-                    onInput={(event: React.FormEvent<ValueElement>) => {
-                        description.current = String((event.target as ValueElement).value ?? '')
-                    }}
-                ></tc-form-input>
+                    <tc-form-input
+                        ref={descriptionRef}
+                        type="text"
+                        label={e.templateDescriptionLabel}
+                        onInput={(event) => {
+                            description.current = String((event.target as ValueElement).value ?? '')
+                        }}
+                    ></tc-form-input>
 
-                <tc-form-input
-                    ref={subjectRef}
-                    type="text"
-                    label={e.subjectLabel}
-                    onInput={(event: React.FormEvent<ValueElement>) =>
-                        setSubject(String((event.target as ValueElement).value ?? ''))
-                    }
-                ></tc-form-input>
+                    <tc-form-input
+                        ref={subjectRef}
+                        type="text"
+                        label={e.subjectLabel}
+                        onInput={(event) =>
+                            setSubject(String((event.target as ValueElement).value ?? ''))
+                        }
+                    ></tc-form-input>
 
-                <tc-textarea
-                    ref={bodyRef}
-                    label={e.bodyLabel}
-                    help={e.bodyHint}
-                    rows="8"
-                    onInput={(event: React.FormEvent<ValueElement>) =>
-                        setBody(String((event.target as ValueElement).value ?? ''))
-                    }
-                ></tc-textarea>
+                    <tc-textarea
+                        ref={bodyRef}
+                        label={e.bodyLabel}
+                        help={e.bodyHint(EMAIL_PLACEHOLDERS.map((name) => `{{${name}}}`).join(', '))}
+                        rows="8"
+                        onInput={(event) =>
+                            setBody(String((event.target as ValueElement).value ?? ''))
+                        }
+                    ></tc-textarea>
 
-                <div className="modal-email-template__preview">
-                    <tc-label>{e.templatePreview}</tc-label>
-                    <pre className="modal-email-template__preview-body">{preview}</pre>
-                </div>
+                    <div className="modal-email-template__preview">
+                        <tc-label>{e.templatePreview}</tc-label>
+                        <pre className="modal-email-template__preview-body">{preview}</pre>
+                    </div>
 
-                <tc-switch
-                    checked={active || undefined}
-                    label={e.templateActiveLabel}
-                    onClick={() => setActive((current) => !current)}
-                ></tc-switch>
+                    <tc-switch
+                        checked={active || undefined}
+                        label={e.templateActiveLabel}
+                        onClick={() => setActive((current) => !current)}
+                    ></tc-switch>
 
-                <div className="modal-email-template__actions">
-                    {editing && (
-                        <tc-button variant="danger" outline onClick={remove}>{e.templateDelete}</tc-button>
-                    )}
-                    <span className="modal-email-template__spacer" />
-                    <tc-button variant="secondary" outline onClick={() => closeModal(null)}>{t.modal.cancel}</tc-button>
-                    <tc-button variant="primary" disabled={!valid || saving || undefined} onClick={submit}>
-                        {e.save}
-                    </tc-button>
-                </div>
-            </tc-stack>
-        </div>
+                </tc-stack>
+            </div>
+            <SheetFooter>
+                {editing && (
+                    <tc-button variant="danger" outline onClick={remove}>{e.templateDelete}</tc-button>
+                )}
+                <span className="modal-email-template__spacer" />
+                <tc-button variant="secondary" outline onClick={() => closeModal(null)}>{t.modal.cancel}</tc-button>
+                <tc-button variant="primary" disabled={!valid || saving || undefined} onClick={submit}>
+                    {e.save}
+                </tc-button>
+            </SheetFooter>
+        </>
     )
 }
 

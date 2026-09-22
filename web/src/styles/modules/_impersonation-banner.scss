@@ -1,0 +1,10 @@
+@use '../abstracts' as *;
+
+.module-impersonation-banner {
+    display: block;
+    margin-bottom: $space-sm;
+
+    tc-button {
+        margin-left: $space-sm;
+    }
+}

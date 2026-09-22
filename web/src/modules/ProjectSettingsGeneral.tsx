@@ -129,7 +129,7 @@ const ProjectSettingsGeneral: React.FC<{ project: Project }> = ({ project }) => 
         <div className="project-settings">
             <div className="project-settings__form">
                 <tc-panel bordered className="module-project-detail__settings-panel">
-                    <tc-stack direction="column" gap="0.85rem">
+                    <tc-stack direction="vertical" gap="0.85rem">
                         <tc-form-input
                             ref={nameInput}
                             type="text"

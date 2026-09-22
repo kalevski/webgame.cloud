@@ -34,7 +34,7 @@ const LimitMeter: React.FC<LimitMeterProps> = ({ used, limit, onUpgrade, noun, r
         <span className="limit-meter">
             <tc-badge variant={variant} text={`${used}/${limit} ${noun}`}></tc-badge>
             {reached && onUpgrade && (
-                <tc-button size="small" variant="warning" onClick={onUpgrade}>
+                <tc-button size="sm" variant="warning" onClick={onUpgrade}>
                     {t.upgrade.cta}
                 </tc-button>
             )}

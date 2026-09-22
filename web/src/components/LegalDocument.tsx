@@ -22,7 +22,7 @@ const LegalDocument: React.FC<LegalDocumentProps> = ({ title, updated, children 
                 <button
                     type="button"
                     className="module-legal__back"
-                    onClick={() => navigate(isAuthenticated ? '/dashboard' : '/login')}
+                    onClick={() => navigate(isAuthenticated ? '/' : '/login')}
                 >
                     {t.common.legalBack}
                 </button>

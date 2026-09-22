@@ -143,8 +143,8 @@ const BillingPanel: React.FC = () => {
                 </div>
             </tc-section-card>
 
-            <tc-section-card title={b.plansTitle} className="module-billing__plans">
-                <tc-stack direction="column" gap="0.85rem">
+            <tc-section-card title={b.plansTitle} icon="Layers" className="module-billing__plans">
+                <tc-stack direction="vertical" gap="0.85rem">
                     {billingLoaded && plans.length === 0 ? (
                         <tc-empty-state
                             icon="credit-card"

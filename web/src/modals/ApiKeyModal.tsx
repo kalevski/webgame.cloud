@@ -5,7 +5,7 @@ import { selectedKeys, toKeyList } from 'helpers/select'
 import { useTc } from '@toolcase/web-components/react'
 import { ApiKeyIssued, PERMISSIONS, Permission } from 'types'
 import { MODAL } from './keys'
-import { useModalClose, useModalInput, useModalIsOpen } from './registry'
+import { useModalClose, useModalInput, useModalIsOpen, SheetFooter } from './registry'
 
 type ValueElement = HTMLElement & { value?: string }
 
@@ -96,30 +96,23 @@ const ApiKeyModal: React.FC = () => {
     }
 
     return (
-        <div className="modal-api-key">
+        <>
+            <div className="modal-api-key">
             {issued ? (
-                <tc-stack direction="column" gap="0.85rem">
+                <tc-stack direction="vertical" gap="0.85rem">
                     <tc-alert variant="warning">{k.tokenHint}</tc-alert>
                     <tc-panel bordered className="modal-api-key__token">
                         <code>{issued.token}</code>
                     </tc-panel>
-                    <div className="modal-api-key__actions">
-                        <tc-button variant="secondary" outline onClick={copy}>
-                            {copied ? k.copied : k.copy}
-                        </tc-button>
-                        <tc-button variant="primary" onClick={() => closeModal({ keyId: issued.key.id })}>
-                            {k.done}
-                        </tc-button>
-                    </div>
                 </tc-stack>
             ) : (
-                <tc-stack direction="column" gap="0.85rem">
+                <tc-stack direction="vertical" gap="0.85rem">
                     <tc-form-input
                         ref={nameRef}
                         type="text"
                         label={k.nameLabel}
                         placeholder={k.namePlaceholder}
-                        onInput={(event: React.FormEvent<ValueElement>) => {
+                        onInput={(event) => {
                             name.current = String((event.target as ValueElement).value ?? '')
                             setHasName(name.current.trim().length > 0)
                         }}
@@ -143,18 +136,31 @@ const ApiKeyModal: React.FC = () => {
                         <tc-date-picker ref={datePicker}></tc-date-picker>
                         <tc-helper-text>{k.expiresHint}</tc-helper-text>
                     </div>
-
-                    <div className="modal-api-key__actions">
+                </tc-stack>
+            )}
+            </div>
+            <SheetFooter>
+                {issued ? (
+                    <>
+                        <tc-button variant="secondary" outline onClick={copy}>
+                            {copied ? k.copied : k.copy}
+                        </tc-button>
+                        <tc-button variant="primary" onClick={() => closeModal({ keyId: issued.key.id })}>
+                            {k.done}
+                        </tc-button>
+                    </>
+                ) : (
+                    <>
                         <tc-button variant="secondary" outline onClick={() => closeModal(null)}>
                             {t.modal.cancel}
                         </tc-button>
                         <tc-button variant="primary" disabled={!valid || saving || undefined} onClick={submit}>
                             {k.create}
                         </tc-button>
-                    </div>
-                </tc-stack>
-            )}
-        </div>
+                    </>
+                )}
+            </SheetFooter>
+        </>
     )
 }
 

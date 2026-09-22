@@ -11,10 +11,6 @@ export const EVENT = {
     SESSION_REVOKE: 'session_revoke',
     PUSH_ENABLE: 'push_enable',
 
-    PROJECT_CREATE: 'project_create',
-    PROJECT_DELETE: 'project_delete',
-    PROJECT_EXPORT: 'project_export',
-    TASK_ADD: 'task_add',
 
     REPORT_SUBMIT: 'report_submit',
     MODERATION_RESOLVE: 'moderation_resolve',
@@ -30,4 +26,3 @@ export const EVENT = {
 
 export type AnalyticsEvent = (typeof EVENT)[keyof typeof EVENT]
 
-export type PaywallSurface = 'nudge' | 'action'

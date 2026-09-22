@@ -1,6 +1,5 @@
 import React, { useEffect } from 'react'
 import { useParams } from 'react-router'
-import { wrapInMainLayout } from 'layouts/MainLayout'
 import { usePageContext } from 'contexts/PageContext'
 import useStrings from 'hooks/useStrings'
 import AuthGuard from 'modules/AuthGuard'
@@ -35,4 +34,4 @@ const PlatformUsersPage: React.FC = () => {
     )
 }
 
-export default wrapInMainLayout(PlatformUsersPage)
+export default PlatformUsersPage

@@ -2,7 +2,9 @@ import { StateCreator } from 'zustand'
 import AccessPolicyService from 'services/AccessPolicyService'
 import { STRINGS } from 'configs/strings'
 import { AccessPolicy, LimitMap, Role, RoleBindings, RoleDraft, UserAccessOverrides, UserAccessPayload } from 'types'
+import { dropSlot, fromSlot } from './slot'
 import type { AppStore } from './index'
+import { fail } from './alerts.slice'
 
 export type AccessPolicySlice = {
     accessPolicy: AccessPolicy | null
@@ -22,6 +24,10 @@ export type AccessPolicySlice = {
     saveUserAccess: (userId: string, overrides: UserAccessOverrides) => Promise<boolean>
 }
 
+const POLICY_TTL_MS = 30_000
+
+const POLICY_SLOT = 'access-policy'
+
 export const createAccessPolicySlice: StateCreator<AppStore, [], [], AccessPolicySlice> = (set, get) => ({
     accessPolicy: null,
     accessPolicyLoading: false,
@@ -30,17 +36,13 @@ export const createAccessPolicySlice: StateCreator<AppStore, [], [], AccessPolic
     async fetchAccessPolicy() {
         set({ accessPolicyLoading: true })
         try {
-            const [accessPolicy, roles] = await Promise.all([
+            const [accessPolicy, roles] = await fromSlot(POLICY_SLOT, async () => Promise.all([
                 AccessPolicyService.getInstance().fetchPolicy(),
                 AccessPolicyService.getInstance().fetchRoles(),
-            ])
+            ]), { ttlMs: POLICY_TTL_MS })
             set({ accessPolicy, roles })
         } catch (error) {
-            get().addAlert({
-                variant: 'danger',
-                message: error instanceof Error ? error.message : STRINGS.common.loadFailed,
-                dismissible: true,
-            })
+            fail(get, error, STRINGS.common.loadFailed)
         } finally {
             set({ accessPolicyLoading: false })
         }
@@ -50,16 +52,13 @@ export const createAccessPolicySlice: StateCreator<AppStore, [], [], AccessPolic
         try {
             const service = AccessPolicyService.getInstance()
             const role = roleId ? await service.updateRole(roleId, draft) : await service.createRole(draft)
+            dropSlot(POLICY_SLOT)
             await get().fetchAccessPolicy()
             await get().refreshSession()
             get().addAlert({ variant: 'success', message: STRINGS.accessAdmin.saved, dismissible: true })
             return role
         } catch (error) {
-            get().addAlert({
-                variant: 'danger',
-                message: error instanceof Error ? error.message : STRINGS.accessAdmin.saveFailed,
-                dismissible: true,
-            })
+            fail(get, error, STRINGS.accessAdmin.saveFailed)
             return null
         }
     },
@@ -67,15 +66,12 @@ export const createAccessPolicySlice: StateCreator<AppStore, [], [], AccessPolic
     async deleteRole(roleId) {
         try {
             await AccessPolicyService.getInstance().deleteRole(roleId)
+            dropSlot(POLICY_SLOT)
             await get().fetchAccessPolicy()
             get().addAlert({ variant: 'success', message: STRINGS.accessAdmin.roleDeleted, dismissible: true })
             return true
         } catch (error) {
-            get().addAlert({
-                variant: 'danger',
-                message: error instanceof Error ? error.message : STRINGS.accessAdmin.saveFailed,
-                dismissible: true,
-            })
+            fail(get, error, STRINGS.accessAdmin.saveFailed)
             return false
         }
     },
@@ -86,11 +82,7 @@ export const createAccessPolicySlice: StateCreator<AppStore, [], [], AccessPolic
             await get().fetchUsers()
             return moved
         } catch (error) {
-            get().addAlert({
-                variant: 'danger',
-                message: error instanceof Error ? error.message : STRINGS.accessAdmin.saveFailed,
-                dismissible: true,
-            })
+            fail(get, error, STRINGS.accessAdmin.saveFailed)
             return null
         }
     },
@@ -106,11 +98,7 @@ export const createAccessPolicySlice: StateCreator<AppStore, [], [], AccessPolic
             get().addAlert({ variant: 'success', message: STRINGS.accessAdmin.saved, dismissible: true })
             return true
         } catch (error) {
-            get().addAlert({
-                variant: 'danger',
-                message: error instanceof Error ? error.message : STRINGS.accessAdmin.saveFailed,
-                dismissible: true,
-            })
+            fail(get, error, STRINGS.accessAdmin.saveFailed)
             return false
         }
     },
@@ -118,15 +106,12 @@ export const createAccessPolicySlice: StateCreator<AppStore, [], [], AccessPolic
     async saveRoleBindings(bindings) {
         try {
             await AccessPolicyService.getInstance().saveBindings(bindings)
+            dropSlot(POLICY_SLOT)
             await get().fetchAccessPolicy()
             get().addAlert({ variant: 'success', message: STRINGS.accessAdmin.saved, dismissible: true })
             return true
         } catch (error) {
-            get().addAlert({
-                variant: 'danger',
-                message: error instanceof Error ? error.message : STRINGS.accessAdmin.saveFailed,
-                dismissible: true,
-            })
+            fail(get, error, STRINGS.accessAdmin.saveFailed)
             return false
         }
     },
@@ -135,11 +120,7 @@ export const createAccessPolicySlice: StateCreator<AppStore, [], [], AccessPolic
         try {
             return await AccessPolicyService.getInstance().fetchUserAccess(userId)
         } catch (error) {
-            get().addAlert({
-                variant: 'danger',
-                message: error instanceof Error ? error.message : STRINGS.common.loadFailed,
-                dismissible: true,
-            })
+            fail(get, error, STRINGS.common.loadFailed)
             return null
         }
     },
@@ -150,11 +131,7 @@ export const createAccessPolicySlice: StateCreator<AppStore, [], [], AccessPolic
             get().addAlert({ variant: 'success', message: STRINGS.accessAdmin.saved, dismissible: true })
             return true
         } catch (error) {
-            get().addAlert({
-                variant: 'danger',
-                message: error instanceof Error ? error.message : STRINGS.accessAdmin.saveFailed,
-                dismissible: true,
-            })
+            fail(get, error, STRINGS.accessAdmin.saveFailed)
             return false
         }
     },

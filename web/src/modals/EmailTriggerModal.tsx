@@ -5,7 +5,7 @@ import { selectedKeys, toKeyList } from 'helpers/select'
 import { useTc } from '@toolcase/web-components/react'
 import { EMAIL_RECIPIENT_MODES, EmailRecipientMode } from 'types'
 import { MODAL } from './keys'
-import { useModalClose, useModalIsOpen } from './registry'
+import { useModalClose, useModalIsOpen, SheetFooter } from './registry'
 
 type ValueElement = HTMLElement & { value?: string }
 
@@ -119,71 +119,73 @@ const EmailTriggerModal: React.FC = () => {
     }
 
     return (
-        <div className="modal-email-trigger">
-            <tc-stack direction="column" gap="0.85rem">
-                <div className="modal-email-trigger__grid">
-                    <div>
-                        <tc-label>{e.triggerAction}</tc-label>
-                        <tc-extended-select
-                            ref={actionSelect}
-                            search-placeholder={t.common.search}
-                            no-results-text={t.common.noResults}
-                        ></tc-extended-select>
+        <>
+            <div className="modal-email-trigger">
+                <tc-stack direction="vertical" gap="0.85rem">
+                    <div className="modal-email-trigger__grid">
+                        <div>
+                            <tc-label>{e.triggerAction}</tc-label>
+                            <tc-extended-select
+                                ref={actionSelect}
+                                search-placeholder={t.common.search}
+                                no-results-text={t.common.noResults}
+                            ></tc-extended-select>
+                        </div>
+
+                        <div>
+                            <tc-label>{e.triggerTemplate}</tc-label>
+                            <tc-extended-select ref={templateSelect}></tc-extended-select>
+                        </div>
                     </div>
 
                     <div>
-                        <tc-label>{e.triggerTemplate}</tc-label>
-                        <tc-extended-select ref={templateSelect}></tc-extended-select>
+                        <tc-label>{e.triggerRecipient}</tc-label>
+                        <tc-extended-select ref={recipientSelect}></tc-extended-select>
                     </div>
-                </div>
 
-                <div>
-                    <tc-label>{e.triggerRecipient}</tc-label>
-                    <tc-extended-select ref={recipientSelect}></tc-extended-select>
-                </div>
+                    {recipient === 'role' && (
+                        <div>
+                            <tc-label>{e.triggerRoleLabel}</tc-label>
+                            <tc-extended-select ref={roleSelect}></tc-extended-select>
+                        </div>
+                    )}
 
-                {recipient === 'role' && (
-                    <div>
-                        <tc-label>{e.triggerRoleLabel}</tc-label>
-                        <tc-extended-select ref={roleSelect}></tc-extended-select>
-                    </div>
-                )}
+                    {recipient === 'members' && (
+                        <div>
+                            <tc-label>{e.triggerMembersLabel}</tc-label>
+                            <tc-extended-select
+                                ref={memberSelect}
+                                multiple
+                                value={toKeyList(userIds)}
+                                placeholder={t.common.selectMultiple}
+                                search-placeholder={t.common.search}
+                                no-results-text={t.common.noResults}
+                            ></tc-extended-select>
+                        </div>
+                    )}
 
-                {recipient === 'members' && (
-                    <div>
-                        <tc-label>{e.triggerMembersLabel}</tc-label>
-                        <tc-extended-select
-                            ref={memberSelect}
-                            multiple
-                            value={toKeyList(userIds)}
-                            placeholder={t.common.selectMultiple}
-                            search-placeholder={t.common.search}
-                            no-results-text={t.common.noResults}
-                        ></tc-extended-select>
-                    </div>
-                )}
+                    {recipient === 'custom' && (
+                        <tc-form-input
+                            type="text"
+                            label={e.triggerCustomEmail}
+                            help={e.emailsHint}
+                            onInput={(event) => {
+                                customEmail.current = String((event.target as ValueElement).value ?? '')
+                            }}
+                        ></tc-form-input>
+                    )}
 
-                {recipient === 'custom' && (
-                    <tc-form-input
-                        type="text"
-                        label={e.triggerCustomEmail}
-                        help={e.emailsHint}
-                        onInput={(event: React.FormEvent<ValueElement>) => {
-                            customEmail.current = String((event.target as ValueElement).value ?? '')
-                        }}
-                    ></tc-form-input>
-                )}
-
-                <div className="modal-email-trigger__actions">
-                    <tc-button variant="secondary" outline onClick={() => closeModal(null)}>
-                        {t.modal.cancel}
-                    </tc-button>
-                    <tc-button variant="primary" disabled={!valid || saving || undefined} onClick={submit}>
-                        {e.triggerAdd}
-                    </tc-button>
-                </div>
-            </tc-stack>
-        </div>
+                </tc-stack>
+            </div>
+            <SheetFooter>
+                <tc-button variant="secondary" outline onClick={() => closeModal(null)}>
+                    {t.modal.cancel}
+                </tc-button>
+                <tc-button variant="primary" disabled={!valid || saving || undefined} onClick={submit}>
+                    {e.triggerAdd}
+                </tc-button>
+            </SheetFooter>
+        </>
     )
 }
 

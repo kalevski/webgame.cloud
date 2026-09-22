@@ -3,7 +3,7 @@ import useStrings from 'hooks/useStrings'
 import { useStore } from 'state'
 import { formatBytes } from 'helpers/format'
 import { MODAL } from './keys'
-import { useModalClose, useModalInput } from './registry'
+import { useModalClose, useModalInput, SheetFooter } from './registry'
 
 export type DeleteAssetInput = {
     projectId: string
@@ -32,12 +32,15 @@ const ConfirmDeleteAssetModal: React.FC = () => {
 
             {children.length > 0 && <tc-alert variant="warning">{a.deleteChildrenWarning(children.length)}</tc-alert>}
 
-            <tc-button slot="footer" variant="danger" disabled={!asset || undefined} onClick={() => closeModal(true)}>
-                {a.delete}
-            </tc-button>
-            <tc-button slot="footer" variant="secondary" outline onClick={() => closeModal(null)}>
-                {t.modal.cancel}
-            </tc-button>
+            <SheetFooter>
+
+                <tc-button variant="danger" disabled={!asset || undefined} onClick={() => closeModal(true)}>
+                    {a.delete}
+                </tc-button>
+                <tc-button variant="secondary" outline onClick={() => closeModal(null)}>
+                    {t.modal.cancel}
+                </tc-button>
+            </SheetFooter>
         </>
     )
 }

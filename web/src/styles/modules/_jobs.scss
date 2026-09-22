@@ -18,7 +18,7 @@
         color: var(--tc-text-muted);
         background: var(--tc-surface-muted);
         border: 1px solid var(--tc-border);
-        border-radius: $radius-sm;
+        border-radius: var(--bs-border-radius);
     }
 
     &__meta {

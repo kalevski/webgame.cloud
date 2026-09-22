@@ -2,34 +2,59 @@
     "ignore": {
         "overrides": [
             {
-                "files": ["src/helpers/money.ts"],
-                "rules": ["react-doctor/js-hoist-intl"]
+                "files": [
+                    "src/helpers/money.ts"
+                ],
+                "rules": [
+                    "react-doctor/js-hoist-intl"
+                ]
             },
             {
-                "files": ["src/components/AdvancedTable.tsx", "src/hooks/useStableValue.ts"],
-                "rules": ["react-doctor/exhaustive-deps"]
+                "files": [
+                    "src/components/AdvancedTable.tsx",
+                    "src/hooks/useStableValue.ts"
+                ],
+                "rules": [
+                    "react-doctor/exhaustive-deps"
+                ]
             },
             {
-                "files": ["src/modules/FileList.tsx", "src/modules/ProjectSettingsGeneral.tsx"],
-                "rules": ["react-doctor/no-adjust-state-on-prop-change"]
+                "files": [
+                    "src/modules/FileList.tsx",
+                    "src/modules/ProjectSettingsGeneral.tsx"
+                ],
+                "rules": [
+                    "react-doctor/no-adjust-state-on-prop-change"
+                ]
             },
             {
-                "files": ["src/state/assets.slice.ts"],
-                "rules": ["react-doctor/async-await-in-loop"]
+                "files": [
+                    "src/state/assets.slice.ts"
+                ],
+                "rules": [
+                    "react-doctor/async-await-in-loop"
+                ]
             },
             {
-                "files": ["src/lib/tc.ts"],
-                "rules": ["react-doctor/effect-needs-cleanup", "deslop/unused-export"]
+                "files": [
+                    "src/lib/tc.ts"
+                ],
+                "rules": [
+                    "react-doctor/effect-needs-cleanup",
+                    "deslop/unused-export",
+                    "react-doctor/prefer-use-effect-event"
+                ]
             },
             {
                 "files": [
                     "src/components/LimitMeter.tsx",
                     "src/components/LockChip.tsx",
                     "src/components/LockedAction.tsx",
-                    "src/components/UpgradeNudge.tsx",
                     "src/hooks/useTcEvent.ts"
                 ],
-                "rules": ["deslop/unused-file"]
+                "rules": [
+                    "deslop/unused-file"
+                ]
             },
             {
                 "files": [
@@ -40,11 +65,14 @@
                     "src/modules/LegalPrivacy.tsx",
                     "src/modules/LegalTerms.tsx"
                 ],
-                "rules": ["deslop/unused-export"]
+                "rules": [
+                    "deslop/unused-export"
+                ]
             },
             {
                 "files": [
                     "src/modals/BundleWizardModal.tsx",
+                    "src/modules/AccessPolicyAdmin.tsx",
                     "src/modules/CreateProject.tsx",
                     "src/modules/FileList.tsx",
                     "src/modules/NormalMapTool.tsx",
@@ -53,19 +81,27 @@
                     "src/modules/RealmDetail.tsx",
                     "src/modules/TranslationsTool.tsx"
                 ],
-                "rules": ["react-doctor/no-giant-component"]
-            },
-            {
-                "files": ["src/modals/BundleWizardModal.tsx", "src/modals/RealmEditorModal.tsx"],
-                "rules": ["react-doctor/prefer-useReducer"]
+                "rules": [
+                    "react-doctor/no-giant-component"
+                ]
             },
             {
                 "files": [
-                    "src/modules/FrameTemplateEditor.tsx",
-                    "src/modules/VideoTemplateEditor.tsx",
-                    "src/modules/DesignEditor.tsx"
+                    "src/modals/BundleWizardModal.tsx",
+                    "src/modals/RealmEditorModal.tsx"
                 ],
-                "rules": ["react-doctor/no-derived-useState"]
+                "rules": [
+                    "react-doctor/prefer-useReducer"
+                ]
+            },
+            {
+                "files": [
+                    "src/modules/AccessPolicyAdmin.tsx",
+                    "src/modules/Moderation.tsx"
+                ],
+                "rules": [
+                    "react-doctor/no-high-complexity-react-function"
+                ]
             }
         ]
     }

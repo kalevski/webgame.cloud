@@ -5,12 +5,13 @@ import ConfirmImpersonateModal from './ConfirmImpersonateModal'
 import CreateUserModal from './CreateUserModal'
 import CreateServiceAccountModal from './CreateServiceAccountModal'
 import CreateTicketModal from './CreateTicketModal'
-import PickTemplateModal from './PickTemplateModal'
 import FiltersModal from './FiltersModal'
 import ManageAccessModal from './ManageAccessModal'
 import ReportModal from './ReportModal'
 import UpgradeModal from './UpgradeModal'
 import ResolveReportModal from './ResolveReportModal'
+import RoleApplicationModal from './RoleApplicationModal'
+import ReviewRoleApplicationModal from './ReviewRoleApplicationModal'
 import ConfirmDeleteProjectModal from './ConfirmDeleteProjectModal'
 import ArchiveProjectModal from './ArchiveProjectModal'
 import TransferProjectModal from './TransferProjectModal'
@@ -41,7 +42,7 @@ import AssetSourceModal from './AssetSourceModal'
 import SigningPublicKeyModal from './SigningPublicKeyModal'
 import ConfirmRotateSigningKeyModal from './ConfirmRotateSigningKeyModal'
 import { MODAL } from './keys'
-import { ModalWindow } from './registry'
+import { SheetWindow } from './registry'
 
 export { MODAL } from './keys'
 export { ModalContext, useModalOpen, useModalClose, useModalInput } from './registry'
@@ -50,141 +51,140 @@ export const ModalRender: React.FC = () => {
     const { t } = useStrings()
     return (
         <>
-            <ModalWindow modalKey={MODAL.DELETE_ACCOUNT} title={t.modal.deleteAccountTitle}>
+            <SheetWindow modalKey={MODAL.DELETE_ACCOUNT} title={t.modal.deleteAccountTitle}>
                 <ConfirmDeleteAccountModal />
-            </ModalWindow>
-            <ModalWindow modalKey={MODAL.IMPERSONATE_USER} title={t.modal.impersonateTitle}>
+            </SheetWindow>
+            <SheetWindow modalKey={MODAL.IMPERSONATE_USER} title={t.modal.impersonateTitle}>
                 <ConfirmImpersonateModal />
-            </ModalWindow>
-            <ModalWindow modalKey={MODAL.CREATE_USER} title={t.modal.createUserTitle}>
+            </SheetWindow>
+            <SheetWindow modalKey={MODAL.CREATE_USER} title={t.modal.createUserTitle}>
                 <CreateUserModal />
-            </ModalWindow>
-            <ModalWindow modalKey={MODAL.CREATE_SERVICE_ACCOUNT} title={t.modal.createServiceAccountTitle}>
+            </SheetWindow>
+            <SheetWindow modalKey={MODAL.CREATE_SERVICE_ACCOUNT} title={t.modal.createServiceAccountTitle}>
                 <CreateServiceAccountModal />
-            </ModalWindow>
-            <ModalWindow modalKey={MODAL.CREATE_TICKET} title={t.modal.createTicketTitle}>
+            </SheetWindow>
+            <SheetWindow modalKey={MODAL.CREATE_TICKET} title={t.modal.createTicketTitle}>
                 <CreateTicketModal />
-            </ModalWindow>
-            <ModalWindow modalKey={MODAL.PICK_TEMPLATE} title={t.modal.pickTemplateTitle}>
-                <PickTemplateModal />
-            </ModalWindow>
-            <ModalWindow modalKey={MODAL.MANAGE_ACCESS} title={t.modal.manageAccessTitle}>
+            </SheetWindow>
+            <SheetWindow modalKey={MODAL.MANAGE_ACCESS} title={t.modal.manageAccessTitle}>
                 <ManageAccessModal />
-            </ModalWindow>
-            <ModalWindow modalKey={MODAL.FILTERS} title={t.modal.filtersTitle}>
+            </SheetWindow>
+            <SheetWindow modalKey={MODAL.FILTERS} title={t.modal.filtersTitle}>
                 <FiltersModal />
-            </ModalWindow>
-            <ModalWindow modalKey={MODAL.UPGRADE} title={t.modal.upgradeTitle}>
+            </SheetWindow>
+            <SheetWindow modalKey={MODAL.UPGRADE} title={t.modal.upgradeTitle}>
                 <UpgradeModal />
-            </ModalWindow>
-            <ModalWindow modalKey={MODAL.REPORT_CONTENT} title={t.modal.reportTitle}>
+            </SheetWindow>
+            <SheetWindow modalKey={MODAL.REPORT_CONTENT} title={t.modal.reportTitle}>
                 <ReportModal />
-            </ModalWindow>
-            <ModalWindow modalKey={MODAL.DELETE_ASSET} title={t.modal.deleteAssetTitle}>
+            </SheetWindow>
+            <SheetWindow modalKey={MODAL.DELETE_ASSET} title={t.modal.deleteAssetTitle}>
                 <ConfirmDeleteAssetModal />
-            </ModalWindow>
-            <ModalWindow modalKey={MODAL.ASSET_CHILDREN} title={t.modal.assetChildrenTitle} scrollable>
+            </SheetWindow>
+            <SheetWindow modalKey={MODAL.ASSET_CHILDREN} title={t.modal.assetChildrenTitle}>
                 <AssetChildrenModal />
-            </ModalWindow>
-            <ModalWindow modalKey={MODAL.RESOLVE_REPORT} title={t.modal.resolveReportTitle}>
+            </SheetWindow>
+            <SheetWindow modalKey={MODAL.RESOLVE_REPORT} title={t.modal.resolveReportTitle}>
                 <ResolveReportModal />
-            </ModalWindow>
-            <ModalWindow modalKey={MODAL.CONFIRM_DELETE_PROJECT} title={t.modal.deleteProjectTitle}>
+            </SheetWindow>
+            <SheetWindow modalKey={MODAL.ROLE_APPLICATION} title={t.modal.roleApplicationTitle}>
+                <RoleApplicationModal />
+            </SheetWindow>
+            <SheetWindow modalKey={MODAL.REVIEW_ROLE_APPLICATION} title={t.modal.reviewRoleApplicationTitle}>
+                <ReviewRoleApplicationModal />
+            </SheetWindow>
+            <SheetWindow modalKey={MODAL.CONFIRM_DELETE_PROJECT} title={t.modal.deleteProjectTitle}>
                 <ConfirmDeleteProjectModal />
-            </ModalWindow>
-            <ModalWindow modalKey={MODAL.ARCHIVE_PROJECT} title={t.projects.archive}>
+            </SheetWindow>
+            <SheetWindow modalKey={MODAL.ARCHIVE_PROJECT} title={t.projects.archive}>
                 <ArchiveProjectModal />
-            </ModalWindow>
-            <ModalWindow modalKey={MODAL.TRANSFER_PROJECT} title={t.projects.transfer}>
+            </SheetWindow>
+            <SheetWindow modalKey={MODAL.TRANSFER_PROJECT} title={t.projects.transfer}>
                 <TransferProjectModal />
-            </ModalWindow>
-            <ModalWindow modalKey={MODAL.LEAVE_PROJECT} title={t.projects.leave}>
+            </SheetWindow>
+            <SheetWindow modalKey={MODAL.LEAVE_PROJECT} title={t.projects.leave}>
                 <LeaveProjectModal />
-            </ModalWindow>
-            <ModalWindow modalKey={MODAL.INVITE_MEMBER} title={t.members.inviteTitle}>
+            </SheetWindow>
+            <SheetWindow modalKey={MODAL.INVITE_MEMBER} title={t.members.inviteTitle}>
                 <InviteMemberModal />
-            </ModalWindow>
-            <ModalWindow modalKey={MODAL.EDIT_MEMBER_PERMISSIONS} title={t.members.editPermissions}>
+            </SheetWindow>
+            <SheetWindow modalKey={MODAL.EDIT_MEMBER_PERMISSIONS} title={t.members.editPermissions}>
                 <EditMemberPermissionsModal />
-            </ModalWindow>
-            <ModalWindow modalKey={MODAL.REMOVE_MEMBER} title={t.members.remove}>
+            </SheetWindow>
+            <SheetWindow modalKey={MODAL.REMOVE_MEMBER} title={t.members.remove}>
                 <RemoveMemberModal />
-            </ModalWindow>
-            <ModalWindow
+            </SheetWindow>
+            <SheetWindow
                 modalKey={MODAL.REALM_EDITOR}
                 title={(input) => (input ? t.realms.edit : t.realms.addTitle)}
-                size="lg"
-                scrollable
+                presentation="full"
             >
                 <RealmEditorModal />
-            </ModalWindow>
-            <ModalWindow modalKey={MODAL.REALM_TOKEN} title={t.realms.rotateTitle}>
+            </SheetWindow>
+            <SheetWindow modalKey={MODAL.REALM_TOKEN} title={t.realms.rotateTitle}>
                 <RealmTokenModal />
-            </ModalWindow>
-            <ModalWindow modalKey={MODAL.DELETE_REALM} title={t.realms.deleteTitle}>
+            </SheetWindow>
+            <SheetWindow modalKey={MODAL.DELETE_REALM} title={t.realms.deleteTitle}>
                 <ConfirmDeleteRealmModal />
-            </ModalWindow>
-            <ModalWindow
+            </SheetWindow>
+            <SheetWindow
                 modalKey={MODAL.REALM_REGION}
                 title={(input) => (input ? t.realms.regionEditTitle : t.realms.regionAddTitle)}
             >
                 <RealmRegionModal />
-            </ModalWindow>
-            <ModalWindow modalKey={MODAL.DELETE_REALM_REGION} title={t.realms.regionDelete}>
+            </SheetWindow>
+            <SheetWindow modalKey={MODAL.DELETE_REALM_REGION} title={t.realms.regionDelete}>
                 <ConfirmDeleteRealmRegionModal />
-            </ModalWindow>
-            <ModalWindow modalKey={MODAL.MOVE_PROJECT} title={t.realms.moveTitle}>
+            </SheetWindow>
+            <SheetWindow modalKey={MODAL.MOVE_PROJECT} title={t.realms.moveTitle}>
                 <MoveProjectModal />
-            </ModalWindow>
-            <ModalWindow
+            </SheetWindow>
+            <SheetWindow
                 modalKey={MODAL.BUNDLE_WIZARD}
                 title={(input) => ((input as { bundle?: unknown } | undefined)?.bundle ? t.bundles.edit : t.bundles.create)}
-                size="xl"
-                className="modal-wide"
-                scrollable
-                staticBackdrop
-            >
+                presentation="full"
+                            >
                 <BundleWizardModal />
-            </ModalWindow>
-            <ModalWindow modalKey={MODAL.CREATE_CONFIG} title={t.configs.createConfig}>
+            </SheetWindow>
+            <SheetWindow modalKey={MODAL.CREATE_CONFIG} title={t.configs.createConfig}>
                 <CreateConfigModal />
-            </ModalWindow>
-            <ModalWindow modalKey={MODAL.CONTACT_SALES} title={t.modal.contactSalesTitle}>
+            </SheetWindow>
+            <SheetWindow modalKey={MODAL.CONTACT_SALES} title={t.modal.contactSalesTitle}>
                 <ContactSalesModal />
-            </ModalWindow>
-            <ModalWindow modalKey={MODAL.PLAN_EDITOR} title={t.modal.planEditorTitle} size="lg">
+            </SheetWindow>
+            <SheetWindow modalKey={MODAL.PLAN_EDITOR} title={t.modal.planEditorTitle} presentation="full">
                 <PlanModal />
-            </ModalWindow>
-            <ModalWindow modalKey={MODAL.ENQUIRY_TRAIL} title={t.enquiries.trailTitle}>
+            </SheetWindow>
+            <SheetWindow modalKey={MODAL.ENQUIRY_TRAIL} title={t.enquiries.trailTitle}>
                 <EnquiryTrailModal />
-            </ModalWindow>
-            <ModalWindow modalKey={MODAL.ENQUIRY_ACTION} title={t.enquiries.actionTitle}>
+            </SheetWindow>
+            <SheetWindow modalKey={MODAL.ENQUIRY_ACTION} title={t.enquiries.actionTitle}>
                 <EnquiryActionModal />
-            </ModalWindow>
-            <ModalWindow modalKey={MODAL.EMAIL_TEMPLATE} title={t.email.templatesTitle} size="lg">
+            </SheetWindow>
+            <SheetWindow modalKey={MODAL.EMAIL_TEMPLATE} title={t.email.templatesTitle} presentation="full">
                 <EmailTemplateModal />
-            </ModalWindow>
-            <ModalWindow modalKey={MODAL.EMAIL_COMPOSE} title={t.email.composeTitle} size="lg">
+            </SheetWindow>
+            <SheetWindow modalKey={MODAL.EMAIL_COMPOSE} title={t.email.composeTitle} presentation="full">
                 <EmailComposeModal />
-            </ModalWindow>
-            <ModalWindow modalKey={MODAL.EMAIL_TRIGGER} title={t.email.triggerAdd}>
+            </SheetWindow>
+            <SheetWindow modalKey={MODAL.EMAIL_TRIGGER} title={t.email.triggerAdd}>
                 <EmailTriggerModal />
-            </ModalWindow>
-            <ModalWindow modalKey={MODAL.API_KEY} title={t.modal.apiKeyTitle}>
+            </SheetWindow>
+            <SheetWindow modalKey={MODAL.API_KEY} title={t.modal.apiKeyTitle}>
                 <ApiKeyModal />
-            </ModalWindow>
-            <ModalWindow modalKey={MODAL.WEBHOOK} title={t.modal.webhookTitle} size="lg">
+            </SheetWindow>
+            <SheetWindow modalKey={MODAL.WEBHOOK} title={t.modal.webhookTitle} presentation="full">
                 <WebhookModal />
-            </ModalWindow>
-            <ModalWindow modalKey={MODAL.ASSET_SOURCE} title={t.modal.assetSourceTitle}>
+            </SheetWindow>
+            <SheetWindow modalKey={MODAL.ASSET_SOURCE} title={t.modal.assetSourceTitle}>
                 <AssetSourceModal />
-            </ModalWindow>
-            <ModalWindow modalKey={MODAL.SIGNING_PUBLIC_KEY} title={t.modal.signingPublicKeyTitle} size="lg">
+            </SheetWindow>
+            <SheetWindow modalKey={MODAL.SIGNING_PUBLIC_KEY} title={t.modal.signingPublicKeyTitle} presentation="full">
                 <SigningPublicKeyModal />
-            </ModalWindow>
-            <ModalWindow modalKey={MODAL.CONFIRM_ROTATE_SIGNING_KEY} title={t.modal.rotateSigningKeyTitle}>
+            </SheetWindow>
+            <SheetWindow modalKey={MODAL.CONFIRM_ROTATE_SIGNING_KEY} title={t.modal.rotateSigningKeyTitle}>
                 <ConfirmRotateSigningKeyModal />
-            </ModalWindow>
+            </SheetWindow>
         </>
     )
 }

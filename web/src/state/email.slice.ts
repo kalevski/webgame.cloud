@@ -16,13 +16,7 @@ import {
     EmailTriggerDraft,
 } from 'types'
 import type { AppStore } from './index'
-
-const fail = (get: () => AppStore, error: unknown, fallback: string) =>
-    get().addAlert({
-        variant: 'danger',
-        message: error instanceof Error ? error.message : fallback,
-        dismissible: true,
-    })
+import { fail } from './alerts.slice'
 
 const NO_STATS: EmailStats = { queued: 0, sending: 0, sent: 0, failed: 0, canceled: 0 }
 

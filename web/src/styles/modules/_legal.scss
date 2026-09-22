@@ -1,3 +1,5 @@
+@use '../abstracts' as *;
+
 .module-legal {
     max-width: 760px;
     margin: 0 auto;
@@ -27,7 +29,7 @@
 
     &__title {
         margin: 0 0 0.25rem;
-        font-family: 'Playfair Display', Georgia, serif;
+        font-family: $font-display;
         font-size: 2rem;
         color: #2c2620;
     }
@@ -41,7 +43,7 @@
     &__doc {
         h2 {
             margin: 1.75rem 0 0.5rem;
-            font-family: 'Playfair Display', Georgia, serif;
+            font-family: $font-display;
             font-size: 1.2rem;
             color: #2c2620;
         }

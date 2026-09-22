@@ -59,13 +59,6 @@
     justify-content: flex-start;
 }
 
-.module-plans__actions {
-    display: flex;
-    gap: $space-sm;
-    align-items: center;
-    flex-wrap: wrap;
-}
-
 .module-invoices {
     display: block;
 }
@@ -91,14 +84,6 @@
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr));
     gap: $space-md;
-}
-
-.modal-plan__actions,
-.modal-contact-sales__actions {
-    display: flex;
-    gap: $space-sm;
-    align-items: center;
-    flex-wrap: wrap;
 }
 
 .modal-plan__spacer {
@@ -173,20 +158,10 @@
     gap: $space-sm;
 }
 
-.modal-enquiry-action__actions {
-    display: flex;
-    gap: $space-sm;
-    justify-content: flex-end;
-}
-
 .module-landing__plans {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
     gap: $space-md;
-}
-
-.module-billing-page__header {
-    margin-bottom: $space-lg;
 }
 
 .module-moderation__audit {
@@ -201,16 +176,8 @@
     flex-wrap: wrap;
 }
 
-.module-billing-page__content {
-    margin-top: $space-lg;
-}
-
 .module-my-invoices {
     display: block;
-}
-
-.module-email__content {
-    margin-top: $space-lg;
 }
 
 .module-email-settings__grid,
@@ -219,16 +186,6 @@
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
     gap: $space-md;
-}
-
-.module-email-settings__actions,
-.modal-email-compose__actions,
-.modal-email-trigger__actions,
-.modal-email-template__actions {
-    display: flex;
-    gap: $space-sm;
-    align-items: center;
-    flex-wrap: wrap;
 }
 
 .modal-email-template__spacer {
@@ -252,14 +209,6 @@
 
 .module-webhooks__deliveries {
     margin-top: $space-lg;
-}
-
-.modal-api-key__actions,
-.modal-webhook__actions {
-    display: flex;
-    gap: $space-sm;
-    justify-content: flex-end;
-    flex-wrap: wrap;
 }
 
 .modal-api-key__token {

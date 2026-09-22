@@ -13,6 +13,7 @@ const PlansAdmin: React.FC = () => {
     const adminPlans = useStore((state) => state.adminPlans)
     const adminPlansLoaded = useStore((state) => state.adminPlansLoaded)
     const fetchAdminPlans = useStore((state) => state.fetchAdminPlans)
+    const roles = useStore((state) => state.roles)
 
     const canWrite = useCan('billing.plan.write')
 
@@ -24,6 +25,15 @@ const PlansAdmin: React.FC = () => {
 
     const modeLabel = (mode: PlanMode): string => (mode === 'manual' ? p.modeManual : p.modeManaged)
 
+    const visibilityLabel = (plan: Plan): string =>
+        plan.visibleRoleIds.length === 0
+            ? ''
+            : p.visibilitySummary(
+                plan.visibleRoleIds
+                    .map((roleId) => roles.find((role) => role.id === roleId)?.name ?? roleId)
+                    .join(', ')
+            )
+
     const readOnlyList = useTc<HTMLElement>({
         items: adminPlans.map((plan) => ({
             id: plan.id,
@@ -31,6 +41,7 @@ const PlansAdmin: React.FC = () => {
             secondary: [
                 `${formatMoney(plan.priceCents, plan.currency)} / ${plan.interval === 'year' ? p.intervalYear : p.intervalMonth}`,
                 modeLabel(plan.mode),
+                visibilityLabel(plan),
                 plan.active ? '' : p.unpublished,
             ].filter(Boolean).join(' · '),
         })),
@@ -43,6 +54,7 @@ const PlansAdmin: React.FC = () => {
             description: [
                 `${formatMoney(plan.priceCents, plan.currency)} / ${plan.interval === 'year' ? p.intervalYear : p.intervalMonth}`,
                 modeLabel(plan.mode),
+                visibilityLabel(plan),
                 plan.active ? '' : p.unpublished,
             ].filter(Boolean).join(' · '),
             ...(canWrite ? { label: p.edit, variant: 'secondary', icon: 'Pencil' } : {}),
@@ -56,7 +68,7 @@ const PlansAdmin: React.FC = () => {
     return (
         <div className="module module-plans">
             <tc-section-card title={p.title}>
-                <tc-stack direction="column" gap="0.85rem">
+                <tc-stack direction="vertical" gap="0.85rem">
                     <tc-text variant="muted">{p.intro}</tc-text>
 
                     {adminPlansLoaded && adminPlans.length === 0 && (

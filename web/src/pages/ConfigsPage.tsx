@@ -1,5 +1,4 @@
 import React, { useEffect, useState } from 'react'
-import { wrapInMainLayout } from 'layouts/MainLayout'
 import { usePageContext } from 'contexts/PageContext'
 import useStrings from 'hooks/useStrings'
 import AuthGuard from 'modules/AuthGuard'
@@ -81,4 +80,4 @@ const ConfigsPage: React.FC = () => {
     )
 }
 
-export default wrapInMainLayout(ConfigsPage)
+export default ConfigsPage

@@ -75,14 +75,8 @@ const CommandPalette: React.FC = () => {
         return () => window.removeEventListener('keydown', onKey)
     }, [])
 
-    useEffect(() => {
-        if (open) void fetchProjects()
-    }, [open, fetchProjects])
-
     const items = useMemo<PaletteItem[]>(() => {
         const entries: PaletteItem[] = [
-            { id: 'nav:/dashboard', label: c.openDashboard, group: c.groupGo, icon: 'layout-dashboard' },
-            { id: 'nav:/projects', label: c.openProjects, group: c.groupGo, icon: 'folder' },
             { id: 'nav:/profile', label: c.openProfile, group: c.groupGo, icon: 'user' },
         ]
 

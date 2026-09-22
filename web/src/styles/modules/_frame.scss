@@ -1,0 +1,86 @@
+@use '../abstracts' as *;
+
+$dock-height: 62px;
+
+tc-mobile-shell.app-frame {
+    --m-h-dock: calc(#{$dock-height} + var(--tc-safe-bottom, 0px));
+    --bs-mobile-shell-header-bg: var(--tc-surface, #fff);
+    --bs-mobile-shell-dock-bg: var(--tc-surface, #fff);
+    --bs-mobile-shell-action-bg: var(--tc-surface, #fff);
+    --bs-mobile-shell-edge-bg: var(--tc-surface, #fff);
+    --bs-mobile-shell-frame-line: transparent;
+    --bs-mobile-shell-header-shadow: none;
+    --bs-mobile-shell-max-width: none;
+    --bs-mobile-shell-max-width-desktop: none;
+    width: 100%;
+    max-width: none;
+}
+
+.app-frame {
+    --app-frame-inset: #{$gutter};
+
+    @include up($bp-lg) {
+        --app-frame-inset: max(#{$gutter-wide}, calc((100% - #{$desktop-content-max}) / 2));
+    }
+
+    &__skip {
+        position: absolute;
+        left: $space-sm;
+        top: -100%;
+        z-index: 1080;
+        padding: $space-xs $space-sm;
+        background: var(--bs-primary, #{$brand});
+        color: #fff;
+        text-decoration: none;
+
+        &:focus-visible {
+            top: $space-sm;
+        }
+    }
+
+    &__strips:empty,
+    &__tabs:empty,
+    &__overlay-host:empty {
+        display: none;
+    }
+
+    &__pane {
+        background: var(--tc-bg, #fbfbfc);
+    }
+
+    &__content {
+        padding: $space-lg var(--app-frame-inset, #{$gutter});
+        padding-bottom: calc(#{$space-xl} + var(--tc-action-bar-clearance, 0px));
+        min-width: 0;
+    }
+
+    tc-fab {
+        --bs-fab-inline: var(--app-frame-inset, #{$gutter});
+        --bs-fab-offset: calc(var(--m-h-dock) + 24px);
+
+        @include up($bp-lg) {
+            --bs-fab-offset: 32px;
+        }
+    }
+
+    &:has(> [slot='dock']) tc-fab {
+        --bs-fab-inline: calc(var(--app-frame-inset, #{$gutter}) - var(--bs-mobile-shell-rail-width, 0px));
+    }
+}
+
+.app-bar {
+    --bs-app-bar-heading-color: var(--tc-text, #18181b);
+    --bs-app-bar-subheading-color: var(--tc-text-muted, #71717a);
+    --bs-app-bar-desktop-inline: var(--app-frame-inset, #{$gutter});
+
+    @include up($bp-lg) {
+        padding-top: $space-lg;
+    }
+
+    &__actions {
+        display: flex;
+        align-items: center;
+        gap: 2px;
+        flex-shrink: 0;
+    }
+}

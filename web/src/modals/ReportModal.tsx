@@ -5,7 +5,7 @@ import { useTc } from '@toolcase/web-components/react'
 import { withinMaxLen } from 'helpers/validation'
 import { ReportTargetKind } from 'types'
 import { MODAL } from './keys'
-import { useModalClose, useModalInput, useModalIsOpen } from './registry'
+import { useModalClose, useModalInput, useModalIsOpen, SheetFooter } from './registry'
 
 type ValueElement = HTMLElement & { value?: string }
 
@@ -58,8 +58,8 @@ const ReportModal: React.FC = () => {
 
     return (
         <>
-            <tc-stack direction="column" gap="0.6rem">
-                {input?.targetLabel && <tc-text as="strong">{input.targetLabel}</tc-text>}
+            <tc-stack direction="vertical" gap="0.6rem">
+                {input?.targetLabel && <strong>{input.targetLabel}</strong>}
                 <tc-checkbox-group
                     ref={categoryGroup}
                     label={m.reportCategoriesLabel}
@@ -70,17 +70,19 @@ const ReportModal: React.FC = () => {
                     label={m.reportReasonLabel}
                     placeholder={m.reportReasonPlaceholder}
                     rows="3"
-                    onInput={(event: React.FormEvent<ValueElement>) => {
+                    onInput={(event) => {
                         reason.current = String((event.target as ValueElement).value ?? '')
                     }}
                 ></tc-textarea>
             </tc-stack>
-            <tc-button slot="footer" variant="danger" disabled={!input || busy || undefined} onClick={handleSubmit}>
-                {m.reportSubmit}
-            </tc-button>
-            <tc-button slot="footer" variant="secondary" outline onClick={() => closeModal(null)}>
-                {t.modal.cancel}
-            </tc-button>
+            <SheetFooter>
+                <tc-button variant="danger" disabled={!input || busy || undefined} onClick={handleSubmit}>
+                    {m.reportSubmit}
+                </tc-button>
+                <tc-button variant="secondary" outline onClick={() => closeModal(null)}>
+                    {t.modal.cancel}
+                </tc-button>
+            </SheetFooter>
         </>
     )
 }

@@ -1,11 +1,18 @@
 import React, { useEffect, useMemo } from 'react'
 import { useStore } from 'state'
 import useStrings from 'hooks/useStrings'
-import { useTc } from '@toolcase/web-components/react'
 import { EVENT } from 'configs/analytics'
 import { trackEvent } from 'helpers/analytics'
 import { UserSession } from 'types'
 import { formatDateTime } from 'helpers/dates'
+
+const MOBILE_OS = ['ios', 'android', 'ipados']
+
+const glyphFor = (session: UserSession): string => {
+    if (session.os === 'Unknown' || session.browser === 'Unknown') return 'Terminal'
+    if (MOBILE_OS.some((os) => session.os.toLowerCase().includes(os))) return 'Smartphone'
+    return 'Monitor'
+}
 
 const DeviceSessions: React.FC = () => {
     const { t } = useStrings()
@@ -24,63 +31,60 @@ const DeviceSessions: React.FC = () => {
             ? d.unknownDevice
             : d.deviceLabel(session.browser, session.os)
 
-    const current = useMemo(() => sessions.find((session) => session.current), [sessions])
-    const others = useMemo(() => sessions.filter((session) => !session.current), [sessions])
+    const ordered = useMemo(
+        () => [...sessions].sort((a, b) => Number(b.current) - Number(a.current)),
+        [sessions]
+    )
 
-    const currentBadges = useTc<HTMLElement>({
-        badges: current ? [{ label: d.currentBadge, variant: 'success' }] : [],
-    })
-
-    const currentCard = useTc<HTMLElement>({
-        meta: current
-            ? [
-                  { label: d.lastSeenLabel, value: formatDateTime(current.lastSeenAt) },
-                  { label: d.signedInLabel, value: formatDateTime(current.createdAt) },
-                  ...(current.ip ? [{ label: d.ipLabel, value: current.ip }] : []),
-              ]
-            : [],
-    })
-
-    const otherList = useTc<HTMLElement>({
-        actions: others.map((session) => ({
-            key: session.id,
-            title: label(session),
-            description: [
-                d.lastSeen(formatDateTime(session.lastSeenAt)),
-                session.ip ? d.ip(session.ip) : '',
-            ].filter(Boolean).join(' · '),
-            label: d.signOut,
-            variant: 'danger',
-            icon: 'LogOut',
-        })),
-        onActionClick: (key: string) => {
-            trackEvent(EVENT.SESSION_REVOKE, {})
-            void revokeSession(key)
-        },
-    })
+    const alone = sessionsLoaded && ordered.length <= 1
 
     return (
         <div className="module-devices">
-            <tc-text variant="muted">{d.intro}</tc-text>
+            <tc-section-card title={d.title} className="module-devices__card">
+                <tc-text variant="muted" className="module-devices__intro">{d.intro}</tc-text>
 
-            {current && (
-                <tc-section-card title={d.currentTitle} className="module-devices__current">
-                    <tc-stack direction="column" gap="0.85rem">
-                        <tc-entity-profile-card ref={currentCard} title={label(current)}>
-                            <tc-badge-row slot="chips" ref={currentBadges} size="sm"></tc-badge-row>
-                        </tc-entity-profile-card>
-                    </tc-stack>
-                </tc-section-card>
-            )}
+                <ul className="module-devices__list">
+                    {ordered.map((session) => (
+                        <li
+                            key={session.id}
+                            className={session.current ? 'module-devices__row module-devices__row--current' : 'module-devices__row'}
+                        >
+                            <tc-icon className="module-devices__glyph" name={glyphFor(session)} size="18" decorative></tc-icon>
 
-            <tc-section-card title={d.otherTitle} className="module-devices__others">
-                <tc-stack direction="column" gap="0.85rem">
-                    {others.length > 0
-                        ? <tc-action-row-list ref={otherList} outline trailing-icon="none"></tc-action-row-list>
-                        : sessionsLoaded && (
-                            <tc-empty-state icon="monitor-smartphone" heading={d.emptyTitle} description={d.emptyMessage}></tc-empty-state>
-                        )}
-                </tc-stack>
+                            <span className="module-devices__who">
+                                <span className="module-devices__name">{label(session)}</span>
+                                <span className="module-devices__origin">
+                                    {session.ip || d.signedIn(formatDateTime(session.createdAt))}
+                                </span>
+                            </span>
+
+                            <span className="module-devices__when">
+                                {session.current ? d.activeNow : formatDateTime(session.lastSeenAt)}
+                            </span>
+
+                            <span className="module-devices__act">
+                                {session.current ? (
+                                    <tc-badge variant="light" size="xs">{d.currentBadge}</tc-badge>
+                                ) : (
+                                    <tc-button
+                                        variant="danger"
+                                        outline
+                                        size="sm"
+                                        title={d.signOutOf(label(session))}
+                                        onClick={() => {
+                                            trackEvent(EVENT.SESSION_REVOKE, {})
+                                            void revokeSession(session.id)
+                                        }}
+                                    >
+                                        {d.signOut}
+                                    </tc-button>
+                                )}
+                            </span>
+                        </li>
+                    ))}
+                </ul>
+
+                {alone && <tc-text variant="muted" className="module-devices__alone">{d.onlyThisDevice}</tc-text>}
             </tc-section-card>
         </div>
     )

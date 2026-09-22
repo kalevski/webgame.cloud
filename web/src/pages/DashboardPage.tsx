@@ -1,6 +1,5 @@
 import React, { useEffect } from 'react'
 import { Navigate } from 'react-router'
-import { wrapInMainLayout } from 'layouts/MainLayout'
 import { usePageContext } from 'contexts/PageContext'
 import useStrings from 'hooks/useStrings'
 import useAuth from 'hooks/useAuth'
@@ -31,4 +30,4 @@ const DashboardPage: React.FC = () => {
     )
 }
 
-export default wrapInMainLayout(DashboardPage)
+export default DashboardPage

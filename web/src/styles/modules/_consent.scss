@@ -86,7 +86,7 @@
         margin: $space-4 0 $space-1;
         max-width: 24ch;
 
-        font-family: 'Playfair Display', Georgia, serif;
+        font-family: $font-display;
         font-size: clamp(1.3rem, 2.6vw, 1.625rem);
         font-weight: 700;
         line-height: 1.1;
@@ -221,10 +221,6 @@
 
         .form-check {
             margin-bottom: 0;
-        }
-
-        .tc-field-message {
-            display: none;
         }
 
         .form-check-label {

@@ -83,7 +83,7 @@ const TicketQueue: React.FC = () => {
     return (
         <div className="module module-ticket-queue" role="presentation" onClick={onClick}>
             <tc-section-card title={k.tabQueue} icon="LifeBuoy">
-                <tc-stack direction="column" gap="0.85rem">
+                <tc-stack direction="vertical" gap="0.85rem">
                     <tc-text variant="muted">{k.queueIntro}</tc-text>
 
                     {counts && (

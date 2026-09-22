@@ -13,7 +13,7 @@ const ProjectOnboarding: React.FC = () => {
     return (
         <div className="module module-project-onboarding">
             <tc-section-card title={p.onboardingTitle}>
-                <tc-stack direction="column" gap="0.85rem">
+                <tc-stack direction="vertical" gap="0.85rem">
                     <tc-text variant="muted">{p.onboardingIntro}</tc-text>
                     {canCreate ? (
                         <tc-button variant="primary" onClick={() => navigate('/projects/new')}>

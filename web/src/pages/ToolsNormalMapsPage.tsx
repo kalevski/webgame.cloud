@@ -1,5 +1,4 @@
 import React, { useEffect } from 'react'
-import { wrapInMainLayout } from 'layouts/MainLayout'
 import { usePageContext } from 'contexts/PageContext'
 import useStrings from 'hooks/useStrings'
 import AuthGuard from 'modules/AuthGuard'
@@ -30,4 +29,4 @@ const ToolsNormalMapsPage: React.FC = () => {
     )
 }
 
-export default wrapInMainLayout(ToolsNormalMapsPage)
+export default ToolsNormalMapsPage

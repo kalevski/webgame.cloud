@@ -195,6 +195,7 @@ const Landing: React.FC = () => {
 
     const plans = publicConstants?.features.billing ? publicConstants.plans : []
 
+    const entryPath = isAuthenticated ? '/profile' : '/login'
     const entryLabel = isAuthenticated ? l.ctaDashboard : l.ctaPrimary
     const enterApp = () => {
         if (isAuthenticated) window.location.assign('/dashboard')

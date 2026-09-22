@@ -1,4 +1,5 @@
 import { apiFetch } from 'helpers/api'
+import { queryString } from 'helpers/query'
 import {
     AccountUsage,
     CheckoutIntent,
@@ -81,21 +82,11 @@ class BillingService {
     }
 
     async listMyInvoices(filters: InvoiceFilters): Promise<{ invoices: Invoice[]; total: number }> {
-        const query = new URLSearchParams()
-        for (const [key, value] of Object.entries(filters)) {
-            if (value !== undefined && value !== null && value !== '') query.set(key, String(value))
-        }
-        const suffix = query.toString()
-        return apiFetch<{ invoices: Invoice[]; total: number }>(`/api/billing/my/invoices${suffix ? `?${suffix}` : ''}`)
+        return apiFetch<{ invoices: Invoice[]; total: number }>(`/api/billing/my/invoices${queryString(filters)}`)
     }
 
     async listInvoices(filters: InvoiceFilters): Promise<{ invoices: Invoice[]; total: number }> {
-        const query = new URLSearchParams()
-        for (const [key, value] of Object.entries(filters)) {
-            if (value !== undefined && value !== null && value !== '') query.set(key, String(value))
-        }
-        const suffix = query.toString()
-        return apiFetch<{ invoices: Invoice[]; total: number }>(`/api/billing/invoices${suffix ? `?${suffix}` : ''}`)
+        return apiFetch<{ invoices: Invoice[]; total: number }>(`/api/billing/invoices${queryString(filters)}`)
     }
 
     async createInvoice(draft: InvoiceDraft): Promise<Invoice> {
@@ -119,12 +110,7 @@ class BillingService {
     }
 
     async listEnquiries(filters: EnquiryFilters): Promise<{ enquiries: SalesEnquiry[]; total: number }> {
-        const query = new URLSearchParams()
-        for (const [key, value] of Object.entries(filters)) {
-            if (value !== undefined && value !== null && value !== '') query.set(key, String(value))
-        }
-        const suffix = query.toString()
-        return apiFetch<{ enquiries: SalesEnquiry[]; total: number }>(`/api/billing/admin/enquiries${suffix ? `?${suffix}` : ''}`)
+        return apiFetch<{ enquiries: SalesEnquiry[]; total: number }>(`/api/billing/admin/enquiries${queryString(filters)}`)
     }
 
     async setEnquiryStatus(enquiryId: string, status: EnquiryStatus): Promise<SalesEnquiry> {

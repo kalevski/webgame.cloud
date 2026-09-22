@@ -1,5 +1,6 @@
 import React from 'react'
 import useStrings from 'hooks/useStrings'
+import { reportError } from 'helpers/observability'
 
 type FallbackProps = {
     error: Error
@@ -15,7 +16,7 @@ const ErrorFallback: React.FC<FallbackProps> = ({ error, onBack }) => {
     return (
         <div className="module module-crash">
             <tc-section-card title={c.title} icon="TriangleAlert" variant="danger">
-                <tc-stack direction="column" gap="0.85rem">
+                <tc-stack direction="vertical" gap="0.85rem">
                     <tc-text variant="muted">{c.body}</tc-text>
 
                     <details className="module-crash__details">
@@ -57,7 +58,7 @@ class ErrorBoundary extends React.Component<Props, State> {
     }
 
     componentDidCatch(error: Error, info: React.ErrorInfo): void {
-        console.error('render error', error, info.componentStack)
+        reportError(error, { source: 'render', detail: { componentStack: info.componentStack ?? '' } })
     }
 
     componentDidUpdate(previous: Props): void {

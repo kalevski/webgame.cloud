@@ -29,6 +29,10 @@ class AuthService {
         })
     }
 
+    async endImpersonation(): Promise<User> {
+        return apiFetch<User>('/api/auth/impersonation/end', { method: 'POST' })
+    }
+
     async logout(): Promise<void> {
         await apiFetch<void>('/api/auth/logout', { method: 'POST' })
     }

@@ -5,7 +5,7 @@ import { Entitlement } from 'configs/entitlements'
 import { EVENT } from 'configs/analytics'
 import { trackEvent } from 'helpers/analytics'
 import { MODAL } from './keys'
-import { useModalClose, useModalInput } from './registry'
+import { useModalClose, useModalInput, SheetFooter } from './registry'
 
 const UpgradeModal: React.FC = () => {
     const { t } = useStrings()
@@ -40,9 +40,11 @@ const UpgradeModal: React.FC = () => {
                     {t.upgrade.howToGet}
                 </p>
             </div>
-            <tc-button slot="footer" variant="secondary" outline onClick={() => closeModal(null)}>
-                {t.modal.cancel}
-            </tc-button>
+            <SheetFooter>
+                <tc-button variant="secondary" outline onClick={() => closeModal(null)}>
+                    {t.modal.cancel}
+                </tc-button>
+            </SheetFooter>
         </>
     )
 }

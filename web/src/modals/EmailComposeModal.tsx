@@ -5,18 +5,12 @@ import { selectedKeys, toKeyList } from 'helpers/select'
 import { useTc } from '@toolcase/web-components/react'
 import { EMAIL_AUDIENCES, EmailAudience, OWNER_ROLE_ID } from 'types'
 import { MODAL } from './keys'
-import { useModalClose, useModalIsOpen } from './registry'
+import { useModalClose, useModalIsOpen, SheetFooter } from './registry'
+import { EMAIL_PLACEHOLDERS } from 'types'
 
 type ValueElement = HTMLElement & { value?: string }
 
-const BUILT_IN_PLACEHOLDERS = [
-    'workspace',
-    'recipientName',
-    'recipientEmail',
-    'actorName',
-    'actorEmail',
-    'date',
-]
+const BUILT_IN_PLACEHOLDERS: string[] = [...EMAIL_PLACEHOLDERS]
 
 const EmailComposeModal: React.FC = () => {
     const closeModal = useModalClose()
@@ -165,107 +159,109 @@ const EmailComposeModal: React.FC = () => {
     }
 
     return (
-        <div className="modal-email-compose">
-            <tc-stack direction="column" gap="0.85rem">
-                <div className="modal-email-compose__grid">
-                    <div>
-                        <tc-label>{e.audienceLabel}</tc-label>
-                        <tc-extended-select ref={audienceSelect}></tc-extended-select>
+        <>
+            <div className="modal-email-compose">
+                <tc-stack direction="vertical" gap="0.85rem">
+                    <div className="modal-email-compose__grid">
+                        <div>
+                            <tc-label>{e.audienceLabel}</tc-label>
+                            <tc-extended-select ref={audienceSelect}></tc-extended-select>
+                        </div>
+
+                        <div>
+                            <tc-label>{e.templateLabel}</tc-label>
+                            <tc-extended-select ref={templateSelect}></tc-extended-select>
+                        </div>
                     </div>
 
-                    <div>
-                        <tc-label>{e.templateLabel}</tc-label>
-                        <tc-extended-select ref={templateSelect}></tc-extended-select>
-                    </div>
-                </div>
+                    {audience === 'role' && (
+                        <div>
+                            <tc-label>{e.roleLabel}</tc-label>
+                            <tc-extended-select ref={roleSelect}></tc-extended-select>
+                        </div>
+                    )}
 
-                {audience === 'role' && (
-                    <div>
-                        <tc-label>{e.roleLabel}</tc-label>
-                        <tc-extended-select ref={roleSelect}></tc-extended-select>
-                    </div>
-                )}
+                    {audience === 'members' && (
+                        <div>
+                            <tc-label>{e.membersLabel}</tc-label>
+                            <tc-extended-select
+                                ref={memberSelect}
+                                multiple
+                                value={toKeyList(userIds)}
+                                placeholder={t.common.selectMultiple}
+                                search-placeholder={t.common.search}
+                                no-results-text={t.common.noResults}
+                            ></tc-extended-select>
+                        </div>
+                    )}
 
-                {audience === 'members' && (
-                    <div>
-                        <tc-label>{e.membersLabel}</tc-label>
-                        <tc-extended-select
-                            ref={memberSelect}
-                            multiple
-                            value={toKeyList(userIds)}
-                            placeholder={t.common.selectMultiple}
-                            search-placeholder={t.common.search}
-                            no-results-text={t.common.noResults}
-                        ></tc-extended-select>
-                    </div>
-                )}
+                    {audience === 'custom' && (
+                        <tc-form-input
+                            type="text"
+                            label={e.emailsLabel}
+                            help={e.emailsHint}
+                            onInput={(event) => {
+                                emails.current = String((event.target as ValueElement).value ?? '')
+                            }}
+                        ></tc-form-input>
+                    )}
 
-                {audience === 'custom' && (
                     <tc-form-input
+                        ref={subjectRef}
                         type="text"
-                        label={e.emailsLabel}
-                        help={e.emailsHint}
-                        onInput={(event: React.FormEvent<ValueElement>) => {
-                            emails.current = String((event.target as ValueElement).value ?? '')
-                        }}
+                        label={e.subjectLabel}
+                        onInput={(event) =>
+                            setSubject(String((event.target as ValueElement).value ?? ''))
+                        }
                     ></tc-form-input>
-                )}
 
-                <tc-form-input
-                    ref={subjectRef}
-                    type="text"
-                    label={e.subjectLabel}
-                    onInput={(event: React.FormEvent<ValueElement>) =>
-                        setSubject(String((event.target as ValueElement).value ?? ''))
-                    }
-                ></tc-form-input>
+                    <tc-textarea
+                        ref={bodyRef}
+                        label={e.bodyLabel}
+                        help={e.bodyHint(EMAIL_PLACEHOLDERS.map((name) => `{{${name}}}`).join(', '))}
+                        rows="6"
+                        onInput={(event) =>
+                            setBody(String((event.target as ValueElement).value ?? ''))
+                        }
+                    ></tc-textarea>
 
-                <tc-textarea
-                    ref={bodyRef}
-                    label={e.bodyLabel}
-                    help={e.bodyHint}
-                    rows="6"
-                    onInput={(event: React.FormEvent<ValueElement>) =>
-                        setBody(String((event.target as ValueElement).value ?? ''))
-                    }
-                ></tc-textarea>
+                    {placeholders.length > 0 && (
+                        <tc-panel bordered className="modal-email-compose__variables">
+                            <tc-stack direction="vertical" gap="0.6rem">
+                                <tc-label>{e.variablesTitle}</tc-label>
+                                <tc-helper-text>{e.variablesHint}</tc-helper-text>
+                                {placeholders.map((name) => (
+                                    <tc-form-input
+                                        key={name}
+                                        type="text"
+                                        label={name}
+                                        onInput={(event) => {
+                                            variables.current = {
+                                                ...variables.current,
+                                                [name]: String((event.target as ValueElement).value ?? ''),
+                                            }
+                                        }}
+                                    ></tc-form-input>
+                                ))}
+                            </tc-stack>
+                        </tc-panel>
+                    )}
 
-                {placeholders.length > 0 && (
-                    <tc-panel bordered className="modal-email-compose__variables">
-                        <tc-stack direction="column" gap="0.6rem">
-                            <tc-label>{e.variablesTitle}</tc-label>
-                            <tc-helper-text>{e.variablesHint}</tc-helper-text>
-                            {placeholders.map((name) => (
-                                <tc-form-input
-                                    key={name}
-                                    type="text"
-                                    label={name}
-                                    onInput={(event: React.FormEvent<ValueElement>) => {
-                                        variables.current = {
-                                            ...variables.current,
-                                            [name]: String((event.target as ValueElement).value ?? ''),
-                                        }
-                                    }}
-                                ></tc-form-input>
-                            ))}
-                        </tc-stack>
-                    </tc-panel>
-                )}
+                    <div>
+                        <tc-label>{e.scheduleLabel}</tc-label>
+                        <tc-date-picker ref={schedulePicker}></tc-date-picker>
+                        <tc-helper-text>{e.scheduleHint}</tc-helper-text>
+                    </div>
 
-                <div>
-                    <tc-label>{e.scheduleLabel}</tc-label>
-                    <tc-date-picker ref={schedulePicker}></tc-date-picker>
-                    <tc-helper-text>{e.scheduleHint}</tc-helper-text>
-                </div>
-
-                <div className="modal-email-compose__actions">
-                    <tc-button variant="secondary" outline onClick={() => closeModal(null)}>{t.modal.cancel}</tc-button>
-                    <tc-button variant="primary" disabled={!valid || saving || undefined} onClick={submit}>
-                        {e.send}
-                    </tc-button>
-                </div>
-            </tc-stack>
-        </div>
+                </tc-stack>
+            </div>
+            <SheetFooter>
+                <tc-button variant="secondary" outline onClick={() => closeModal(null)}>{t.modal.cancel}</tc-button>
+                <tc-button variant="primary" disabled={!valid || saving || undefined} onClick={submit}>
+                    {e.send}
+                </tc-button>
+            </SheetFooter>
+        </>
     )
 }
 

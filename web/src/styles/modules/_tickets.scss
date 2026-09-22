@@ -46,7 +46,7 @@
     padding: $space-md $space-md $space-md $space-lg;
     border: 1px solid var(--tc-border-color);
     border-left: 3px solid var(--tk-state);
-    border-radius: 0 $radius-md $radius-md 0;
+    border-radius: 0 var(--bs-border-radius) var(--bs-border-radius) 0;
 
     color: inherit;
     text-decoration: none;
@@ -299,7 +299,7 @@
         padding: $space-sm $space-md;
         border-left: 2px solid var(--tk-state);
         background: var(--tc-surface-2, transparent);
-        border-radius: 0 $radius-sm $radius-sm 0;
+        border-radius: 0 var(--bs-border-radius) var(--bs-border-radius) 0;
     }
 }
 
