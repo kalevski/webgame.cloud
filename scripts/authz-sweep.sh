@@ -8,13 +8,24 @@
 #   sh scripts/authz-sweep.sh
 set -eu
 
-API="${API_URL:-http://localhost:6000}"
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+
+# Follow the same root .env the migration scripts read, so the port is never
+# guessed; a shell variable still wins. env.sh derives its default path from
+# $0, which is THIS script when sourced, so name the file explicitly.
+ENV_FILE="${ENV_FILE:-$ROOT/.env}" . "$ROOT/api/migrations/env.sh"
+
+API="${API_URL:-http://localhost:${PORT:-6000}}"
 JARS="$(mktemp -d)"
 FAILURES=0
 
 cleanup() { rm -rf "$JARS"; }
 trap cleanup EXIT
+
+if ! curl -s -o /dev/null --max-time 5 "$API/api/health"; then
+    printf 'no API answering at %s — start it with `npm run dev:api`, or set API_URL.\n' "$API" >&2
+    exit 1
+fi
 
 # The matrix is committed documentation; stdout is kept so the run is still
 # readable while it happens.
@@ -159,9 +170,10 @@ probe owner GET /api/role-applications 200
 # the game runtime API is public, unauthenticated and not enveloped
 probe anon GET /api/public/unknown-project/release/manifest 404
 
-# a realm authenticates with a bearer token, never a cookie — a session is refused
-probe anon GET /api/realm/builds/next 401
-probe owner GET /api/realm/builds/next 401
+# a realm authenticates with a per-realm bearer token, never a cookie — a session
+# is refused on these routes even for the owner
+probe_body anon POST /api/realm/jobs/next '{}' 401
+probe_body owner POST /api/realm/jobs/next '{}' 401
 
 # a row the caller may not see is 404, never 403 — existence is not confirmed
 probe member GET /api/tickets/00000000-0000-0000-0000-000000000000 404

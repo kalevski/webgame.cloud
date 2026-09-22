@@ -45,6 +45,15 @@ export default defineConfig({
     },
     build: {
         outDir: 'build',
-        rollupOptions: { output: { manualChunks(id) { if (id.includes('node_modules')) return 'vendor' } } },
+        rollupOptions: {
+            output: {
+                manualChunks(id) {
+                    if (!id.includes('node_modules')) return undefined
+                    if (id.includes('@toolcase/web-components')) return 'components'
+                    if (id.includes('@fontsource')) return 'fonts'
+                    return 'vendor'
+                },
+            },
+        },
     },
 })

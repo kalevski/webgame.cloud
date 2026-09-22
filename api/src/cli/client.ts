@@ -1,6 +1,6 @@
 const value = (key: string, fallback = ''): string => process.env[key]?.trim() || fallback
 
-const CONTROL_PORT = value('CONTROL_PORT', '5010')
+const CONTROL_PORT = value('CONTROL_PORT', '6010')
 
 export const CONTROL_URL = value('CONTROL_URL', `http://127.0.0.1:${CONTROL_PORT}`)
 
