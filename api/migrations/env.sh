@@ -1,4 +1,4 @@
-ENV_FILE="${ENV_FILE:-$(cd "$(dirname "$0")/.." && pwd)/.env}"
+ENV_FILE="${ENV_FILE:-$(cd "$(dirname "$0")/../.." && pwd)/.env}"
 
 if [ -f "$ENV_FILE" ]; then
     while IFS= read -r line || [ -n "$line" ]; do

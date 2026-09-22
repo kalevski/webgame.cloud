@@ -21,7 +21,7 @@ ticket is closed.
 
 ## Data model
 
-Two tables, both soft-deleted, in `migrations/sql/00001_schema.sql`:
+Two tables, both soft-deleted, in `api/migrations/sql/00001_schema.sql`:
 
 - `tickets` — `owner_id` (the developer, `ON DELETE CASCADE`), `assignee_id` (the staff member currently on
   it, nullable, `ON DELETE SET NULL`), `subject`, `status`, `last_message_at` (bumped by every reply, drives

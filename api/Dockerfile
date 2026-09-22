@@ -2,7 +2,6 @@ FROM node:24-alpine AS build
 WORKDIR /app
 COPY package.json package-lock.json tsconfig.base.json ./
 COPY api/package.json api/
-COPY migrations/package.json migrations/
 COPY web/package.json web/
 RUN npm ci -w @webgame-cloud/api --include-workspace-root=false
 COPY api/tsconfig.json api/
@@ -22,16 +21,17 @@ RUN case "$TARGETARCH" in \
 
 FROM node:24-alpine
 ENV NODE_ENV=production \
-    PORT=5000
+    PORT=6000
 WORKDIR /app
-RUN apk add --no-cache curl
 COPY --from=goose /goose /usr/local/bin/goose
 COPY --from=build /app/api/dist ./dist
-COPY migrations/sql ./migrations
-COPY docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
-RUN chmod +x /usr/local/bin/docker-entrypoint.sh
+COPY api/migrations/sql ./migrations
+COPY api/docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh \
+    && printf '#!/bin/sh\nexec node /app/dist/cli.js "$@"\n' > /usr/local/bin/webgame-api \
+    && chmod +x /usr/local/bin/webgame-api
 USER node
-EXPOSE 5000
+EXPOSE 6000
 HEALTHCHECK --interval=30s --timeout=3s --start-period=10s \
     CMD wget -q -O /dev/null "http://127.0.0.1:${PORT}/api/health" || exit 1
 ENTRYPOINT ["docker-entrypoint.sh"]

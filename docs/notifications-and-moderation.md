@@ -20,7 +20,7 @@ The in-app bell inbox (`notifications` table) is the source of truth; web push m
 
 `notifyOnActivity` (a per-project switch in the project's Settings tab) is read only by `announceActivity` — that is the whole of its meaning.
 
-**`NOTIFICATION_KINDS` and the `notifications.kind` CHECK constraint must change in lockstep.** The database rejects an unknown kind, and because `notify()` catches, a mismatch shows up only as a warning in the log and a notification that never arrives — not as a failed request. Adding a kind means editing `contracts/notifications.ts` *and* the `CHECK` in `migrations/sql/00001_schema.sql`, then rebuilding the local database.
+**`NOTIFICATION_KINDS` and the `notifications.kind` CHECK constraint must change in lockstep.** The database rejects an unknown kind, and because `notify()` catches, a mismatch shows up only as a warning in the log and a notification that never arrives — not as a failed request. Adding a kind means editing `contracts/notifications.ts` *and* the `CHECK` in `api/migrations/sql/00001_schema.sql`, then rebuilding the local database.
 
 Web push VAPID keys are self-provisioned on first use and stored in `settings` (`PushService.ensureKeys`) — no push configuration needed to run. Set the `mailto:` VAPID subject in `PushService` to your own contact.
 

@@ -1,6 +1,6 @@
 # Database conventions
 
-Two rules apply to **every** table in `migrations/sql/00001_schema.sql`, entity tables and join/log
+Two rules apply to **every** table in `api/migrations/sql/00001_schema.sql`, entity tables and join/log
 tables alike. They are not per-feature decisions — a new table that skips them is a bug.
 
 ## 1. Every table carries three timestamps

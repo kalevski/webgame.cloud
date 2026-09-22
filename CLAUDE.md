@@ -56,8 +56,12 @@ Two consequences for every change made here:
 All user-facing copy is **English**, read through `configs/strings.ts` (there is no runtime i18n layer, but
 the indirection makes translation a single-file change).
 
-npm workspaces monorepo: `api` (Fastify + pg), `web` (Vite + React 19 SPA), `migrations` (goose SQL) and
-`realm-stub` (a dev-only fake realm). Package scope is `@webgame-cloud`.
+npm workspaces monorepo: `api` (Fastify + pg, and the goose migrations for its own database), `web`
+(Vite + React 19 SPA) and `realm-stub` (a dev-only fake realm). Package scope is `@webgame-cloud`.
+
+**Each service owns its database and its image.** `api/migrations/` holds the schema, `api/Dockerfile` and
+`api/docker-entrypoint.sh` build and boot it. A second service added later brings its own of each rather than
+extending the API's.
 
 ## Local setup (from zero to running)
 
@@ -71,11 +75,11 @@ Prerequisites:
 nvm use
 npm install         # installs all workspaces
 cp .env.example .env  # then edit DATABASE_* to match your Postgres
-npm run migrate     # createdb (idempotent) + goose up (migrations/sql/*.sql)
+npm run migrate     # createdb (idempotent) + goose up (api/migrations/sql/*.sql)
 npm run dev         # api (tsx watch, :6000) + web (vite, :6001)
 ```
 
-Config comes from a single root `.env` (gitignored; `.env.example` is the committed template). No `dotenv` dependency — the API passes `--env-file-if-exists=../.env` to `tsx`, and the migration/backup shell scripts source `migrations/env.sh`. Shell variables win over file values in both loaders. See `docs/local-development.md`.
+Config comes from a single root `.env` (gitignored; `.env.example` is the committed template). No `dotenv` dependency — the API passes `--env-file-if-exists=../.env` to `tsx`, and the migration/backup shell scripts source `api/migrations/env.sh`. Shell variables win over file values in both loaders. See `docs/local-development.md`.
 
 Then open `http://localhost:6001`. The `dev:api` script sets `DEV_LOGIN=true`, so sign in with any email via the dev login form — **the first sign-in becomes the `owner`**. Dev login is auto-disabled if any OAuth provider is configured (`GOOGLE_CLIENT_ID`/`GOOGLE_CLIENT_SECRET` or `DISCORD_CLIENT_ID`/`DISCORD_CLIENT_SECRET` — SSO takes over). Vite proxies `/api` to `127.0.0.1:6000`, so no CORS setup is needed locally.
 
@@ -97,16 +101,20 @@ npm run cli -w @webgame-cloud/api -- status   # the control-API CLI: status, job
 
 There is no test suite or lint script — `typecheck` and `build` (which runs `tsc --noEmit` as a gate before bundling) are the only automated checks. Two profilers run on demand through `npx` (Node 24, never added as dependencies): `npx react-doctor web` must report 0 diagnostics (suppressions live in `web/doctor.config.json`), and `npx clinic doctor` profiles the built API bundle under load — see `docs/local-development.md`. **Do not write unit, integration, or e2e tests** — see Code practices.
 
-Migrations (workspace `@webgame-cloud/migrations`):
+Migrations belong to the `api` workspace — they are that service's schema, not a shared one:
 
 ```bash
-npm run migrate                        # from root: createdb + apply pending
-npm run down -w @webgame-cloud/migrations     # roll back latest
-npm run status -w @webgame-cloud/migrations   # applied/pending
-npm run create -w @webgame-cloud/migrations --name=add_thing   # scaffold new migration
-npm run backup -w @webgame-cloud/migrations         # pg_dump -Fc to a timestamped .dump
-npm run restore-test -w @webgame-cloud/migrations   # restore a dump into a scratch DB to prove it
-npm run corrupt-drill -w @webgame-cloud/migrations  # restore drill that corrupts a table first
+npm run migrate                                # from root: every workspace that has one
+npm run migrate:down -w @webgame-cloud/api     # roll back latest
+npm run migrate:status -w @webgame-cloud/api   # applied/pending
+npm run migrate:create -w @webgame-cloud/api --name=add_thing   # scaffold new migration
+npm run backup -w @webgame-cloud/api           # pg_dump -Fc to a timestamped .dump
+npm run restore-test -w @webgame-cloud/api     # restore a dump into a scratch DB to prove it
+npm run corrupt-drill -w @webgame-cloud/api    # restore drill that corrupts a table first
+```
+
+```bash
+sh scripts/authz-sweep.sh   # probe every route's authorization against a running api
 ```
 
 Env vars the API reads (`api/src/env.ts`, defaults in parens): `APP_ENV` (development), `PORT` (6000), `CONTROL_PORT` (6010), `DATABASE_HOST` (localhost), `DATABASE_PORT` (5432), `DATABASE_USER` (OS user), `DATABASE_PASS` (none), `DATABASE_NAME` (starter), `DATABASE_SSLMODE` (disable — honoured by the pool, not only by goose), `DATABASE_POOL_MAX` (10), `DATABASE_STATEMENT_TIMEOUT_MS` (15000), `DATABASE_SLOW_MS` (1000), `WEBHOOK_ALLOW_PRIVATE` (follows `DEV_LOGIN`), `GOOGLE_CLIENT_ID`/`GOOGLE_CLIENT_SECRET`, `DISCORD_CLIENT_ID`/`DISCORD_CLIENT_SECRET`, `DEV_LOGIN`, `CORS_ORIGIN`, `WEB_URL`, `API_URL`, `WORKSPACE_NAME` (WebGame Cloud), `LOG_LEVEL` (info), `DEBUG`, `REALM_DEV_TOKEN` (the token of a hand-registered realm — nothing is seeded), `REALM_STUB_PORT` (5100).
@@ -162,7 +170,7 @@ Follows the `react-spa-app` skill: pages → modules → components/services/sta
 - Strings live in `configs/strings.ts` (typed as `AppStrings`), read via `useStrings()`. New copy goes there.
 - Theme: the tc `sunshine` base theme retinted to a violet-on-neutral palette in `styles/app.scss` (it sets `--bs-primary: var(--sun-lead)`, so overriding the `--sun-*` tokens recolours everything). The one accent colour is `$brand` in `styles/_abstracts.scss` (and `AppBrand.tsx`). Light + system-dark supported via `prefers-color-scheme`.
 
-### Migrations (`migrations/`)
+### Migrations (`api/migrations/`)
 
 Goose-managed SQL: `00001_schema.sql` (platform tables plus the console group — realm regions, realms, projects, members, invites, vocabularies, assets, bundles, builds, configs, waitlist) and `00002_seed.sql` (roles, permissions, limits, plans and the `project-invitation` email template — no realm is seeded, register one by hand at `/platform/realms` — mirroring `SEED_ROLES`/`SEED_ROLE_BINDINGS`). `goose.sh` builds the DSN from `DATABASE_*` and runs `createdb` before `up`.
 

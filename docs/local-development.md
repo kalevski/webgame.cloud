@@ -14,7 +14,7 @@ There is no `dotenv` dependency. Three loaders read the same file:
 
 - **API** — `api/package.json` passes `--env-file-if-exists=../.env` to `tsx` in both `dev` and `start`. Node loads the file natively (Node 20.12+); if the file is missing, the flag is a no-op and the defaults in `api/src/env.ts` apply.
 - **Realm stub** — `realm-stub/src/index.ts` reads the repo-root `.env` itself at boot (`loadEnvFile`, resolved relative to the module, not the cwd) instead of using the Node flag, so `npm run dev -w @webgame-cloud/realm-stub` also works on Node versions older than 22.9 where `--env-file-if-exists` is not a recognised option. A missing file is a no-op and the in-file defaults apply.
-- **Migration/backup scripts** — `migrations/env.sh` is sourced by `goose.sh`, `backup.sh`, `restore-test.sh` and `corrupt-drill.sh`. It walks `../.env` and exports each `KEY=value` line. Set `ENV_FILE=/path/to/other.env` to point them elsewhere.
+- **Migration/backup scripts** — `api/migrations/env.sh` is sourced by `goose.sh`, `backup.sh`, `restore-test.sh` and `corrupt-drill.sh`. It walks `../../.env` (the repository root, two levels up now that migrations belong to the `api` workspace) and exports each `KEY=value` line. Set `ENV_FILE=/path/to/other.env` to point them elsewhere.
 
 **Precedence: a variable already present in the shell wins.** Node's `--env-file` does not overwrite existing `process.env` entries, the realm stub's `loadEnvFile` skips keys already set, and `env.sh` only exports keys that are unset. So `DATABASE_NAME=scratch npm run migrate` overrides the file, and the `DEV_LOGIN=true` prefix in `dev:api` stays authoritative.
 

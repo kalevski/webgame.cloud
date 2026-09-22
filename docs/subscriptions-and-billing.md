@@ -8,7 +8,7 @@ The whole feature — API, profile tab, admin sections and the Platform nav grou
 
 - Contracts: `api/src/contracts/billing.ts` (`Plan`/`PlanDraft`/`PlanMode`, `Subscription`, `CheckoutIntent`, `Invoice`/`InvoiceFilters`, statuses), `api/src/contracts/features.ts` (`FEATURE_FLAGS`, `FeatureFlags`, defaults).
 - API: `api/src/domain/billing.ts` (the port + `manualBillingPort`), `api/src/services/BillingService.ts`, `api/src/services/FeatureService.ts`, `api/src/repositories/billing/BillingRepository.ts`, `api/src/routers/billingRouter.ts`, `api/src/features.ts` (`requireFeature`).
-- Schema: `billing_plans`, `subscriptions`, `invoices` (`migrations/sql/00001_schema.sql`); one seeded manual plan, `feature_billing=false`, empty `sales_contact` (`00002_seed.sql`).
+- Schema: `billing_plans`, `subscriptions`, `invoices` (`api/migrations/sql/00001_schema.sql`); one seeded manual plan, `feature_billing=false`, empty `sales_contact` (`00002_seed.sql`).
 - Web: `web/src/services/BillingService.ts`, `web/src/state/billing.slice.ts`, `web/src/hooks/useFeature.ts`, `web/src/modules/BillingPanel.tsx` (Billing tab of `/profile`), `web/src/modules/PlansAdmin.tsx` + the plan slots in `web/src/modules/AccessPolicyAdmin.tsx` (`/admin/access`), `web/src/modules/InvoicesAdmin.tsx` + `web/src/pages/InvoicesPage.tsx` (`/platform/invoices`), `web/src/modules/FeatureFlagsPanel.tsx` (`/admin/settings`).
 
 ## Feature flags

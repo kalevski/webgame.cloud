@@ -18,7 +18,7 @@ request path for it.
 
 ## Data model
 
-One table, `role_applications`, in `migrations/sql/00001_schema.sql`:
+One table, `role_applications`, in `api/migrations/sql/00001_schema.sql`:
 
 `user_id` (the applicant, `ON DELETE CASCADE`), `role_id` (`ON UPDATE CASCADE ON DELETE CASCADE` — renaming a
 role id follows), `status`, `message` (the applicant's words), `decision_note` (the reviewer's), `decided_by`

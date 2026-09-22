@@ -27,16 +27,26 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version-file: .nvmrc
           cache: npm
 
       - name: Install dependencies
         run: npm ci
 
+      - name: Require the API URL to be configured
+        run: |
+          if [ -z "${{ vars.VITE_API_URL }}" ]; then
+            echo "set the repository variable VITE_API_URL to the deployed API origin" >&2
+            exit 1
+          fi
+
       - name: Build web
         run: npm run build -w @webgame-cloud/web
         env:
-          VITE_API_URL: https://api.example.com
+          VITE_API_URL: ${{ vars.VITE_API_URL }}
+          VITE_ANALYTICS_SRC: ${{ vars.VITE_ANALYTICS_SRC }}
+          VITE_ANALYTICS_WEBSITE_ID: ${{ vars.VITE_ANALYTICS_WEBSITE_ID }}
+          VITE_ANALYTICS_DOMAIN: ${{ vars.VITE_ANALYTICS_DOMAIN }}
 
       - name: Push build to `public` (single commit)
         uses: JamesIves/github-pages-deploy-action@v4

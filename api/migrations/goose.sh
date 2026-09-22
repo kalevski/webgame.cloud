@@ -18,4 +18,4 @@ if [ "$1" = "up" ]; then
     createdb $CREATEDB_ARGS "$DB_NAME" 2>/dev/null || true
 fi
 
-exec goose -dir sql postgres "$DSN" "$@"
+exec goose -dir "$(dirname "$0")/sql" postgres "$DSN" "$@"

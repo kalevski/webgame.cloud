@@ -6,7 +6,7 @@ Templates, audit-driven transactional mail, scheduled campaigns and a queue work
 
 - Contracts: `api/src/contracts/email.ts` (`EmailConfig`, `EmailTemplate`, `EmailTrigger`, `EmailMessage`, compose/filter shapes).
 - API: `api/src/domain/email.ts` (the provider port + `log`/`smtp`/`mailchimp` adapters + `renderTemplate`), `api/src/services/EmailService.ts`, `api/src/services/EmailWorker.ts`, `api/src/repositories/email/EmailRepository.ts`, `api/src/routers/emailRouter.ts`.
-- Schema: `email_templates`, `email_triggers`, `email_messages` (`migrations/sql/00001_schema.sql`); two seeded templates + `feature_email=true` and `email_provider=log` (`00002_seed.sql`).
+- Schema: `email_templates`, `email_triggers`, `email_messages` (`api/migrations/sql/00001_schema.sql`); two seeded templates + `feature_email=true` and `email_provider=log` (`00002_seed.sql`).
 - Web: `web/src/services/EmailService.ts`, `web/src/state/email.slice.ts`, `web/src/modules/{EmailSettingsPanel,EmailOutbox,EmailTemplatesAdmin,EmailTriggersAdmin}.tsx`, `web/src/modals/{EmailTemplateModal,EmailComposeModal}.tsx`, `web/src/pages/EmailPage.tsx`.
 
 Permissions: every route sits behind `requireFeature('email')` + `requireAuth`, then one of five keys — `email.outbox.read` (outbox, templates and triggers reads, plus the audit-action and recipient lookups), `email.send` (compose, retry, cancel), `email.template.write`, `email.trigger.write`, `email.config.write` (provider credentials and the test send). See access-and-feature-flags.md.

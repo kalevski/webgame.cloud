@@ -14,7 +14,14 @@
         "start": "tsx --env-file-if-exists=../.env --import ./sql-hooks-register.mjs src/index.ts",
         "build": "tsc --noEmit && esbuild src/index.ts src/cli.ts --bundle --platform=node --format=esm --target=node24 --loader:.sql=text --outdir=dist --external:pg-native --banner:js=\"import { createRequire } from 'node:module'; const require = createRequire(import.meta.url);\"",
         "typecheck": "tsc --noEmit",
-        "cli": "tsx --env-file-if-exists=../.env src/cli.ts"
+        "cli": "tsx --env-file-if-exists=../.env src/cli.ts",
+        "migrate": "sh migrations/goose.sh up",
+        "migrate:down": "sh migrations/goose.sh down",
+        "migrate:status": "sh migrations/goose.sh status",
+        "migrate:create": "goose -dir migrations/sql create \"${npm_config_name:-change_me}\" sql",
+        "backup": "sh migrations/backup.sh",
+        "restore-test": "sh migrations/restore-test.sh",
+        "corrupt-drill": "sh migrations/corrupt-drill.sh"
     },
     "dependencies": {
         "@aws-sdk/client-s3": "^3.1136.0",
