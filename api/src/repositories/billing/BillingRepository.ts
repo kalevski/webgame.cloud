@@ -43,7 +43,12 @@ import SELECT_ALL_PLANS from './sql/select-all-plans.sql'
 import UPDATE_PLAN from './sql/update-plan.sql'
 import SELECT_EXPIRED_SUBSCRIPTIONS from './sql/select-expired-subscriptions.sql'
 import SELECT_PLAN from './sql/select-plan.sql'
+import SELECT_PLAN_BY_PROVIDER_PRODUCT_ID from './sql/select-plan-by-provider-product-id.sql'
 import SELECT_SUBSCRIPTION from './sql/select-subscription.sql'
+import SELECT_SUBSCRIPTION_BY_PROVIDER_ID from './sql/select-subscription-by-provider-id.sql'
+import SELECT_RECONCILE_SUBSCRIPTIONS from './sql/select-reconcile-subscriptions.sql'
+import LOCK_SUBSCRIPTION from './sql/lock-subscription.sql'
+import SELECT_INVOICE_BY_PROVIDER_ID from './sql/select-invoice-by-provider-id.sql'
 import UPSERT_SUBSCRIPTION from './sql/upsert-subscription.sql'
 import UPDATE_STORAGE_OVERAGE from './sql/update-storage-overage.sql'
 import UPDATE_PLAN_OVERRIDE from './sql/update-plan-override.sql'
@@ -63,6 +68,7 @@ export type PlanWrite = {
     features: string[]
     salesFields: PlanRow['sales_fields']
     trialDays: number
+    providerProductId: string
 }
 
 export type PlanPatch = {
@@ -79,6 +85,7 @@ export type PlanPatch = {
     features?: string[]
     salesFields?: PlanRow['sales_fields']
     trialDays?: number
+    providerProductId?: string
 }
 
 export type InvoiceWrite = {
@@ -117,6 +124,7 @@ export type SubscriptionWrite = {
     provider: SubscriptionRow['provider']
     providerCustomerId: string
     providerSubscriptionId: string
+    providerUpdatedAt?: Date | null
     cancelAtPeriodEnd: boolean
     currentPeriodEnd: Date | null
     startedAt: Date | null
@@ -163,6 +171,7 @@ export class BillingRepository extends BaseRepository<unknown, QueryRunner> {
                 JSON.stringify(write.features),
                 JSON.stringify(write.salesFields),
                 write.trialDays,
+                write.providerProductId,
             ])
             return this.findPlan(write.id, trx)
         })
@@ -186,9 +195,17 @@ export class BillingRepository extends BaseRepository<unknown, QueryRunner> {
                 patch.features === undefined ? null : JSON.stringify(patch.features),
                 patch.salesFields === undefined ? null : JSON.stringify(patch.salesFields),
                 patch.trialDays ?? null,
+                patch.providerProductId ?? null,
             ])
             if ((result.rowCount ?? 0) === 0) return undefined
             return this.findPlan(id, trx)
+        })
+    }
+
+    async findPlanByProviderProductId(providerProductId: string, trx?: QueryRunner): Promise<PlanRow | undefined> {
+        return this.time('findPlanByProviderProductId', async () => {
+            const { rows } = await this.run(trx).query<PlanRow>(SELECT_PLAN_BY_PROVIDER_PRODUCT_ID, [providerProductId])
+            return rows[0]
         })
     }
 
@@ -237,6 +254,7 @@ export class BillingRepository extends BaseRepository<unknown, QueryRunner> {
                 write.provider,
                 write.providerCustomerId,
                 write.providerSubscriptionId,
+                write.providerUpdatedAt ?? null,
                 write.cancelAtPeriodEnd,
                 write.currentPeriodEnd,
                 write.startedAt,
@@ -247,9 +265,36 @@ export class BillingRepository extends BaseRepository<unknown, QueryRunner> {
         })
     }
 
+    async lockSubscription(userId: string, trx: QueryRunner): Promise<SubscriptionRow | undefined> {
+        return this.time('lockSubscription', async () => {
+            const { rows } = await this.run(trx).query<SubscriptionRow>(LOCK_SUBSCRIPTION, [userId])
+            return rows[0]
+        })
+    }
+
+    async findSubscriptionByProviderId(
+        provider: string,
+        providerSubscriptionId: string,
+        trx?: QueryRunner
+    ): Promise<SubscriptionRow | undefined> {
+        return this.time('findSubscriptionByProviderId', async () => {
+            const { rows } = await this.run(trx).query<SubscriptionRow>(SELECT_SUBSCRIPTION_BY_PROVIDER_ID, [
+                provider, providerSubscriptionId,
+            ])
+            return rows[0]
+        })
+    }
+
+    async listReconcileCandidates(trx?: QueryRunner): Promise<SubscriptionRow[]> {
+        return this.time('listReconcileCandidates', async () => {
+            const { rows } = await this.run(trx).query<SubscriptionRow>(SELECT_RECONCILE_SUBSCRIPTIONS)
+            return rows
+        })
+    }
+
     async insertInvoice(write: InvoiceWrite, trx?: QueryRunner): Promise<InvoiceRow | undefined> {
         return this.time('insertInvoice', async () => {
-            await this.run(trx).query(INSERT_INVOICE, [
+            const { rows } = await this.run(trx).query<{ id: string }>(INSERT_INVOICE, [
                 write.id,
                 write.number,
                 write.publicToken,
@@ -265,7 +310,22 @@ export class BillingRepository extends BaseRepository<unknown, QueryRunner> {
                 write.dueAt,
                 write.paidAt,
             ])
-            return this.findInvoice(write.id, trx)
+            if (rows.length > 0) return this.findInvoice(rows[0].id, trx)
+            if (!write.providerInvoiceId) return undefined
+            return this.findInvoiceByProviderId(write.provider, write.providerInvoiceId, trx)
+        })
+    }
+
+    async findInvoiceByProviderId(
+        provider: string,
+        providerInvoiceId: string,
+        trx?: QueryRunner
+    ): Promise<InvoiceRow | undefined> {
+        return this.time('findInvoiceByProviderId', async () => {
+            const { rows } = await this.run(trx).query<InvoiceRow>(SELECT_INVOICE_BY_PROVIDER_ID, [
+                provider, providerInvoiceId,
+            ])
+            return rows[0]
         })
     }
 

@@ -2,6 +2,8 @@ import { apiFetch } from 'helpers/api'
 import { queryString } from 'helpers/query'
 import {
     AccountUsage,
+    BillingEvent,
+    BillingEventFilters,
     CheckoutIntent,
     EnquiryActionDraft,
     EnquiryActionResult,
@@ -14,6 +16,7 @@ import {
     InvoiceStatus,
     Plan,
     PlanDraft,
+    PortalLink,
     PublicConstants,
     PublicInvoice,
     SalesEnquiry,
@@ -53,6 +56,31 @@ class BillingService {
 
     async cancel(): Promise<Subscription> {
         return apiFetch<Subscription>('/api/billing/cancel', { method: 'POST' })
+    }
+
+    async resume(): Promise<Subscription> {
+        return apiFetch<Subscription>('/api/billing/resume', { method: 'POST' })
+    }
+
+    async changePlan(planId: string): Promise<Subscription> {
+        return apiFetch<Subscription>('/api/billing/change-plan', {
+            method: 'POST',
+            body: JSON.stringify({ planId }),
+        })
+    }
+
+    async portal(): Promise<PortalLink> {
+        return apiFetch<PortalLink>('/api/billing/portal', { method: 'POST' })
+    }
+
+    async listBillingEvents(filters: BillingEventFilters): Promise<{ events: BillingEvent[]; total: number }> {
+        return apiFetch<{ events: BillingEvent[]; total: number }>(`/api/billing/admin/events${queryString(filters)}`)
+    }
+
+    async replayBillingEvent(eventId: string): Promise<BillingEvent> {
+        return apiFetch<BillingEvent>(`/api/billing/admin/events/${encodeURIComponent(eventId)}/replay`, {
+            method: 'POST',
+        })
     }
 
     async updateUserSubscription(userId: string, patch: SubscriptionPatch): Promise<Subscription> {

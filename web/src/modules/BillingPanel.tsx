@@ -55,6 +55,8 @@ const BillingPanel: React.FC = () => {
     const fetchBilling = useStore((state) => state.fetchBilling)
     const startCheckout = useStore((state) => state.startCheckout)
     const cancelSubscription = useStore((state) => state.cancelSubscription)
+    const resumeSubscription = useStore((state) => state.resumeSubscription)
+    const openBillingPortal = useStore((state) => state.openBillingPortal)
     const myEnquiry = useStore((state) => state.myEnquiry)
 
     const [outcome, setOutcome] = useState<CheckoutOutcome | null>(null)
@@ -135,9 +137,20 @@ const BillingPanel: React.FC = () => {
 
                     {active && (
                         <div className="module-billing__summary-actions">
-                            <tc-button variant="danger" outline onClick={() => void cancelSubscription()}>
-                                {b.cancel}
-                            </tc-button>
+                            {subscription.provider !== 'manual' && (
+                                <tc-button variant="secondary" outline onClick={() => void openBillingPortal()}>
+                                    {b.manageBilling}
+                                </tc-button>
+                            )}
+                            {subscription.cancelAtPeriodEnd ? (
+                                <tc-button variant="primary" onClick={() => void resumeSubscription()}>
+                                    {b.resume}
+                                </tc-button>
+                            ) : (
+                                <tc-button variant="danger" outline onClick={() => void cancelSubscription()}>
+                                    {b.cancel}
+                                </tc-button>
+                            )}
                         </div>
                     )}
                 </div>

@@ -41,11 +41,12 @@ export const NAV: NavItem[] = [
     { id: 'platform-users', labelKey: 'platformUsers', icon: 'Users', path: '/platform/users', requires: ['admin.user.read'], rank: 13, order: 13, section: 'platform' },
     { id: 'ticket-queue', labelKey: 'ticketQueue', tabLabelKey: 'ticketQueueTab', icon: 'Inbox', path: '/platform/tickets', requires: ['ticket.queue.read'], feature: 'tickets', rank: 14, order: 14, section: 'platform' },
     { id: 'invoices', labelKey: 'invoices', icon: 'Receipt', path: '/platform/invoices', requires: ['invoice.read'], feature: 'billing', rank: 15, order: 15, section: 'platform' },
-    { id: 'enquiries', labelKey: 'enquiries', icon: 'Mailbox', path: '/platform/enquiries', requires: ['enquiry.read'], feature: 'billing', rank: 16, order: 16, section: 'platform' },
-    { id: 'email', labelKey: 'email', icon: 'Mail', path: '/platform/email', requires: ['email.outbox.read'], feature: 'email', rank: 17, order: 17, section: 'platform' },
+    { id: 'billing-events', labelKey: 'billingEvents', icon: 'Webhook', path: '/platform/billing-events', requires: ['billing.subscription.read'], feature: 'billing', rank: 16, order: 16, section: 'platform' },
+    { id: 'enquiries', labelKey: 'enquiries', icon: 'Mailbox', path: '/platform/enquiries', requires: ['enquiry.read'], feature: 'billing', rank: 17, order: 17, section: 'platform' },
+    { id: 'email', labelKey: 'email', icon: 'Mail', path: '/platform/email', requires: ['email.outbox.read'], feature: 'email', rank: 18, order: 18, section: 'platform' },
 
-    { id: 'admin', labelKey: 'admin', icon: 'Shield', path: '/admin', requires: ['admin.overview.read'], rank: 21, order: 21, section: 'admin' },
-    { id: 'moderation', labelKey: 'moderation', icon: 'Flag', path: '/moderation', requires: [], requiresAny: ['moderation.queue.read', 'role.application.read'], rank: 22, order: 22, section: 'admin' },
+    { id: 'admin', labelKey: 'admin', icon: 'Shield', path: '/admin', requires: ['admin.overview.read'], rank: 22, order: 22, section: 'admin' },
+    { id: 'moderation', labelKey: 'moderation', icon: 'Flag', path: '/moderation', requires: [], requiresAny: ['moderation.queue.read', 'role.application.read'], rank: 23, order: 23, section: 'admin' },
 ]
 
 const ROUTE_CHROME: RouteChrome[] = [
@@ -69,6 +70,7 @@ const ROUTE_CHROME: RouteChrome[] = [
     { pattern: /^\/platform\/projects(\/[^/]+)*\/?$/, bar: 'back', nav: 'platform-projects', backTo: HOME_ROUTE },
     { pattern: /^\/platform\/users(\/[^/]+)*\/?$/, bar: 'back', nav: 'platform-users', backTo: HOME_ROUTE },
     { pattern: /^\/platform\/invoices\/?$/, bar: 'back', nav: 'invoices', backTo: HOME_ROUTE },
+    { pattern: /^\/platform\/billing-events\/?$/, bar: 'back', nav: 'billing-events', backTo: HOME_ROUTE },
     { pattern: /^\/platform\/enquiries\/?$/, bar: 'back', nav: 'enquiries', backTo: HOME_ROUTE },
     { pattern: /^\/platform\/email(\/[^/]+)?\/?$/, bar: 'back', nav: 'email', backTo: HOME_ROUTE },
 

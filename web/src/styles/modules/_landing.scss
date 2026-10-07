@@ -200,6 +200,11 @@
 
     tc-pinned-feature-showcase {
         --bs-pinned-feature-showcase-sticky-top: 6.5rem;
+
+        .tc-pinned-feature-showcase-panel--centered {
+            top: var(--bs-pinned-feature-showcase-sticky-top);
+            transform: none;
+        }
     }
 
     div.tc-pricing-card--highlight {

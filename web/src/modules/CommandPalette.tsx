@@ -49,6 +49,7 @@ const CommandPalette: React.FC = () => {
     const canReadAdmin = useCan('admin.overview.read')
     const canModerate = useCan('moderation.queue.read')
     const canReadInvoices = useCan('invoice.read')
+    const canReadBillingEvents = useCan('billing.subscription.read')
     const canReadEnquiries = useCan('enquiry.read')
     const canReadEmail = useCan('email.outbox.read')
     const canReadAdminProjects = useCan('admin.project.read')
@@ -86,6 +87,10 @@ const CommandPalette: React.FC = () => {
 
         if (billingEnabled && canReadInvoices) {
             entries.push({ id: 'nav:/platform/invoices', label: c.openInvoices, group: c.groupGo, icon: 'receipt' })
+        }
+
+        if (billingEnabled && canReadBillingEvents) {
+            entries.push({ id: 'nav:/platform/billing-events', label: c.openBillingEvents, group: c.groupGo, icon: 'webhook' })
         }
 
         if (billingEnabled && canReadEnquiries) {
@@ -167,6 +172,7 @@ const CommandPalette: React.FC = () => {
         canReadRealms,
         canModerate,
         canReadInvoices,
+        canReadBillingEvents,
         canReadEnquiries,
         canReadEmail,
         billingEnabled,

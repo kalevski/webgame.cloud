@@ -16,6 +16,8 @@ import { SettingsService } from './services/SettingsService.js'
 import { FeatureService } from './services/FeatureService.js'
 import { BillingRepository } from './repositories/billing/BillingRepository.js'
 import { BillingService } from './services/BillingService.js'
+import { BillingEventRepository } from './repositories/billing/BillingEventRepository.js'
+import { BillingEventService } from './services/BillingEventService.js'
 import { EmailRepository } from './repositories/email/EmailRepository.js'
 import { EmailService } from './services/EmailService.js'
 import { EmailWorker } from './services/EmailWorker.js'
@@ -136,6 +138,8 @@ container.registerSingleton(TicketService)
 
 container.registerSingleton(BillingRepository)
 container.registerSingleton(BillingService)
+container.registerSingleton(BillingEventRepository)
+container.registerSingleton(BillingEventService)
 
 container.registerSingleton(EmailRepository)
 container.registerSingleton(EmailService)

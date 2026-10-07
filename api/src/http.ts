@@ -34,6 +34,7 @@ import { publicWaitlistRouter, waitlistRouter } from './routers/waitlistRouter.j
 import { roleApplicationRouter } from './routers/roleApplicationRouter.js'
 import { ticketRouter } from './routers/ticketRouter.js'
 import { billingRouter, publicBillingRouter } from './routers/billingRouter.js'
+import { billingWebhookRouter } from './routers/billingWebhookRouter.js'
 import { emailRouter } from './routers/emailRouter.js'
 import { platformRouter } from './routers/platformRouter.js'
 import { filesRouter } from './routers/filesRouter.js'
@@ -67,6 +68,7 @@ const ROUTE_PLUGINS = [
     waitlistRouter,
     billingRouter,
     publicBillingRouter,
+    billingWebhookRouter,
     emailRouter,
     platformRouter,
     filesRouter,

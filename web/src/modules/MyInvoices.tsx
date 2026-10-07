@@ -37,6 +37,8 @@ const MyInvoices: React.FC = () => {
         void fetchMyInvoices({ limit: PAGE_SIZE, offset: 0 })
     }, [fetchMyInvoices])
 
+    const hasProviderInvoice = invoices.some((invoice) => invoice.provider !== 'manual')
+
     const rows = useMemo(
         () =>
             invoices
@@ -87,6 +89,7 @@ const MyInvoices: React.FC = () => {
             <tc-section-card title={b.invoicesTitle} icon="ReceiptText">
                 <tc-stack direction="vertical" gap="0.85rem">
                     <tc-text variant="muted">{b.invoicesIntro}</tc-text>
+                    {hasProviderInvoice && <tc-text variant="muted">{b.issuedByProvider}</tc-text>}
                     <tc-advanced-table
                         ref={table}
                         limit={PAGE_SIZE}

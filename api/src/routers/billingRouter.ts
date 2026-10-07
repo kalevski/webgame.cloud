@@ -1,6 +1,8 @@
 import type { FastifyPluginAsync, FastifyReply, FastifyRequest } from 'fastify'
 import type {
     AccountUsage,
+    BillingEvent,
+    BillingEventFilters,
     CheckoutIntent,
     Coupon,
     CouponDraft,
@@ -9,6 +11,7 @@ import type {
     EnquiryActionResult,
     EnquiryFilters,
     EnquiryStatus,
+    PortalLink,
     PublicConstants,
     PublicInvoice,
     SalesEnquiry,
@@ -23,6 +26,7 @@ import type {
     SubscriptionPatch,
 } from '../contracts/index.js'
 import {
+    BILLING_EVENT_STATUSES,
     BILLING_INTERVALS,
     BILLING_PROVIDERS,
     ENQUIRY_EVENT_KINDS,
@@ -32,6 +36,7 @@ import {
     SALES_FIELD_TYPES,
     SUBSCRIPTION_STATUSES,
 } from '../contracts/index.js'
+import { BillingEventService } from '../services/BillingEventService.js'
 import { requireAuth, requirePermission } from '../auth.js'
 import { requireFeature } from '../features.js'
 import { rateLimit } from '../http/rateLimit.js'
@@ -42,6 +47,7 @@ import { AccessPolicyService } from '../services/AccessPolicyService.js'
 import { WORKSPACE_NAME } from '../env.js'
 
 const billing = () => container.resolve(BillingService)
+const billingEvents = () => container.resolve(BillingEventService)
 
 const checkoutSchema = {
     type: 'object',
@@ -80,6 +86,7 @@ const planSchema = {
         position: { type: 'integer', minimum: 0, maximum: 10_000 },
         active: { type: 'boolean' },
         trialDays: { type: 'integer', minimum: 0, maximum: 365 },
+        providerProductId: { type: 'string', maxLength: 120 },
         features: { type: 'array', maxItems: 20, items: { type: 'string', maxLength: 120 } },
         salesFields: {
             type: 'array',
@@ -207,6 +214,28 @@ const invoiceStatusSchema = {
     additionalProperties: false,
     properties: {
         status: { type: 'string', enum: [...INVOICE_STATUSES] },
+    },
+} as const
+
+const changePlanSchema = {
+    type: 'object',
+    required: ['planId'],
+    additionalProperties: false,
+    properties: {
+        planId: { type: 'string', minLength: 1, maxLength: 60 },
+    },
+} as const
+
+const billingEventQuerySchema = {
+    type: 'object',
+    additionalProperties: false,
+    properties: {
+        status: { type: 'string', enum: [...BILLING_EVENT_STATUSES] },
+        eventType: { type: 'string', maxLength: 120 },
+        userId: { type: 'string', maxLength: 60 },
+        q: { type: 'string', maxLength: 200 },
+        limit: { type: 'integer', minimum: 1, maximum: 200 },
+        offset: { type: 'integer', minimum: 0 },
     },
 } as const
 
@@ -350,6 +379,40 @@ const cancelEndpoint = async (
     const canceled = await billing().cancel(request.user!)
     void recordRequestAudit(request, 'cancel_subscription', request.user!.id, canceled.planId ?? '')
     return canceled
+}
+
+const resumeEndpoint = async (
+    request: FastifyRequest,
+    reply: FastifyReply
+): Promise<Subscription> => {
+    const resumed = await billing().resume(request.user!)
+    void recordRequestAudit(request, 'resume_subscription', request.user!.id, resumed.planId ?? '')
+    return resumed
+}
+
+const changePlanEndpoint = async (
+    request: FastifyRequest<{ Body: { planId: string } }>,
+    reply: FastifyReply
+): Promise<Subscription> => {
+    const changed = await billing().changePlan(request.user!, request.body.planId)
+    void recordRequestAudit(request, 'change_plan', request.user!.id, request.body.planId)
+    return changed
+}
+
+const portalEndpoint = async (request: FastifyRequest): Promise<PortalLink> =>
+    billing().portalUrl(request.user!)
+
+const listBillingEventsEndpoint = async (
+    request: FastifyRequest<{ Querystring: BillingEventFilters }>
+): Promise<{ events: BillingEvent[]; total: number }> => billingEvents().list(request.query)
+
+const replayBillingEventEndpoint = async (
+    request: FastifyRequest<{ Params: { eventId: string } }>,
+    reply: FastifyReply
+): Promise<BillingEvent> => {
+    const replayed = await billingEvents().replay(request.params.eventId)
+    void recordRequestAudit(request, 'billing_event_replayed', replayed.id, replayed.eventType)
+    return replayed
 }
 
 const userSubscriptionEndpoint = async (
@@ -511,6 +574,28 @@ export const billingRouter: FastifyPluginAsync = async (app) => {
     )
 
     app.post('/api/billing/cancel', cancelEndpoint)
+
+    app.post('/api/billing/resume', resumeEndpoint)
+
+    app.post<{ Body: { planId: string } }>(
+        '/api/billing/change-plan',
+        { schema: { body: changePlanSchema } },
+        changePlanEndpoint
+    )
+
+    app.post('/api/billing/portal', portalEndpoint)
+
+    app.get<{ Querystring: BillingEventFilters }>(
+        '/api/billing/admin/events',
+        { schema: { querystring: billingEventQuerySchema }, preHandler: [requirePermission('billing.subscription.read')] },
+        listBillingEventsEndpoint
+    )
+
+    app.post<{ Params: { eventId: string } }>(
+        '/api/billing/admin/events/:eventId/replay',
+        { preHandler: [requirePermission('billing.subscription.write')] },
+        replayBillingEventEndpoint
+    )
 
     app.post<{ Body: SalesEnquiryDraft }>(
         '/api/billing/enquiries',

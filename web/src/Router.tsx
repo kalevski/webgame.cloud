@@ -26,6 +26,7 @@ import RealmsAdminPage from 'pages/RealmsAdminPage'
 const AdminPage = lazy(() => import('pages/AdminPage'))
 const ModerationPage = lazy(() => import('pages/ModerationPage'))
 const InvoicesPage = lazy(() => import('pages/InvoicesPage'))
+const BillingEventsPage = lazy(() => import('pages/BillingEventsPage'))
 const EnquiriesPage = lazy(() => import('pages/EnquiriesPage'))
 const BillingPage = lazy(() => import('pages/BillingPage'))
 const EmailPage = lazy(() => import('pages/EmailPage'))
@@ -114,6 +115,7 @@ export const Router = () => {
                                         <Route path="/admin" element={<AdminPage />} />
                                         <Route path="/admin/:tab" element={<AdminPage />} />
                                         <Route path="/platform/invoices" element={<InvoicesPage />} />
+                                        <Route path="/platform/billing-events" element={<BillingEventsPage />} />
                                         <Route path="/platform/enquiries" element={<EnquiriesPage />} />
                                         <Route path="/platform/email" element={<EmailPage />} />
                                         <Route path="/platform/email/:tab" element={<EmailPage />} />

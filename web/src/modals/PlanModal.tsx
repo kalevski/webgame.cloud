@@ -35,6 +35,7 @@ const EMPTY: PlanDraft = {
     trialDays: 0,
     features: [],
     salesFields: [],
+    providerProductId: '',
 }
 
 const toLines = (values: string[]): string => values.join('\n')
@@ -157,6 +158,7 @@ const PlanModal: React.FC = () => {
     const priceRef = useRef<ValueElement | null>(null)
     const trialDaysRef = useRef<ValueElement | null>(null)
     const currencyRef = useRef<ValueElement | null>(null)
+    const providerProductIdRef = useRef<ValueElement | null>(null)
     const descriptionRef = useRef<ValueElement | null>(null)
     const featuresValue = useRef('')
 
@@ -209,6 +211,7 @@ const PlanModal: React.FC = () => {
                 trialDays: editing.trialDays,
                 features: editing.features,
                 salesFields: editing.salesFields,
+                providerProductId: editing.providerProductId,
             }
             : EMPTY
         setDraft(next)
@@ -225,6 +228,7 @@ const PlanModal: React.FC = () => {
             if (priceRef.current) priceRef.current.value = String(next.priceCents ?? 0)
             if (trialDaysRef.current) trialDaysRef.current.value = String(next.trialDays ?? 0)
             if (currencyRef.current) currencyRef.current.value = next.currency ?? 'USD'
+            if (providerProductIdRef.current) providerProductIdRef.current.value = next.providerProductId ?? ''
             if (descriptionRef.current) descriptionRef.current.value = next.description ?? ''
         })
         return () => cancelAnimationFrame(frame)
@@ -289,6 +293,19 @@ const PlanModal: React.FC = () => {
                             <tc-extended-select ref={modeSelect}></tc-extended-select>
                             <tc-helper-text>{p.modeHint}</tc-helper-text>
                         </div>
+
+                        <tc-form-input
+                            ref={providerProductIdRef}
+                            type="text"
+                            label={p.providerProductIdLabel}
+                            help={p.providerProductIdHint}
+                            onInput={(event) =>
+                                setDraft((current) => ({
+                                    ...current,
+                                    providerProductId: String((event.target as ValueElement).value ?? ''),
+                                }))
+                            }
+                        ></tc-form-input>
 
                         <tc-form-input
                             ref={priceRef}

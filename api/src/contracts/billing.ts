@@ -83,6 +83,8 @@ export type Plan = {
 
     trialDays: number
 
+    providerProductId: string
+
     storageOverageAllowed: boolean
 }
 
@@ -101,6 +103,7 @@ export type PlanDraft = {
     active?: boolean
     features?: string[]
     salesFields?: SalesField[]
+    providerProductId?: string
 }
 
 export const isPlanVisibleTo = (plan: Pick<Plan, 'visibleRoleIds'>, roleId: string | null): boolean =>
@@ -361,4 +364,50 @@ export type SubscriptionPatch = {
     planId?: string | null
 
     currentPeriodEnd?: string | null
+}
+
+export type PortalLink = {
+    url: string
+}
+
+export const BILLING_EVENT_STATUSES = [
+    'received',
+    'applied',
+    'ignored',
+    'failed',
+] as const
+
+export type BillingEventStatus = typeof BILLING_EVENT_STATUSES[number]
+
+export type BillingEvent = {
+    id: string
+    provider: BillingProvider
+    eventType: string
+
+    userId: string | null
+    userEmail: string | null
+    userName: string | null
+
+    providerSubscriptionId: string
+
+    objectAt: string
+
+    payload: unknown
+
+    status: BillingEventStatus
+    attempts: number
+    error: string
+    appliedAt: string | null
+
+    createdAt: string
+}
+
+export type BillingEventFilters = {
+    status?: BillingEventStatus
+    eventType?: string
+    userId?: string
+    q?: string
+
+    limit?: number
+    offset?: number
 }

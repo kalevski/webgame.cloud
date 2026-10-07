@@ -1,4 +1,7 @@
 export type {
+    BillingEvent,
+    BillingEventFilters,
+    BillingEventStatus,
     BillingInterval,
     BillingProvider,
     CheckoutIntent,
@@ -17,6 +20,7 @@ export type {
     Plan,
     PlanDraft,
     PlanMode,
+    PortalLink,
     PublicConstants,
     PublicInvoice,
     SalesEnquiry,
@@ -30,6 +34,7 @@ export type {
 } from '@webgame-cloud/api/contracts'
 export {
     ACTIVE_SUBSCRIPTION_STATUSES,
+    BILLING_EVENT_STATUSES,
     BILLING_INTERVALS,
     FEATURE_FLAGS,
     FEATURE_FLAG_DEFAULTS,

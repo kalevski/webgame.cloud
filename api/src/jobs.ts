@@ -3,6 +3,7 @@ import { previousRun, registerJobHandler, scheduledRegistrations } from './domai
 import { getLogger } from './logging.js'
 import { AlarmService } from './services/AlarmService.js'
 import { BillingService } from './services/BillingService.js'
+import { BillingEventService } from './services/BillingEventService.js'
 import { JobService } from './services/JobService.js'
 import { SessionRepository } from './repositories/users/SessionRepository.js'
 import { WebhookService } from './services/WebhookService.js'
@@ -25,6 +26,8 @@ export const JOB_ASSET_REAP_ORPHANS = 'assets.reap_orphans'
 export const JOB_BUILD_REAP_STALE = 'builds.reap_stale'
 export const JOB_INVOICE_DUNNING = 'invoice_dunning'
 export const JOB_HEALTH_SWEEP = 'health_sweep'
+export const JOB_BILLING_EVENT_APPLY = 'billing_event_apply'
+export const JOB_BILLING_RECONCILE = 'billing_reconcile'
 
 export const registerJobHandlers = (): void => {
     registerJobHandler(
@@ -65,6 +68,22 @@ export const registerJobHandlers = (): void => {
             await container.resolve(WebhookService).deliver(String(payload.deliveryId ?? ''))
         },
         { description: 'Deliver one webhook payload. Queued by the audit trail, never scheduled.' }
+    )
+
+    registerJobHandler(
+        JOB_BILLING_EVENT_APPLY,
+        async (payload) => {
+            await container.resolve(BillingEventService).apply(String(payload.eventId ?? ''))
+        },
+        { description: 'Apply one stored gateway webhook event. Queued by the webhook route and by a replay, never scheduled.' }
+    )
+
+    registerJobHandler(
+        JOB_BILLING_RECONCILE,
+        async () => {
+            await container.resolve(BillingEventService).reconcile()
+        },
+        { cron: '0 4 * * *', description: 'Ask each attached gateway directly for any managed subscription whose webhook never arrived.' }
     )
 
     registerJobHandler(

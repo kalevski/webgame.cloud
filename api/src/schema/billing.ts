@@ -1,4 +1,6 @@
 import type {
+    BillingEvent,
+    BillingEventStatus,
     Coupon,
     BillingInterval,
     BillingProvider,
@@ -30,6 +32,7 @@ export type PlanRow = {
     features: string[]
     sales_fields: SalesField[]
     trial_days: number
+    provider_product_id: string
     storage_overage_allowed: boolean
     created_at: Date
 }
@@ -49,6 +52,7 @@ export const toPlan = (row: PlanRow): Plan => ({
     features: Array.isArray(row.features) ? row.features : [],
     salesFields: Array.isArray(row.sales_fields) ? row.sales_fields : [],
     trialDays: row.trial_days ?? 0,
+    providerProductId: row.provider_product_id ?? '',
     storageOverageAllowed: row.storage_overage_allowed ?? false,
 })
 
@@ -59,6 +63,7 @@ export type SubscriptionRow = {
     provider: BillingProvider
     provider_customer_id: string
     provider_subscription_id: string
+    provider_updated_at: Date | null
     cancel_at_period_end: boolean
     current_period_end: Date | null
     started_at: Date | null
@@ -198,5 +203,40 @@ export const toCoupon = (row: CouponRow): Coupon => ({
     redeemed: row.redeemed,
     expiresAt: row.expires_at?.toISOString() ?? null,
     active: row.active,
+    createdAt: row.created_at.toISOString(),
+})
+
+export type BillingEventRow = {
+    id: string
+    provider: BillingProvider
+    provider_event_id: string
+    event_type: string
+    provider_subscription_id: string
+    user_id: string | null
+    object_at: Date
+    payload: unknown
+    status: BillingEventStatus
+    attempts: number
+    error: string
+    applied_at: Date | null
+    created_at: Date
+    user_email: string | null
+    user_name: string | null
+}
+
+export const toBillingEvent = (row: BillingEventRow): BillingEvent => ({
+    id: row.id,
+    provider: row.provider,
+    eventType: row.event_type,
+    userId: row.user_id,
+    userEmail: row.user_email,
+    userName: row.user_name,
+    providerSubscriptionId: row.provider_subscription_id,
+    objectAt: row.object_at.toISOString(),
+    payload: row.payload,
+    status: row.status,
+    attempts: row.attempts,
+    error: row.error,
+    appliedAt: row.applied_at?.toISOString() ?? null,
     createdAt: row.created_at.toISOString(),
 })

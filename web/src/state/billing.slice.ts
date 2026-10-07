@@ -2,6 +2,8 @@ import { StateCreator } from 'zustand'
 import BillingService from 'services/BillingService'
 import { STRINGS } from 'configs/strings'
 import {
+    BillingEvent,
+    BillingEventFilters,
     CheckoutIntent,
     EnquiryActionDraft,
     EnquiryFilters,
@@ -39,6 +41,9 @@ export type BillingSlice = {
     myEnquiry: SalesEnquiry | null
     startCheckout: (planId: string) => Promise<CheckoutIntent | null>
     cancelSubscription: () => Promise<boolean>
+    resumeSubscription: () => Promise<boolean>
+    changeSubscriptionPlan: (planId: string) => Promise<boolean>
+    openBillingPortal: () => Promise<boolean>
 
     fetchFeatureFlags: () => Promise<void>
     saveFeatureFlag: (flag: keyof FeatureFlags, enabled: boolean) => Promise<boolean>
@@ -78,6 +83,13 @@ export type BillingSlice = {
     myInvoicesLoading: boolean
     myInvoiceFilters: InvoiceFilters
     fetchMyInvoices: (filters?: InvoiceFilters) => Promise<void>
+
+    billingEvents: BillingEvent[]
+    billingEventsTotal: number
+    billingEventsLoading: boolean
+    billingEventFilters: BillingEventFilters
+    fetchBillingEvents: (filters?: BillingEventFilters) => Promise<void>
+    replayBillingEvent: (eventId: string) => Promise<boolean>
 }
 
 export const createBillingSlice: StateCreator<AppStore, [], [], BillingSlice> = (set, get) => ({
@@ -105,6 +117,11 @@ export const createBillingSlice: StateCreator<AppStore, [], [], BillingSlice> = 
     myInvoicesTotal: 0,
     myInvoicesLoading: false,
     myInvoiceFilters: { limit: 20, offset: 0 },
+
+    billingEvents: [],
+    billingEventsTotal: 0,
+    billingEventsLoading: false,
+    billingEventFilters: { limit: 20, offset: 0 },
 
     async fetchBilling() {
         try {
@@ -157,6 +174,42 @@ export const createBillingSlice: StateCreator<AppStore, [], [], BillingSlice> = 
             return true
         } catch (error) {
             fail(get, error, STRINGS.alerts.subscriptionCancelFailed)
+            return false
+        }
+    },
+
+    async resumeSubscription() {
+        try {
+            const subscription = await BillingService.getInstance().resume()
+            set({ subscription })
+            void get().refreshSession()
+            get().addAlert({ variant: 'success', message: STRINGS.alerts.subscriptionResumed, dismissible: true })
+            return true
+        } catch (error) {
+            fail(get, error, STRINGS.alerts.subscriptionResumeFailed)
+            return false
+        }
+    },
+
+    async changeSubscriptionPlan(planId) {
+        try {
+            const subscription = await BillingService.getInstance().changePlan(planId)
+            set({ subscription })
+            get().addAlert({ variant: 'success', message: STRINGS.alerts.planChangeRequested, dismissible: true })
+            return true
+        } catch (error) {
+            fail(get, error, STRINGS.alerts.planChangeFailed)
+            return false
+        }
+    },
+
+    async openBillingPortal() {
+        try {
+            const { url } = await BillingService.getInstance().portal()
+            window.location.href = url
+            return true
+        } catch (error) {
+            fail(get, error, STRINGS.alerts.portalUnavailable)
             return false
         }
     },
@@ -304,6 +357,30 @@ export const createBillingSlice: StateCreator<AppStore, [], [], BillingSlice> = 
         } catch (error) {
             set({ myInvoicesLoading: false })
             fail(get, error, STRINGS.common.loadFailed)
+        }
+    },
+
+    async fetchBillingEvents(filters) {
+        const next = { ...get().billingEventFilters, ...filters }
+        set({ billingEventsLoading: true, billingEventFilters: next })
+        try {
+            const { events, total } = await BillingService.getInstance().listBillingEvents(next)
+            set({ billingEvents: events, billingEventsTotal: total, billingEventsLoading: false })
+        } catch (error) {
+            set({ billingEventsLoading: false })
+            fail(get, error, STRINGS.common.loadFailed)
+        }
+    },
+
+    async replayBillingEvent(eventId) {
+        try {
+            const replayed = await BillingService.getInstance().replayBillingEvent(eventId)
+            set({ billingEvents: get().billingEvents.map((event) => (event.id === replayed.id ? replayed : event)) })
+            get().addAlert({ variant: 'success', message: STRINGS.alerts.billingEventReplayed, dismissible: true })
+            return true
+        } catch (error) {
+            fail(get, error, STRINGS.alerts.billingEventReplayFailed)
+            return false
         }
     },
 

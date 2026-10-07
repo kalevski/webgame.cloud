@@ -218,6 +218,7 @@ CREATE TABLE billing_plans (
     features     jsonb NOT NULL DEFAULT '[]'::jsonb,
     sales_fields jsonb NOT NULL DEFAULT '[]'::jsonb,
     trial_days   integer NOT NULL DEFAULT 0 CHECK (trial_days >= 0),
+    provider_product_id text NOT NULL DEFAULT '',
     storage_overage_allowed boolean NOT NULL DEFAULT false,
     created_at   timestamptz NOT NULL DEFAULT now(),
     updated_at   timestamptz NOT NULL DEFAULT now(),
@@ -232,6 +233,7 @@ CREATE TABLE subscriptions (
     provider                 text NOT NULL DEFAULT 'manual',
     provider_customer_id     text NOT NULL DEFAULT '',
     provider_subscription_id text NOT NULL DEFAULT '',
+    provider_updated_at      timestamptz,
     cancel_at_period_end     boolean NOT NULL DEFAULT false,
     current_period_end       timestamptz,
     started_at               timestamptz,
@@ -244,6 +246,8 @@ CREATE TABLE subscriptions (
 );
 CREATE INDEX subscriptions_due_idx ON subscriptions (current_period_end)
     WHERE status IN ('trialing', 'active') AND deleted_at IS NULL;
+CREATE INDEX subscriptions_provider_sub_idx ON subscriptions (provider, provider_subscription_id)
+    WHERE provider_subscription_id <> '' AND deleted_at IS NULL;
 
 CREATE TABLE invoices (
     id                  text PRIMARY KEY,
@@ -269,6 +273,29 @@ CREATE UNIQUE INDEX invoices_number_idx ON invoices (number) WHERE deleted_at IS
 CREATE UNIQUE INDEX invoices_public_token_idx ON invoices (public_token) WHERE deleted_at IS NULL;
 CREATE INDEX invoices_user_idx ON invoices (user_id, issued_at DESC) WHERE deleted_at IS NULL;
 CREATE INDEX invoices_status_idx ON invoices (status, issued_at DESC) WHERE deleted_at IS NULL;
+CREATE UNIQUE INDEX invoices_provider_invoice_idx ON invoices (provider, provider_invoice_id)
+    WHERE provider_invoice_id <> '' AND deleted_at IS NULL;
+
+CREATE TABLE billing_event (
+    id                        text PRIMARY KEY,
+    provider                  text NOT NULL,
+    provider_event_id         text NOT NULL,
+    event_type                text NOT NULL,
+    provider_subscription_id  text NOT NULL DEFAULT '',
+    user_id                   text REFERENCES users(id) ON DELETE SET NULL,
+    object_at                 timestamptz NOT NULL,
+    payload                   jsonb NOT NULL,
+    status                    text NOT NULL DEFAULT 'received' CHECK (status IN ('received', 'applied', 'ignored', 'failed')),
+    attempts                  integer NOT NULL DEFAULT 0,
+    error                     text NOT NULL DEFAULT '',
+    applied_at                timestamptz,
+    created_at                timestamptz NOT NULL DEFAULT now(),
+    updated_at                timestamptz NOT NULL DEFAULT now(),
+    deleted_at                timestamptz
+);
+CREATE UNIQUE INDEX billing_event_provider_idx ON billing_event (provider, provider_event_id) WHERE deleted_at IS NULL;
+CREATE INDEX billing_event_status_idx ON billing_event (status, created_at DESC) WHERE deleted_at IS NULL;
+CREATE INDEX billing_event_user_idx ON billing_event (user_id, created_at DESC) WHERE deleted_at IS NULL;
 
 CREATE TABLE sales_enquiries (
     id         text PRIMARY KEY,
@@ -934,6 +961,7 @@ DROP TABLE email_triggers;
 DROP TABLE email_templates;
 DROP TABLE sales_enquiry_events;
 DROP TABLE sales_enquiries;
+DROP TABLE billing_event;
 DROP TABLE invoices;
 DROP TABLE subscriptions;
 DROP TABLE billing_plans;

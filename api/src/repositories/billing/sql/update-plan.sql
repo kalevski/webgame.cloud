@@ -12,5 +12,6 @@ UPDATE billing_plans SET
     features = COALESCE($13::jsonb, features),
     sales_fields = COALESCE($14::jsonb, sales_fields),
     trial_days = COALESCE($15, trial_days),
+    provider_product_id = COALESCE($16, provider_product_id),
     updated_at = now()
 WHERE id = $1 AND deleted_at IS NULL

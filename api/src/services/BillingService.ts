@@ -1,5 +1,6 @@
 import { inject, injectable } from 'tsyringe'
 import { randomUUID } from 'node:crypto'
+import type { QueryRunner } from '../Database.js'
 import type {
     BillingProvider,
     CheckoutIntent,
@@ -15,6 +16,7 @@ import type {
     InvoiceStatus,
     Plan,
     PlanDraft,
+    PortalLink,
     PublicConstants,
     PublicInvoice,
     SalesEnquiry,
@@ -113,7 +115,13 @@ export class BillingService {
     private async managedProvider(): Promise<BillingProvider | null> {
         const configured = (await this.settings.getRaw('billing_provider')) as BillingProvider | undefined
         if (!configured || configured === 'manual') return null
-        return getBillingPort(configured) ? configured : null
+        const port = getBillingPort(configured)
+        return port && port.ready() ? configured : null
+    }
+
+    async configuredProvider(): Promise<BillingProvider> {
+        const configured = (await this.settings.getRaw('billing_provider')) as BillingProvider | undefined
+        return configured ?? 'manual'
     }
 
     async listPlans(viewer: User | null, known?: Subscription): Promise<Plan[]> {
@@ -156,6 +164,7 @@ export class BillingService {
             features: draft.features ?? [],
             salesFields: draft.salesFields ?? [],
             trialDays: Math.max(0, Math.floor(draft.trialDays ?? 0)),
+            providerProductId: draft.providerProductId?.trim() ?? '',
         })
         if (!created) throw new NotFoundError('plan_not_found', 'plan not found', [id])
         return toPlan(created)
@@ -179,6 +188,7 @@ export class BillingService {
             features: draft.features,
             salesFields: draft.salesFields,
             trialDays: draft.trialDays === undefined ? undefined : Math.max(0, Math.floor(draft.trialDays)),
+            providerProductId: draft.providerProductId === undefined ? undefined : draft.providerProductId.trim(),
         })
         if (!updated) throw new NotFoundError('plan_not_found', 'plan not found', [id])
         return toPlan(updated)
@@ -232,6 +242,10 @@ export class BillingService {
             }
         }
 
+        if (plan.mode === 'managed' && !plan.providerProductId) {
+            throw new ConflictError('plan_not_connected', 'this plan has no gateway product id', [plan.id])
+        }
+
         const intent = await this.port(managed ?? 'manual').startCheckout({
             userId: user.id,
             userEmail: user.email,
@@ -239,6 +253,7 @@ export class BillingService {
             successUrl: `${WEB_URL || ''}/profile/billing?checkout=success`,
             cancelUrl: `${WEB_URL || ''}/profile/billing?checkout=cancelled`,
             salesContact,
+            metadata: { userId: user.id, planId: plan.id },
         })
 
         if (intent.outcome === 'activated') {
@@ -275,6 +290,60 @@ export class BillingService {
         })
         await this.syncRole(user.id, saved)
         return toSubscription(saved)
+    }
+
+    async resume(user: User): Promise<Subscription> {
+        const row = await this.billing.findSubscription(user.id)
+        if (!row || row.provider === 'manual' || !row.provider_subscription_id) {
+            throw new ConflictError('not_subscribed', 'no gateway subscription to resume')
+        }
+
+        const next = await this.port(row.provider).resume(asProviderSubscription(row))
+        const saved = await this.billing.saveSubscription({
+            userId: user.id,
+            planId: row.plan_id,
+            status: next.status,
+            provider: row.provider,
+            providerCustomerId: next.providerCustomerId,
+            providerSubscriptionId: next.providerSubscriptionId,
+            cancelAtPeriodEnd: next.cancelAtPeriodEnd,
+            currentPeriodEnd: next.currentPeriodEnd,
+            startedAt: row.started_at,
+        })
+        await this.syncRole(user.id, saved)
+        return toSubscription(saved)
+    }
+
+    async changePlan(user: User, planId: string): Promise<Subscription> {
+        const row = await this.billing.findSubscription(user.id)
+        if (!row || row.provider === 'manual' || !row.provider_subscription_id) {
+            throw new ConflictError('not_subscribed', 'no gateway subscription to change')
+        }
+        if (row.plan_id === planId) {
+            throw new ConflictError('already_subscribed', 'already subscribed to this plan')
+        }
+
+        const plan = await this.getPlan(planId)
+        if (
+            user.role !== OWNER_ROLE_ID &&
+            !isPlanVisibleTo(plan, user.role)
+        ) {
+            throw new NotFoundError('plan_not_visible', 'plan not available for this account', [plan.id])
+        }
+        if (!plan.providerProductId) {
+            throw new ConflictError('plan_not_connected', 'this plan has no gateway product id', [plan.id])
+        }
+
+        await this.port(row.provider).changePlan(asProviderSubscription(row), plan.providerProductId)
+        return toSubscription(row)
+    }
+
+    async portalUrl(user: User): Promise<PortalLink> {
+        const row = await this.billing.findSubscription(user.id)
+        if (!row || row.provider === 'manual' || !row.provider_customer_id) {
+            throw new ConflictError('portal_unavailable', 'no billing portal for this account')
+        }
+        return { url: await this.port(row.provider).portalUrl(row.provider_customer_id) }
     }
 
     async applySubscription(userId: string, patch: SubscriptionPatch, knownPlans?: PlanRow[]): Promise<Subscription> {
@@ -361,6 +430,38 @@ export class BillingService {
         })
         if (!created) throw new NotFoundError('not_found', 'invoice not found')
         return toInvoice(created)
+    }
+
+    async mirrorProviderInvoice(
+        input: {
+            userId: string
+            planId: string | null
+            provider: BillingProvider
+            providerInvoiceId: string
+            amountCents: number
+            currency: string
+            status: Extract<InvoiceStatus, 'paid' | 'void' | 'uncollectible'>
+        },
+        trx?: QueryRunner
+    ): Promise<Invoice | null> {
+        if (!input.providerInvoiceId) return null
+
+        const issued = new Date()
+        const created = await this.billing.insertInvoice({
+            id: randomUUID(),
+            number: invoiceNumber(issued),
+            publicToken: randomUUID().replace(/-/g, ''),
+            userId: input.userId,
+            planId: input.planId,
+            status: input.status,
+            provider: input.provider,
+            providerInvoiceId: input.providerInvoiceId,
+            amountCents: input.amountCents,
+            currency: input.currency,
+            dueAt: null,
+            paidAt: input.status === 'paid' ? issued : null,
+        }, trx)
+        return created ? toInvoice(created) : null
     }
 
     async getPublicInvoice(token: string, workspace: string): Promise<PublicInvoice> {
@@ -570,7 +671,7 @@ export class BillingService {
         await this.billing.flagStorageOverage(userId, bytes)
     }
 
-    private async syncRole(userId: string, row: SubscriptionRow, known?: PlanRow[]): Promise<void> {
+    async syncRole(userId: string, row: SubscriptionRow, known?: PlanRow[]): Promise<void> {
         const user = await this.users.findById(userId)
         if (!user || user.role === OWNER_ROLE_ID) return
 

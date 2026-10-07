@@ -1,8 +1,10 @@
 #!/bin/sh
 # Enumerates every route declared in api/src/routers and probes a table of
-# authorization expectations against a running local stack. Writes the matrix to
-# docs/authorization-matrix.md, echoes it on stdout, and exits non-zero when any
-# probe disagrees with its expectation.
+# authorization expectations against a running local stack. Prints the matrix
+# to stdout (pass MATRIX_OUT=<path> to also write it to a file — the durable
+# copy lives as a dated record in the notegraph graph, under project/Records,
+# not in this repo) and exits non-zero when any probe disagrees with its
+# expectation.
 #
 #   npm run dev:api
 #   sh scripts/authz-sweep.sh
@@ -27,9 +29,9 @@ if ! curl -s -o /dev/null --max-time 5 "$API/api/health"; then
     exit 1
 fi
 
-# The matrix is committed documentation; stdout is kept so the run is still
-# readable while it happens.
-MATRIX_OUT="${MATRIX_OUT:-$ROOT/docs/authorization-matrix.md}"
+# No file is written unless the caller asks for one; stdout is kept so the
+# run is still readable while it happens.
+MATRIX_OUT="${MATRIX_OUT:-}"
 MATRIX="$JARS/matrix.md"
 PROBED="$JARS/probed.txt"
 : > "$PROBED"
@@ -233,7 +235,9 @@ fi
 exec 1>&3
 cat "$MATRIX"
 
-cp "$MATRIX" "$MATRIX_OUT"
-printf '\nwritten to %s\n' "$MATRIX_OUT" >&2
+if [ -n "$MATRIX_OUT" ]; then
+    cp "$MATRIX" "$MATRIX_OUT"
+    printf '\nwritten to %s\n' "$MATRIX_OUT" >&2
+fi
 
 exit "$FAILURES"

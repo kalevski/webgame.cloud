@@ -11,6 +11,11 @@ dist/
 .env.*
 !.env.example
 
+# notegraph — the token, and any local export snapshot (never committed; the graph itself is authoritative)
+.notegraph
+*.notegraph.local
+graph/
+
 # jwt signing key material — never commit private keys
 keys/
 *.pem

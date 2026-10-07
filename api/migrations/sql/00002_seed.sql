@@ -96,6 +96,7 @@ INSERT INTO settings (key, value) VALUES ('email_from_name', 'WebGame Cloud');
 INSERT INTO settings (key, value) VALUES ('email_from_email', 'no-reply@example.com');
 
 INSERT INTO settings (key, value) VALUES ('sales_contact', '');
+INSERT INTO settings (key, value) VALUES ('billing_provider', 'manual');
 
 INSERT INTO settings (key, value) VALUES ('build_timeout_minutes', '30');
 
